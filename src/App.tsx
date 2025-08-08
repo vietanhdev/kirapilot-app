@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { CheckCircle, Clock, Zap } from "lucide-react";
+import { DatabaseProvider, DatabaseStatus } from "./services/database/DatabaseProvider";
+import { DatabaseTest } from "./components/common/DatabaseTest";
 import "./App.css";
 
-function App() {
+function AppContent() {
   const [greetMsg, setGreetMsg] = useState("");
   const [name, setName] = useState("");
 
@@ -22,6 +24,11 @@ function App() {
           <p className="text-slate-600 dark:text-slate-300 animate-slide-up">
             Navigate your day with precision, powered by Kira AI
           </p>
+        </div>
+
+        {/* Database Status */}
+        <div className="mb-8">
+          <DatabaseStatus />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -62,43 +69,57 @@ function App() {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-800 rounded-lg p-6 shadow-lg max-w-md mx-auto">
-          <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mb-4">
-            Test Tauri Integration
-          </h2>
-          <form
-            className="space-y-4"
-            onSubmit={(e) => {
-              e.preventDefault();
-              greet();
-            }}
-          >
-            <input
-              id="greet-input"
-              onChange={(e) => setName(e.currentTarget.value)}
-              placeholder="Enter a name..."
-              className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg 
-                         bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100
-                         focus:ring-2 focus:ring-primary-500 focus:border-transparent
-                         transition-all duration-200"
-            />
-            <button 
-              type="submit"
-              className="w-full bg-primary-500 hover:bg-primary-600 text-white font-medium 
-                         py-2 px-4 rounded-lg transition-colors duration-200
-                         focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Database Test */}
+          <DatabaseTest />
+
+          {/* Tauri Integration Test */}
+          <div className="bg-white dark:bg-slate-800 rounded-lg p-6 shadow-lg">
+            <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mb-4">
+              Test Tauri Integration
+            </h2>
+            <form
+              className="space-y-4"
+              onSubmit={(e) => {
+                e.preventDefault();
+                greet();
+              }}
             >
-              Greet
-            </button>
-          </form>
-          {greetMsg && (
-            <p className="mt-4 text-center text-slate-600 dark:text-slate-300 animate-fade-in">
-              {greetMsg}
-            </p>
-          )}
+              <input
+                id="greet-input"
+                onChange={(e) => setName(e.currentTarget.value)}
+                placeholder="Enter a name..."
+                className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg 
+                           bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100
+                           focus:ring-2 focus:ring-primary-500 focus:border-transparent
+                           transition-all duration-200"
+              />
+              <button 
+                type="submit"
+                className="w-full bg-primary-500 hover:bg-primary-600 text-white font-medium 
+                           py-2 px-4 rounded-lg transition-colors duration-200
+                           focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+              >
+                Greet
+              </button>
+            </form>
+            {greetMsg && (
+              <p className="mt-4 text-center text-slate-600 dark:text-slate-300 animate-fade-in">
+                {greetMsg}
+              </p>
+            )}
+          </div>
         </div>
       </div>
     </main>
+  );
+}
+
+function App() {
+  return (
+    <DatabaseProvider>
+      <AppContent />
+    </DatabaseProvider>
   );
 }
 
