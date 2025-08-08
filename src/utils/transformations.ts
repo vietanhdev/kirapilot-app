@@ -1,0 +1,312 @@
+// Data transformation utilities for KiraPilot
+import { 
+  Task, 
+  CreateTaskRequest, 
+  UpdateTaskRequest, 
+  TimerSession, 
+  FocusSession,
+  Priority,
+  TaskStatus,
+  DistractionLevel
+} from '../types';
+import { generateId } from './index';
+
+/**
+ * Transform CreateTaskRequest to Task entity
+ */
+export function createTaskRequestToTask(request: CreateTaskRequest): Task {
+  const now = new Date();
+  
+  return {
+    id: generateId(),
+    title: request.title,
+    description: request.description || '',
+    priority: request.priority || Priority.MEDIUM,
+    status: TaskStatus.PENDING,
+    dependencies: request.dependencies || [],
+    timeEstimate: request.timeEstimate || 0,
+    actualTime: 0,
+    dueDate: request.dueDate,
+    tags: request.tags || [],
+    projectId: request.projectId,
+    parentTaskId: request.parentTaskId,
+    subtasks: [],
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
+/**
+ * Apply UpdateTaskRequest to existing Task
+ */
+export function applyTaskUpdate(task: Task, update: UpdateTaskRequest): Task {
+  const updatedTask: Task = {
+    ...task,
+    updatedAt: new Date(),
+  };
+
+  // Apply updates only for defined fields
+  if (update.title !== undefined) updatedTask.title = update.title;
+  if (update.description !== undefined) updatedTask.description = update.description;
+  if (update.priority !== undefined) updatedTask.priority = update.priority;
+  if (update.status !== undefined) {
+    updatedTask.status = update.status;
+    // Set completion time when task is completed
+    if (update.status === TaskStatus.COMPLETED && !task.completedAt) {
+      updatedTask.completedAt = new Date();
+    }
+    // Clear completion time if task is uncompleted
+    if (update.status !== TaskStatus.COMPLETED && task.completedAt) {
+      updatedTask.completedAt = undefined;
+    }
+  }
+  if (update.timeEstimate !== undefined) updatedTask.timeEstimate = update.timeEstimate;
+  if (update.dueDate !== undefined) updatedTask.dueDate = update.dueDate;
+  if (update.tags !== undefined) updatedTask.tags = update.tags;
+  if (update.dependencies !== undefined) updatedTask.dependencies = update.dependencies;
+
+  return updatedTask;
+}
+
+/**
+ * Convert Task to database row format
+ */
+export function taskToDbRow(task: Task): Record<string, any> {
+  return {
+    id: task.id,
+    title: task.title,
+    description: task.description,
+    priority: task.priority,
+    status: task.status,
+    dependencies: JSON.stringify(task.dependencies),
+    time_estimate: task.timeEstimate,
+    actual_time: task.actualTime,
+    due_date: task.dueDate?.toISOString(),
+    tags: JSON.stringify(task.tags),
+    project_id: task.projectId,
+    parent_task_id: task.parentTaskId,
+    subtasks: JSON.stringify(task.subtasks),
+    completed_at: task.completedAt?.toISOString(),
+    created_at: task.createdAt.toISOString(),
+    updated_at: task.updatedAt.toISOString(),
+  };
+}
+
+/**
+ * Convert database row to Task
+ */
+export function dbRowToTask(row: Record<string, any>): Task {
+  return {
+    id: row.id,
+    title: row.title,
+    description: row.description,
+    priority: row.priority,
+    status: row.status,
+    dependencies: JSON.parse(row.dependencies || '[]'),
+    timeEstimate: row.time_estimate || 0,
+    actualTime: row.actual_time || 0,
+    dueDate: row.due_date ? new Date(row.due_date) : undefined,
+    tags: JSON.parse(row.tags || '[]'),
+    projectId: row.project_id,
+    parentTaskId: row.parent_task_id,
+    subtasks: JSON.parse(row.subtasks || '[]'),
+    completedAt: row.completed_at ? new Date(row.completed_at) : undefined,
+    createdAt: new Date(row.created_at),
+    updatedAt: new Date(row.updated_at),
+  };
+}
+
+/**
+ * Convert TimerSession to database row format
+ */
+export function timerSessionToDbRow(session: TimerSession): Record<string, any> {
+  return {
+    id: session.id,
+    task_id: session.taskId,
+    start_time: session.startTime.toISOString(),
+    end_time: session.endTime?.toISOString(),
+    paused_time: session.pausedTime,
+    is_active: session.isActive,
+    notes: session.notes,
+    breaks: JSON.stringify(session.breaks),
+    created_at: session.createdAt.toISOString(),
+  };
+}
+
+/**
+ * Convert database row to TimerSession
+ */
+export function dbRowToTimerSession(row: Record<string, any>): TimerSession {
+  return {
+    id: row.id,
+    taskId: row.task_id,
+    startTime: new Date(row.start_time),
+    endTime: row.end_time ? new Date(row.end_time) : undefined,
+    pausedTime: row.paused_time || 0,
+    isActive: Boolean(row.is_active),
+    notes: row.notes || '',
+    breaks: JSON.parse(row.breaks || '[]'),
+    createdAt: new Date(row.created_at),
+  };
+}
+
+/**
+ * Convert FocusSession to database row format
+ */
+export function focusSessionToDbRow(session: FocusSession): Record<string, any> {
+  return {
+    id: session.id,
+    task_id: session.taskId,
+    planned_duration: session.plannedDuration,
+    actual_duration: session.actualDuration,
+    focus_score: session.focusScore,
+    distraction_count: session.distractionCount,
+    distraction_level: session.distractionLevel,
+    background_audio: session.backgroundAudio ? JSON.stringify(session.backgroundAudio) : null,
+    notes: session.notes,
+    breaks: JSON.stringify(session.breaks),
+    metrics: JSON.stringify(session.metrics),
+    created_at: session.createdAt.toISOString(),
+    completed_at: session.completedAt?.toISOString(),
+  };
+}
+
+/**
+ * Convert database row to FocusSession
+ */
+export function dbRowToFocusSession(row: Record<string, any>): FocusSession {
+  return {
+    id: row.id,
+    taskId: row.task_id,
+    plannedDuration: row.planned_duration,
+    actualDuration: row.actual_duration,
+    focusScore: row.focus_score,
+    distractionCount: row.distraction_count || 0,
+    distractionLevel: row.distraction_level || DistractionLevel.MODERATE,
+    backgroundAudio: row.background_audio ? JSON.parse(row.background_audio) : undefined,
+    notes: row.notes || '',
+    breaks: JSON.parse(row.breaks || '[]'),
+    metrics: JSON.parse(row.metrics || '{}'),
+    createdAt: new Date(row.created_at),
+    completedAt: row.completed_at ? new Date(row.completed_at) : undefined,
+  };
+}
+
+/**
+ * Calculate task completion percentage based on subtasks
+ */
+export function calculateTaskCompletion(task: Task, allTasks: Task[]): number {
+  if (task.subtasks.length === 0) {
+    return task.status === TaskStatus.COMPLETED ? 100 : 0;
+  }
+
+  const subtasks = allTasks.filter(t => task.subtasks.includes(t.id));
+  const completedSubtasks = subtasks.filter(t => t.status === TaskStatus.COMPLETED);
+  
+  return subtasks.length > 0 ? (completedSubtasks.length / subtasks.length) * 100 : 0;
+}
+
+/**
+ * Check if task has circular dependencies
+ */
+export function hasCircularDependency(taskId: string, dependencies: string[], allTasks: Task[]): boolean {
+  const visited = new Set<string>();
+  const recursionStack = new Set<string>();
+
+  function dfs(currentTaskId: string): boolean {
+    if (recursionStack.has(currentTaskId)) {
+      return true; // Circular dependency found
+    }
+    if (visited.has(currentTaskId)) {
+      return false; // Already processed
+    }
+
+    visited.add(currentTaskId);
+    recursionStack.add(currentTaskId);
+
+    const currentTask = allTasks.find(t => t.id === currentTaskId);
+    if (currentTask) {
+      for (const depId of currentTask.dependencies) {
+        if (dfs(depId)) {
+          return true;
+        }
+      }
+    }
+
+    recursionStack.delete(currentTaskId);
+    return false;
+  }
+
+  // Check if adding these dependencies would create a cycle
+  const tempTask: Task = {
+    id: taskId,
+    dependencies,
+    // ... other required fields (simplified for dependency checking)
+  } as Task;
+
+  // Create temporary task list with updated dependencies
+  const updatedTasks = allTasks.filter(t => t.id !== taskId);
+  updatedTasks.push(tempTask);
+  
+  return dfs(taskId);
+}
+
+/**
+ * Get task priority weight for sorting
+ */
+export function getPriorityWeight(priority: Priority): number {
+  switch (priority) {
+    case Priority.LOW: return 1;
+    case Priority.MEDIUM: return 2;
+    case Priority.HIGH: return 3;
+    case Priority.URGENT: return 4;
+    default: return 0;
+  }
+}
+
+/**
+ * Calculate estimated completion time based on dependencies
+ */
+export function calculateEstimatedCompletionTime(task: Task, allTasks: Task[]): number {
+  const visited = new Set<string>();
+  
+  function calculateTime(taskId: string): number {
+    if (visited.has(taskId)) {
+      return 0; // Avoid infinite loops
+    }
+    visited.add(taskId);
+
+    const currentTask = allTasks.find(t => t.id === taskId);
+    if (!currentTask || currentTask.status === TaskStatus.COMPLETED) {
+      return 0;
+    }
+
+    let maxDependencyTime = 0;
+    for (const depId of currentTask.dependencies) {
+      const depTime = calculateTime(depId);
+      maxDependencyTime = Math.max(maxDependencyTime, depTime);
+    }
+
+    return maxDependencyTime + currentTask.timeEstimate;
+  }
+
+  return calculateTime(task.id);
+}
+
+/**
+ * Format task for display in UI
+ */
+export function formatTaskForDisplay(task: Task, allTasks: Task[]) {
+  const completion = calculateTaskCompletion(task, allTasks);
+  const estimatedTime = calculateEstimatedCompletionTime(task, allTasks);
+  const isOverdue = task.dueDate && task.dueDate < new Date() && task.status !== TaskStatus.COMPLETED;
+  
+  return {
+    ...task,
+    completion,
+    estimatedTime,
+    isOverdue,
+    dependencyCount: task.dependencies.length,
+    subtaskCount: task.subtasks.length,
+  };
+}
