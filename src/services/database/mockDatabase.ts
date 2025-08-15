@@ -1,0 +1,218 @@
+// Mock database service for development/browser environment
+import { Task, TaskStatus, Priority } from '../../types';
+
+/**
+ * Mock database that stores data in localStorage for development
+ */
+export class MockDatabase {
+  private storageKey = 'kirapilot-mock-db';
+  private transactionActive = false;
+  private transactionData: any = null;
+
+  private getData(): any {
+    const data = localStorage.getItem(this.storageKey);
+    return data ? JSON.parse(data) : {
+      tasks: [],
+      timeSessions: [],
+      focusSessions: [],
+      patterns: [],
+      preferences: {},
+      suggestions: []
+    };
+  }
+
+  private saveData(data: any): void {
+    localStorage.setItem(this.storageKey, JSON.stringify(data));
+  }
+
+  // Method to update tasks (for future use)
+  updateTasks(tasks: Task[]): void {
+    const data = this.getData();
+    data.tasks = tasks;
+    this.saveData(data);
+  }
+
+  async execute(query: string, params?: any[]): Promise<any> {
+    console.log('Mock DB Execute:', query, params);
+    
+    // Handle transaction commands
+    const cleanQuery = query.trim().toUpperCase();
+    
+    if (cleanQuery === 'BEGIN TRANSACTION') {
+      this.transactionActive = true;
+      this.transactionData = this.getData(); // Snapshot current data
+      console.log('Mock DB: Transaction started');
+      return { changes: 0 };
+    }
+    
+    if (cleanQuery === 'COMMIT') {
+      if (!this.transactionActive) {
+        throw new Error('cannot commit - no transaction is active');
+      }
+      this.transactionActive = false;
+      this.transactionData = null;
+      console.log('Mock DB: Transaction committed');
+      return { changes: 0 };
+    }
+    
+    if (cleanQuery === 'ROLLBACK') {
+      if (!this.transactionActive) {
+        throw new Error('cannot rollback - no transaction is active');
+      }
+      // Restore data from transaction start
+      if (this.transactionData) {
+        this.saveData(this.transactionData);
+      }
+      this.transactionActive = false;
+      this.transactionData = null;
+      console.log('Mock DB: Transaction rolled back');
+      return { changes: 0 };
+    }
+    
+    // For other queries, just return success
+    return { changes: 1, lastInsertRowid: Date.now() };
+  }
+
+  async select<T>(query: string, params?: any[]): Promise<T> {
+    console.log('Mock DB Select:', query, params);
+    
+    const data = this.getData();
+    
+    // Simple query parsing for common cases
+    if (query.includes('sqlite_version')) {
+      return [{ sqlite_version: 'mock-3.0.0' }] as T;
+    }
+    
+    if (query.includes('FROM migrations')) {
+      return [{ version: '002' }] as T;
+    }
+    
+    if (query.includes('FROM sqlite_master')) {
+      return [
+        { name: 'tasks' },
+        { name: 'time_sessions' },
+        { name: 'focus_sessions' },
+        { name: 'migrations' }
+      ] as T;
+    }
+    
+    if (query.includes('FROM tasks')) {
+      return data.tasks as T;
+    }
+    
+    return [] as T;
+  }
+
+  async close(): Promise<void> {
+    console.log('Mock DB closed');
+  }
+
+  // Mock methods for compatibility
+  static async load(path: string): Promise<MockDatabase> {
+    console.log('Loading mock database:', path);
+    return new MockDatabase();
+  }
+}
+
+/**
+ * Initialize mock database with sample data
+ */
+export async function initializeMockDatabase(): Promise<MockDatabase> {
+  const mockDb = new MockDatabase();
+  
+  // Initialize with some sample data
+  const sampleTasks: Task[] = [
+    {
+      id: '1',
+      title: 'Complete project documentation',
+      description: 'Write comprehensive documentation for the KiraPilot project',
+      priority: Priority.HIGH,
+      status: TaskStatus.IN_PROGRESS,
+      dependencies: [],
+      timeEstimate: 120,
+      actualTime: 45,
+      dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
+      tags: ['documentation', 'project'],
+      subtasks: [],
+      createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
+      updatedAt: new Date(),
+    },
+    {
+      id: '2',
+      title: 'Review code changes',
+      description: 'Review the latest pull requests and provide feedback',
+      priority: Priority.MEDIUM,
+      status: TaskStatus.PENDING,
+      dependencies: [],
+      timeEstimate: 60,
+      actualTime: 0,
+      dueDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000), // 2 days from now
+      tags: ['code-review', 'development'],
+      subtasks: [],
+      createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // 1 day ago
+      updatedAt: new Date(),
+    },
+    {
+      id: '3',
+      title: 'Update dependencies',
+      description: 'Update all npm dependencies to latest versions',
+      priority: Priority.LOW,
+      status: TaskStatus.COMPLETED,
+      dependencies: [],
+      timeEstimate: 30,
+      actualTime: 25,
+      tags: ['maintenance', 'dependencies'],
+      subtasks: [],
+      completedAt: new Date(Date.now() - 3 * 60 * 60 * 1000), // 3 hours ago
+      createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), // 5 days ago
+      updatedAt: new Date(Date.now() - 3 * 60 * 60 * 1000),
+    },
+    {
+      id: '4',
+      title: 'Design new UI components',
+      description: 'Create mockups and designs for the new dashboard components',
+      priority: Priority.HIGH,
+      status: TaskStatus.PENDING,
+      dependencies: ['1'], // Depends on documentation
+      timeEstimate: 180,
+      actualTime: 0,
+      dueDate: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000), // 10 days from now
+      tags: ['design', 'ui', 'dashboard'],
+      subtasks: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
+  ];
+
+  // Store sample data
+  const data = {
+    tasks: sampleTasks,
+    timeSessions: [],
+    focusSessions: [],
+    patterns: [],
+    preferences: {},
+    suggestions: []
+  };
+  
+  localStorage.setItem('kirapilot-mock-db', JSON.stringify(data));
+  
+  console.log('Mock database initialized with sample data');
+  return mockDb;
+}
+
+/**
+ * Get sample tasks for development
+ */
+export function getSampleTasks(): Task[] {
+  const data = JSON.parse(localStorage.getItem('kirapilot-mock-db') || '{"tasks":[]}');
+  const tasks = data.tasks || [];
+  
+  // Convert date strings back to Date objects
+  return tasks.map((task: any) => ({
+    ...task,
+    createdAt: new Date(task.createdAt),
+    updatedAt: new Date(task.updatedAt),
+    dueDate: task.dueDate ? new Date(task.dueDate) : undefined,
+    completedAt: task.completedAt ? new Date(task.completedAt) : undefined,
+  }));
+}

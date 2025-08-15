@@ -2,9 +2,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { initializeDatabase, checkDatabaseHealth, closeDatabase } from '../services/database';
 import Database from '@tauri-apps/plugin-sql';
+import { MockDatabase } from '../services/database/mockDatabase';
 
 interface DatabaseState {
-    database: Database | null;
+    database: Database | MockDatabase | null;
     isInitialized: boolean;
     isLoading: boolean;
     error: string | null;

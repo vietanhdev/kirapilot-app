@@ -2,9 +2,10 @@
 import { createContext, useContext, ReactNode } from 'react';
 import { useDatabase } from '../../hooks/useDatabase';
 import Database from '@tauri-apps/plugin-sql';
+import { MockDatabase } from './mockDatabase';
 
 interface DatabaseContextType {
-  database: Database | null;
+  database: Database | MockDatabase | null;
   isInitialized: boolean;
   isLoading: boolean;
   error: string | null;

@@ -1,7 +1,7 @@
 /** @type {import('jest').Config} */
 export default {
   preset: 'ts-jest',
-  testEnvironment: 'node',
+  testEnvironment: 'jsdom',
   roots: ['<rootDir>/src'],
   testMatch: [
     '**/__tests__/**/*.+(ts|tsx|js)',
@@ -11,6 +11,7 @@ export default {
     '/node_modules/',
     '/src/services/database/repositories/__tests__/' // Skip repository tests in Jest
   ],
+  setupFilesAfterEnv: ['<rootDir>/src/setupTests.ts'],
   transform: {
     '^.+\\.(ts|tsx)$': 'ts-jest',
   },

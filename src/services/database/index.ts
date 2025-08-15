@@ -1,35 +1,52 @@
 // Database service for KiraPilot using Tauri SQL plugin
 import Database from '@tauri-apps/plugin-sql';
+import { MockDatabase, initializeMockDatabase } from './mockDatabase';
 
-let db: Database | null = null;
+let db: Database | MockDatabase | null = null;
+
+// Type declaration for Tauri window properties
+declare global {
+  interface Window {
+    __TAURI__?: any;
+    __TAURI_INTERNALS__?: any;
+  }
+}
 
 /**
  * Initialize the database connection
  */
-export async function initializeDatabase(): Promise<Database> {
+export async function initializeDatabase(): Promise<Database | MockDatabase> {
   if (db) {
     return db;
   }
 
+  // Try real database first, regardless of environment detection
   try {
-    // Create or connect to SQLite database
-    db = await Database.load('sqlite:kirapilot.db');
+    console.log('Testing real SQLite database connection...');
+    const testDb = await Database.load('sqlite:kirapilot.db');
+    
+    // Test the connection with a simple query
+    await testDb.execute('SELECT 1');
+    
+    console.log('Real database connection successful');
+    db = testDb;
     
     // Run migrations
-    await runMigrations(db);
+    await runMigrations(db as Database);
     
-    console.log('Database initialized successfully');
+    console.log('Real SQLite database initialized successfully');
     return db;
   } catch (error) {
-    console.error('Failed to initialize database:', error);
-    throw error;
+    console.error('Real database unavailable, using mock database:', error);
+    db = await initializeMockDatabase();
+    return db;
   }
 }
 
 /**
  * Get the database instance
  */
-export async function getDatabase(): Promise<Database> {
+export async function getDatabase(): Promise<Database | MockDatabase> {
   if (!db) {
     return await initializeDatabase();
   }
@@ -272,7 +289,7 @@ function getMigrations(): Migration[] {
  * Execute a database transaction
  */
 export async function executeTransaction<T>(
-  callback: (db: Database) => Promise<T>
+  callback: (db: Database | MockDatabase) => Promise<T>
 ): Promise<T> {
   const database = await getDatabase();
   

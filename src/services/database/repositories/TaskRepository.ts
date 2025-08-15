@@ -188,16 +188,25 @@ export class TaskRepository {
     }
 
     return await executeTransaction(async (db) => {
-      const existingTask = await this.findById(id);
-      if (!existingTask) {
+      // Find existing task using transaction db
+      const existingResult = await db.select<any[]>(
+        'SELECT * FROM tasks WHERE id = ?',
+        [id]
+      );
+      
+      if (existingResult.length === 0) {
         throw new Error(`Task with id ${id} not found`);
       }
-
+      
+      const existingTask = dbRowToTask(existingResult[0]);
       const updatedTask = applyTaskUpdate(existingTask, validation.data);
 
       // Check for circular dependencies if dependencies changed
       if (request.dependencies) {
-        const allTasks = await this.findAll();
+        // Get all tasks using transaction db
+        const allTasksResult = await db.select<any[]>('SELECT * FROM tasks');
+        const allTasks = allTasksResult.map(row => dbRowToTask(row));
+        
         if (hasCircularDependency(id, request.dependencies, allTasks)) {
           throw new Error('Circular dependency detected');
         }

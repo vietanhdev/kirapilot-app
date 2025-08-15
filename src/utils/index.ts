@@ -65,9 +65,10 @@ export function generateId(): string {
 /**
  * Format date to relative time string
  */
-export function formatRelativeTime(date: Date): string {
+export function formatRelativeTime(date: Date | string): string {
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
   const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
+  const diffMs = now.getTime() - dateObj.getTime();
   const diffMinutes = Math.floor(diffMs / (1000 * 60));
   const diffHours = Math.floor(diffMinutes / 60);
   const diffDays = Math.floor(diffHours / 24);
@@ -81,7 +82,7 @@ export function formatRelativeTime(date: Date): string {
   } else if (diffDays < 7) {
     return `${diffDays}d ago`;
   } else {
-    return date.toLocaleDateString();
+    return dateObj.toLocaleDateString();
   }
 }
 
