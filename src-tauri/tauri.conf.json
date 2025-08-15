@@ -1,24 +1,42 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "kirapilot-app",
+  "productName": "KiraPilot",
   "version": "0.1.0",
-  "identifier": "com.vietanhdev.kirapilot-app",
+  "identifier": "com.vietanhdev.kirapilot",
   "build": {
     "beforeDevCommand": "npm run dev",
-    "devUrl": "http://localhost:1420",
+    "devUrl": "http://localhost:1421",
     "beforeBuildCommand": "npm run build",
     "frontendDist": "../dist"
   },
   "app": {
     "windows": [
       {
-        "title": "kirapilot-app",
-        "width": 800,
-        "height": 600
+        "title": "KiraPilot - AI-Powered Productivity",
+        "width": 1200,
+        "height": 800,
+        "minWidth": 380,
+        "minHeight": 400,
+        "center": true,
+        "resizable": true,
+        "maximizable": true,
+        "minimizable": true,
+        "closable": true,
+        "decorations": false,
+        "transparent": false,
+        "fullscreen": false,
+        "focus": true,
+        "visible": true,
+        "dragDropEnabled": false
       }
     ],
     "security": {
       "csp": null
+    }
+  },
+  "plugins": {
+    "sql": {
+      "preload": ["sqlite:kirapilot.db"]
     }
   },
   "bundle": {
@@ -30,6 +48,9 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "category": "Productivity",
+    "shortDescription": "AI-powered productivity application",
+    "longDescription": "KiraPilot is a cross-platform productivity application that combines task management, time tracking, and focus tools with an intelligent AI assistant named Kira."
   }
 }

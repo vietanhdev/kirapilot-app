@@ -93,6 +93,22 @@ export function taskToDbRow(task: Task): Record<string, any> {
 }
 
 /**
+ * Safely parse JSON string with fallback
+ */
+function safeJsonParse(jsonString: string | null | undefined, fallback: any = []): any {
+  if (!jsonString || jsonString.trim() === '') {
+    return fallback;
+  }
+  
+  try {
+    return JSON.parse(jsonString);
+  } catch (error) {
+    console.warn('Failed to parse JSON:', jsonString, error);
+    return fallback;
+  }
+}
+
+/**
  * Convert database row to Task
  */
 export function dbRowToTask(row: Record<string, any>): Task {
@@ -102,14 +118,14 @@ export function dbRowToTask(row: Record<string, any>): Task {
     description: row.description,
     priority: row.priority,
     status: row.status,
-    dependencies: JSON.parse(row.dependencies || '[]'),
+    dependencies: safeJsonParse(row.dependencies, []),
     timeEstimate: row.time_estimate || 0,
     actualTime: row.actual_time || 0,
     dueDate: row.due_date ? new Date(row.due_date) : undefined,
-    tags: JSON.parse(row.tags || '[]'),
+    tags: safeJsonParse(row.tags, []),
     projectId: row.project_id,
     parentTaskId: row.parent_task_id,
-    subtasks: JSON.parse(row.subtasks || '[]'),
+    subtasks: safeJsonParse(row.subtasks, []),
     completedAt: row.completed_at ? new Date(row.completed_at) : undefined,
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at),
