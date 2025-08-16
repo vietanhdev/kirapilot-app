@@ -7,7 +7,6 @@ import {
   Input,
   Avatar,
   Chip,
-  Spinner,
   Modal,
   ModalContent,
   ModalHeader,
@@ -24,10 +23,14 @@ import {
   Check,
   AlertCircle,
   Settings,
+  Play,
 } from 'lucide-react';
 import { useAI } from '../../contexts/AIContext';
 import { useTimerContext } from '../../contexts/TimerContext';
 import { AppContext, Priority, DistractionLevel } from '../../types';
+import { MarkdownRenderer, MessageSkeleton } from '../common';
+import { MessageActions, CollapsibleConversation } from './';
+import { useAutoScroll } from '../../hooks/useAutoScroll';
 
 interface ChatUIProps {
   isOpen: boolean;
@@ -38,8 +41,8 @@ interface ChatUIProps {
 export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
   const [message, setMessage] = useState('');
   const [apiKey, setApiKey] = useState('');
-  const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const { scrollRef, isAutoScrollPaused, resumeAutoScroll } = useAutoScroll();
 
   const {
     isInitialized,
@@ -61,11 +64,7 @@ export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
     onClose: onApiModalClose,
   } = useDisclosure();
 
-  useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [conversations]);
+  // Auto-scroll is now handled by the useAutoScroll hook
 
   useEffect(() => {
     if (isOpen && inputRef.current) {
@@ -134,7 +133,7 @@ export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
     setMessage('');
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
@@ -167,6 +166,28 @@ export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
         return 'default';
     }
   };
+
+  const handleRegenerateResponse = async (conversationId: string) => {
+    // Find the conversation and resend the original message
+    const conversation = conversations.find(c => c.id === conversationId);
+    if (conversation) {
+      const context = buildAppContext();
+      await sendMessage(conversation.message, context);
+    }
+  };
+
+  // Group conversations for collapsible sections (every 5 conversations)
+  const groupedConversations = conversations.reduce(
+    (groups, conversation, index) => {
+      const groupIndex = Math.floor(index / 5);
+      if (!groups[groupIndex]) {
+        groups[groupIndex] = [];
+      }
+      groups[groupIndex].push(conversation);
+      return groups;
+    },
+    [] as (typeof conversations)[]
+  );
 
   if (!isOpen) {
     return null;
@@ -217,7 +238,26 @@ export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
           )}
 
           {/* Messages */}
-          <div className='flex-1 overflow-y-auto p-4 space-y-4'>
+          <div
+            ref={scrollRef}
+            className='flex-1 overflow-y-auto p-4 space-y-6 relative'
+          >
+            {/* Auto-scroll control */}
+            {isAutoScrollPaused && (
+              <div className='sticky top-0 z-10 flex justify-center mb-2'>
+                <Button
+                  size='sm'
+                  variant='flat'
+                  color='primary'
+                  startContent={<Play className='w-3 h-3' />}
+                  onPress={resumeAutoScroll}
+                  className='shadow-lg'
+                >
+                  Resume auto-scroll
+                </Button>
+              </div>
+            )}
+
             {!isInitialized && (
               <div className='text-center text-gray-500 text-sm'>
                 <Bot className='w-8 h-8 mx-auto mb-2 text-gray-400' />
@@ -235,116 +275,312 @@ export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
             )}
 
             <AnimatePresence>
-              {conversations.map(conversation => (
-                <motion.div
-                  key={conversation.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  className='space-y-3'
-                >
-                  {/* User Message */}
-                  <div className='flex justify-end'>
-                    <div className='flex items-start gap-2 max-w-[80%]'>
-                      <div className='bg-blue-500 text-white px-3 py-2 rounded-lg text-sm flex-1'>
-                        {conversation.message}
-                      </div>
-                      <Avatar
-                        icon={<User className='w-4 h-4' />}
-                        size='sm'
-                        className='bg-gray-400 flex-shrink-0'
-                      />
-                    </div>
-                  </div>
-
-                  {/* AI Response */}
-                  <div className='flex justify-start'>
-                    <div className='flex items-start gap-2 max-w-[80%]'>
-                      <Avatar
-                        icon={<Bot className='w-4 h-4' />}
-                        size='sm'
-                        className='bg-gradient-to-r from-blue-500 to-purple-600 flex-shrink-0'
-                      />
-                      <div className='space-y-2 flex-1'>
-                        {/* Show reasoning if available */}
-                        {conversation.reasoning && (
-                          <div className='bg-blue-50 dark:bg-blue-900/20 px-3 py-2 rounded-lg text-xs border-l-2 border-blue-400'>
-                            <div className='flex items-center gap-1 mb-1'>
-                              <Bot className='w-3 h-3 text-blue-500' />
-                              <span className='font-medium text-blue-700 dark:text-blue-300'>
-                                Reasoning
-                              </span>
-                            </div>
-                            <p className='text-blue-600 dark:text-blue-200'>
-                              {conversation.reasoning}
-                            </p>
+              {/* Show recent conversations directly */}
+              {conversations.length > 0 && conversations.length <= 10 && (
+                <>
+                  {conversations.map(conversation => (
+                    <motion.div
+                      key={conversation.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      className='space-y-6 group'
+                    >
+                      {/* User Message */}
+                      <div className='flex justify-end'>
+                        <div className='flex items-start gap-2 max-w-[80%] group'>
+                          <MessageActions
+                            content={conversation.message}
+                            className='mt-1 mr-1'
+                          />
+                          <div className='bg-blue-500 text-white px-3 py-2 rounded-lg text-sm flex-1'>
+                            <MarkdownRenderer content={conversation.message} />
                           </div>
-                        )}
-
-                        {/* Show tool executions if available */}
-                        {conversation.actions &&
-                          conversation.actions.length > 0 && (
-                            <div className='space-y-1'>
-                              {conversation.actions.map((action, index) => (
-                                <div
-                                  key={index}
-                                  className='bg-green-50 dark:bg-green-900/20 px-3 py-2 rounded-lg text-xs border-l-2 border-green-400'
-                                >
-                                  <div className='flex items-center gap-1 mb-1'>
-                                    <Check className='w-3 h-3 text-green-500' />
-                                    <span className='font-medium text-green-700 dark:text-green-300'>
-                                      Action:{' '}
-                                      {action.type
-                                        .replace('_', ' ')
-                                        .toLowerCase()}
-                                    </span>
-                                    {action.confidence && (
-                                      <span className='text-green-600 dark:text-green-200 ml-auto'>
-                                        {action.confidence}% confidence
-                                      </span>
-                                    )}
-                                  </div>
-                                  {action.reasoning && (
-                                    <p className='text-green-600 dark:text-green-200 mb-1'>
-                                      {action.reasoning}
-                                    </p>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          )}
-
-                        {/* Main response */}
-                        <div className='bg-gray-100 dark:bg-gray-800 px-3 py-2 rounded-lg text-sm'>
-                          {conversation.response}
+                          <Avatar
+                            icon={<User className='w-4 h-4' />}
+                            size='sm'
+                            className='bg-gray-400 flex-shrink-0'
+                          />
                         </div>
                       </div>
-                    </div>
-                  </div>
 
-                  <div className='text-xs text-gray-400 text-center'>
-                    {formatTimestamp(conversation.timestamp)}
-                  </div>
-                </motion.div>
-              ))}
+                      {/* AI Response */}
+                      <div className='flex justify-start'>
+                        <div className='flex items-start gap-2 max-w-[80%] group'>
+                          <Avatar
+                            icon={<Bot className='w-4 h-4' />}
+                            size='sm'
+                            className='bg-gradient-to-r from-blue-500 to-purple-600 flex-shrink-0'
+                          />
+                          <div className='space-y-2 flex-1 relative'>
+                            {/* Show reasoning if available */}
+                            {conversation.reasoning && (
+                              <div className='bg-blue-50 dark:bg-blue-900/20 px-3 py-2 rounded-lg text-xs border-l-2 border-blue-400'>
+                                <div className='flex items-center gap-1 mb-1'>
+                                  <Bot className='w-3 h-3 text-blue-500' />
+                                  <span className='font-medium text-blue-700 dark:text-blue-300'>
+                                    Reasoning
+                                  </span>
+                                </div>
+                                <MarkdownRenderer
+                                  content={conversation.reasoning}
+                                  className='text-blue-600 dark:text-blue-200'
+                                />
+                              </div>
+                            )}
+
+                            {/* Show tool executions if available */}
+                            {conversation.actions &&
+                              conversation.actions.length > 0 && (
+                                <div className='space-y-1'>
+                                  {conversation.actions.map((action, index) => (
+                                    <div
+                                      key={index}
+                                      className='bg-green-50 dark:bg-green-900/20 px-3 py-2 rounded-lg text-xs border-l-2 border-green-400'
+                                    >
+                                      <div className='flex items-center gap-1 mb-1'>
+                                        <Check className='w-3 h-3 text-green-500' />
+                                        <span className='font-medium text-green-700 dark:text-green-300'>
+                                          Action:{' '}
+                                          {action.type
+                                            .replace('_', ' ')
+                                            .toLowerCase()}
+                                        </span>
+                                        {action.confidence && (
+                                          <span className='text-green-600 dark:text-green-200 ml-auto'>
+                                            {action.confidence}% confidence
+                                          </span>
+                                        )}
+                                      </div>
+                                      {action.reasoning && (
+                                        <MarkdownRenderer
+                                          content={action.reasoning}
+                                          className='text-green-600 dark:text-green-200'
+                                        />
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+
+                            {/* Main response with markdown */}
+                            <div className='bg-gray-100 dark:bg-gray-800 px-3 py-2 rounded-lg text-sm'>
+                              <MarkdownRenderer
+                                content={conversation.response}
+                              />
+                            </div>
+
+                            <MessageActions
+                              content={conversation.response}
+                              onRegenerate={() =>
+                                handleRegenerateResponse(conversation.id)
+                              }
+                              className='absolute -top-2 -right-2'
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className='text-xs text-gray-400 text-center'>
+                        {formatTimestamp(conversation.timestamp)}
+                      </div>
+                    </motion.div>
+                  ))}
+                </>
+              )}
+
+              {/* Show collapsible sections for longer conversations */}
+              {conversations.length > 10 && (
+                <>
+                  {/* Show older conversations in collapsible sections */}
+                  {groupedConversations
+                    .slice(0, -2)
+                    .map((group, groupIndex) => (
+                      <CollapsibleConversation
+                        key={`group-${groupIndex}`}
+                        title={`Conversation ${groupIndex + 1} (${group.length} messages)`}
+                        defaultExpanded={false}
+                        className='mb-4'
+                      >
+                        <div className='space-y-4'>
+                          {group.map(conversation => (
+                            <div
+                              key={conversation.id}
+                              className='space-y-4 group'
+                            >
+                              {/* User Message */}
+                              <div className='flex justify-end'>
+                                <div className='flex items-start gap-2 max-w-[80%] group'>
+                                  <MessageActions
+                                    content={conversation.message}
+                                    className='mt-1 mr-1'
+                                  />
+                                  <div className='bg-blue-500 text-white px-3 py-2 rounded-lg text-sm flex-1'>
+                                    <MarkdownRenderer
+                                      content={conversation.message}
+                                    />
+                                  </div>
+                                  <Avatar
+                                    icon={<User className='w-4 h-4' />}
+                                    size='sm'
+                                    className='bg-gray-400 flex-shrink-0'
+                                  />
+                                </div>
+                              </div>
+
+                              {/* AI Response */}
+                              <div className='flex justify-start'>
+                                <div className='flex items-start gap-2 max-w-[80%]'>
+                                  <Avatar
+                                    icon={<Bot className='w-4 h-4' />}
+                                    size='sm'
+                                    className='bg-gradient-to-r from-blue-500 to-purple-600 flex-shrink-0'
+                                  />
+                                  <div className='space-y-2 flex-1 relative'>
+                                    <div className='bg-gray-100 dark:bg-gray-800 px-3 py-2 rounded-lg text-sm'>
+                                      <MarkdownRenderer
+                                        content={conversation.response}
+                                      />
+                                    </div>
+                                    <MessageActions
+                                      content={conversation.response}
+                                      onRegenerate={() =>
+                                        handleRegenerateResponse(
+                                          conversation.id
+                                        )
+                                      }
+                                      className='absolute -top-2 -right-2'
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </CollapsibleConversation>
+                    ))}
+
+                  {/* Show recent conversations directly */}
+                  {groupedConversations
+                    .slice(-2)
+                    .flat()
+                    .map(conversation => (
+                      <motion.div
+                        key={conversation.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -20 }}
+                        className='space-y-6 group'
+                      >
+                        {/* User Message */}
+                        <div className='flex justify-end'>
+                          <div className='flex items-start gap-2 max-w-[80%] group'>
+                            <MessageActions
+                              content={conversation.message}
+                              className='mt-1 mr-1'
+                            />
+                            <div className='bg-blue-500 text-white px-3 py-2 rounded-lg text-sm flex-1'>
+                              <MarkdownRenderer
+                                content={conversation.message}
+                              />
+                            </div>
+                            <Avatar
+                              icon={<User className='w-4 h-4' />}
+                              size='sm'
+                              className='bg-gray-400 flex-shrink-0'
+                            />
+                          </div>
+                        </div>
+
+                        {/* AI Response */}
+                        <div className='flex justify-start'>
+                          <div className='flex items-start gap-2 max-w-[80%]'>
+                            <Avatar
+                              icon={<Bot className='w-4 h-4' />}
+                              size='sm'
+                              className='bg-gradient-to-r from-blue-500 to-purple-600 flex-shrink-0'
+                            />
+                            <div className='space-y-2 flex-1 relative'>
+                              {/* Show reasoning if available */}
+                              {conversation.reasoning && (
+                                <div className='bg-blue-50 dark:bg-blue-900/20 px-3 py-2 rounded-lg text-xs border-l-2 border-blue-400'>
+                                  <div className='flex items-center gap-1 mb-1'>
+                                    <Bot className='w-3 h-3 text-blue-500' />
+                                    <span className='font-medium text-blue-700 dark:text-blue-300'>
+                                      Reasoning
+                                    </span>
+                                  </div>
+                                  <MarkdownRenderer
+                                    content={conversation.reasoning}
+                                    className='text-blue-600 dark:text-blue-200'
+                                  />
+                                </div>
+                              )}
+
+                              {/* Show tool executions if available */}
+                              {conversation.actions &&
+                                conversation.actions.length > 0 && (
+                                  <div className='space-y-1'>
+                                    {conversation.actions.map(
+                                      (action, index) => (
+                                        <div
+                                          key={index}
+                                          className='bg-green-50 dark:bg-green-900/20 px-3 py-2 rounded-lg text-xs border-l-2 border-green-400'
+                                        >
+                                          <div className='flex items-center gap-1 mb-1'>
+                                            <Check className='w-3 h-3 text-green-500' />
+                                            <span className='font-medium text-green-700 dark:text-green-300'>
+                                              Action:{' '}
+                                              {action.type
+                                                .replace('_', ' ')
+                                                .toLowerCase()}
+                                            </span>
+                                            {action.confidence && (
+                                              <span className='text-green-600 dark:text-green-200 ml-auto'>
+                                                {action.confidence}% confidence
+                                              </span>
+                                            )}
+                                          </div>
+                                          {action.reasoning && (
+                                            <MarkdownRenderer
+                                              content={action.reasoning}
+                                              className='text-green-600 dark:text-green-200'
+                                            />
+                                          )}
+                                        </div>
+                                      )
+                                    )}
+                                  </div>
+                                )}
+
+                              {/* Main response with markdown */}
+                              <div className='bg-gray-100 dark:bg-gray-800 px-3 py-2 rounded-lg text-sm'>
+                                <MarkdownRenderer
+                                  content={conversation.response}
+                                />
+                              </div>
+
+                              <MessageActions
+                                content={conversation.response}
+                                onRegenerate={() =>
+                                  handleRegenerateResponse(conversation.id)
+                                }
+                                className='absolute -top-2 -right-2'
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className='text-xs text-gray-400 text-center'>
+                          {formatTimestamp(conversation.timestamp)}
+                        </div>
+                      </motion.div>
+                    ))}
+                </>
+              )}
             </AnimatePresence>
 
-            {isLoading && (
-              <div className='flex justify-start'>
-                <div className='flex items-start gap-2'>
-                  <Avatar
-                    icon={<Bot className='w-4 h-4' />}
-                    size='sm'
-                    className='bg-gradient-to-r from-blue-500 to-purple-600 flex-shrink-0'
-                  />
-                  <div className='bg-gray-100 dark:bg-gray-800 px-3 py-2 rounded-lg'>
-                    <Spinner size='sm' />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div ref={messagesEndRef} />
+            {isLoading && <MessageSkeleton />}
           </div>
 
           {/* Suggestions */}
@@ -404,7 +640,7 @@ export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
                 placeholder='Ask Kira anything...'
                 value={message}
                 onChange={e => setMessage(e.target.value)}
-                onKeyPress={handleKeyPress}
+                onKeyDown={handleKeyDown}
                 size='sm'
                 className='flex-1'
                 disabled={!isInitialized || isLoading}
