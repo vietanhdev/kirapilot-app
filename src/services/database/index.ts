@@ -396,7 +396,12 @@ export async function executeTransaction<T>(
         await database.execute('ROLLBACK');
         console.debug('Transaction rolled back successfully');
       } catch (rollbackError) {
-        console.warn('Failed to rollback transaction:', rollbackError);
+        // Only log rollback errors that aren't "no transaction is active"
+        if (
+          !(rollbackError as any)?.message?.includes('no transaction is active')
+        ) {
+          console.warn('Failed to rollback transaction:', rollbackError);
+        }
         // Don't throw rollback error, throw the original error
       }
     }

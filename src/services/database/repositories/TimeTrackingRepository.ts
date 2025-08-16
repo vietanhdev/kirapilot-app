@@ -1,9 +1,5 @@
 // Time tracking repository for database operations
-import {
-  getDatabase,
-  executeTransaction,
-  executeWithoutTransaction,
-} from '../index';
+import { getDatabase, executeTransaction } from '../index';
 import { TimerSession, CompletedSession, TimerBreak } from '../../../types';
 import {
   timerSessionToDbRow,

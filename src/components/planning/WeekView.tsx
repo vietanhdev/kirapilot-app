@@ -47,7 +47,7 @@ export function WeekView({
   currentWeek,
   onWeekChange,
   onTaskMove,
-  onTaskEdit,
+  onTaskEdit: _onTaskEdit,
   onTaskStatusChange,
   onTaskCreate,
   onInlineEdit,

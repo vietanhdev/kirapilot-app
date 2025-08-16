@@ -81,7 +81,7 @@ export function checkAndResetIfNeeded(): boolean {
         }
       }
     }
-  } catch (error) {
+  } catch {
     console.log('Error checking database, resetting...');
     resetDatabase();
     return true;

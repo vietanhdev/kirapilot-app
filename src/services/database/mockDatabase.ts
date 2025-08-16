@@ -213,7 +213,7 @@ export async function initializeMockDatabase(): Promise<MockDatabase> {
           return mockDb;
         }
       }
-    } catch (error) {
+    } catch {
       console.log('Error parsing existing data, clearing database...');
       clearMockDatabase();
     }
