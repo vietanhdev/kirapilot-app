@@ -4,7 +4,7 @@
   "description": "Automatically detects and fixes usage of \"any\" type in TypeScript files by replacing with specific, appropriate types",
   "version": "1",
   "when": {
-    "type": "fileEdited",
+    "type": "userTriggered",
     "patterns": [
       "**/*.ts",
       "**/*.tsx"

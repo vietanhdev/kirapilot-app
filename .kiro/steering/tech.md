@@ -58,3 +58,7 @@ npm run type-check       # TypeScript check without emit
 - `@tauri-apps/plugin-sql` - Database access
 - `@heroui/react` - UI component library
 - `zod` - Runtime type validation
+
+## Development Requirements
+
+- Run `npm run lint`, `npm run build` and fix all issues before completing any task

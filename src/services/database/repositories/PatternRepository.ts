@@ -6,12 +6,16 @@ import {
   TimeSlot,
   PatternAnalysis,
   TrendData,
+  AISuggestion,
 } from '../../../types';
 import {
   ProductivityPatternDbRow,
   TaskTrendDbRow,
   FocusTrendDbRow,
   DbQueryResult,
+  FocusSessionDbRow,
+  TaskDbRow,
+  TimerSessionDbRow,
 } from '../../../types/database';
 import { generateId } from '../../../utils';
 
@@ -175,7 +179,7 @@ export class PatternRepository {
     const db = await getDatabase();
 
     // Get completed tasks in date range
-    const tasks = await db.select<DbQueryResult<ProductivityPatternDbRow>>(
+    const tasks = await db.select<DbQueryResult<TaskDbRow>>(
       `
       SELECT * FROM tasks 
       WHERE completed_at >= ? AND completed_at <= ? AND status = 'completed'
@@ -185,9 +189,7 @@ export class PatternRepository {
     );
 
     // Get focus sessions in date range
-    const focusSessions = await db.select<
-      DbQueryResult<ProductivityPatternDbRow>
-    >(
+    const focusSessions = await db.select<DbQueryResult<FocusSessionDbRow>>(
       `
       SELECT * FROM focus_sessions 
       WHERE created_at >= ? AND created_at <= ? AND completed_at IS NOT NULL
@@ -197,9 +199,7 @@ export class PatternRepository {
     );
 
     // Get time sessions in date range
-    const timeSessions = await db.select<
-      DbQueryResult<ProductivityPatternDbRow>
-    >(
+    const timeSessions = await db.select<DbQueryResult<TimerSessionDbRow>>(
       `
       SELECT * FROM time_sessions 
       WHERE created_at >= ? AND created_at <= ? AND end_time IS NOT NULL
@@ -214,9 +214,9 @@ export class PatternRepository {
 
     // Generate insights
     const insights = this.generateInsights(
-      tasks as Record<string, unknown>[],
-      focusSessions as Record<string, unknown>[],
-      timeSessions as Record<string, unknown>[],
+      tasks,
+      focusSessions,
+      timeSessions,
       productivityPatterns
     );
 
@@ -542,9 +542,9 @@ export class PatternRepository {
    * Generate insights from data
    */
   private generateInsights(
-    tasks: Record<string, unknown>[],
-    focusSessions: Record<string, unknown>[],
-    _timeSessions: Record<string, unknown>[],
+    tasks: TaskDbRow[],
+    focusSessions: FocusSessionDbRow[],
+    _timeSessions: TimerSessionDbRow[],
     patterns: ProductivityPattern[]
   ) {
     // Find most productive time
@@ -568,13 +568,11 @@ export class PatternRepository {
     );
 
     // Calculate average task duration
-    const completedTasks = tasks.filter(t => (t.actual_time as number) > 0);
+    const completedTasks = tasks.filter(t => t.actual_time > 0);
     const averageTaskDuration =
       completedTasks.length > 0
-        ? completedTasks.reduce(
-            (sum, t) => sum + (t.actual_time as number),
-            0
-          ) / completedTasks.length
+        ? completedTasks.reduce((sum, t) => sum + t.actual_time, 0) /
+          completedTasks.length
         : 0;
 
     // Calculate completion rate
@@ -592,7 +590,7 @@ export class PatternRepository {
     const focusEfficiency =
       completedFocusSessions.length > 0
         ? completedFocusSessions.reduce(
-            (sum, s) => sum + (s.focus_score as number),
+            (sum, s) => sum + (s.focus_score || 0),
             0
           ) / completedFocusSessions.length
         : 0;
@@ -611,14 +609,20 @@ export class PatternRepository {
    */
   private async generateRecommendations(
     _userId: string,
-    insights: Record<string, unknown>
-  ) {
+    insights: {
+      mostProductiveTime: TimeSlot;
+      leastProductiveTime: TimeSlot;
+      averageTaskDuration: number;
+      completionRate: number;
+      focusEfficiency: number;
+    }
+  ): Promise<AISuggestion[]> {
     // This would typically integrate with the AI system
     // For now, return basic recommendations based on patterns
 
     const recommendations = [];
 
-    if ((insights.focusEfficiency as number) < 70) {
+    if (insights.focusEfficiency < 70) {
       recommendations.push({
         id: generateId(),
         type: 'focus' as const,
@@ -634,7 +638,7 @@ export class PatternRepository {
       });
     }
 
-    if ((insights.completionRate as number) < 80) {
+    if (insights.completionRate < 80) {
       recommendations.push({
         id: generateId(),
         type: 'task' as const,
