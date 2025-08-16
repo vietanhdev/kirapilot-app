@@ -7,10 +7,10 @@ import { forceClearData } from './clearOldData';
  */
 export function resetDatabase(): void {
   console.log('Resetting database to clean state...');
-  
+
   // Clear localStorage
   forceClearData();
-  
+
   // Clear any cached database instance
   if (typeof window !== 'undefined') {
     // Force reload to reinitialize everything
@@ -24,19 +24,22 @@ export function resetDatabase(): void {
  */
 export function migrateScheduledDateData(): boolean {
   if (typeof localStorage === 'undefined') return false;
-  
+
   try {
     const existingData = localStorage.getItem('kirapilot-mock-db');
     if (existingData) {
       const parsed = JSON.parse(existingData);
       if (parsed.tasks && parsed.tasks.length > 0) {
         // Check if tasks have scheduledDate but we need to ensure the column exists
-        const hasScheduledTasks = parsed.tasks.some((task: any) => 
-          task.scheduledDate !== undefined && task.scheduledDate !== null
+        const hasScheduledTasks = parsed.tasks.some(
+          (task: any) =>
+            task.scheduledDate !== undefined && task.scheduledDate !== null
         );
-        
+
         if (hasScheduledTasks) {
-          console.log('Found tasks with scheduledDate - migration will handle this automatically');
+          console.log(
+            'Found tasks with scheduledDate - migration will handle this automatically'
+          );
           // The migration system will handle adding the column
           // No need to reset, just let the migration run
           return true;
@@ -47,7 +50,7 @@ export function migrateScheduledDateData(): boolean {
     console.log('Error checking scheduled_date data:', error);
     return false;
   }
-  
+
   return false;
 }
 
@@ -56,17 +59,21 @@ export function migrateScheduledDateData(): boolean {
  */
 export function checkAndResetIfNeeded(): boolean {
   if (typeof localStorage === 'undefined') return false;
-  
+
   try {
     const existingData = localStorage.getItem('kirapilot-mock-db');
     if (existingData) {
       const parsed = JSON.parse(existingData);
       if (parsed.tasks && parsed.tasks.length > 0) {
         // Check if any task has old format ID
-        const hasOldFormatIds = parsed.tasks.some((task: any) => 
-          task.id && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(task.id)
+        const hasOldFormatIds = parsed.tasks.some(
+          (task: any) =>
+            task.id &&
+            !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+              task.id
+            )
         );
-        
+
         if (hasOldFormatIds) {
           console.log('Found old format data, resetting database...');
           resetDatabase();
@@ -79,7 +86,7 @@ export function checkAndResetIfNeeded(): boolean {
     resetDatabase();
     return true;
   }
-  
+
   return false;
 }
 
@@ -91,13 +98,13 @@ export function checkDatabaseIntegrity(): boolean {
   if (checkAndResetIfNeeded()) {
     return true;
   }
-  
+
   // Check for scheduled_date migration needs
   if (migrateScheduledDateData()) {
     console.log('Scheduled date data found - will be migrated automatically');
     return true;
   }
-  
+
   return false;
 }
 

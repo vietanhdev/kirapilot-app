@@ -6,8 +6,7 @@
 @plugin '../hero.ts';
 
 @source '../node_modules/@heroui/theme/dist/**/*.{js,ts,jsx,tsx}';
- @custom-variant dark (&:is(.dark *));
-
+@custom-variant dark (&:is(.dark *));
 
 @utility task-card {
   @apply bg-gray-700/30 backdrop-blur-sm rounded-lg border border-gray-600/20 p-3 mb-3 
@@ -38,27 +37,45 @@
   @apply bg-white/5 backdrop-blur-md border border-white/10;
 }
 
-
 /* Animations */
 @keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
 }
 
 .shimmer {
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.1),
+    transparent
+  );
   background-size: 200% 100%;
   animation: shimmer 2s infinite;
 }
 
 @keyframes fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes slide-in-from-top {
-  from { transform: translateY(-10px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
+  from {
+    transform: translateY(-10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 .animate-in {
@@ -109,11 +126,19 @@
 }
 
 .week-scroller::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(90deg, #059669, #047857); /* Darker green on hover */
+  background: linear-gradient(
+    90deg,
+    #059669,
+    #047857
+  ); /* Darker green on hover */
 }
 
 .week-scroller::-webkit-scrollbar-thumb:active {
-  background: linear-gradient(90deg, #047857, #065f46); /* Even darker when active */
+  background: linear-gradient(
+    90deg,
+    #047857,
+    #065f46
+  ); /* Even darker when active */
 }
 
 /* Add some space above the scrollbar */

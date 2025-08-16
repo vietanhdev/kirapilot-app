@@ -5,6 +5,7 @@ This directory contains the complete database layer for KiraPilot, built on SQLi
 ## Overview
 
 The database system provides:
+
 - **SQLite Integration**: Local-first database with Tauri SQL plugin
 - **Migration System**: Versioned schema migrations with rollback support
 - **Connection Management**: Singleton database connection with health monitoring
@@ -36,7 +37,7 @@ const db = await initializeDatabase();
 const db = await getDatabase();
 
 // Execute transactions
-await executeTransaction(async (db) => {
+await executeTransaction(async db => {
   await db.execute('INSERT INTO tasks ...');
   await db.execute('UPDATE tasks ...');
 });
@@ -52,11 +53,11 @@ React components can access the database through context:
 ```typescript
 function MyComponent() {
   const { database, isInitialized, error } = useDatabaseContext();
-  
+
   if (!isInitialized) {
     return <div>Loading database...</div>;
   }
-  
+
   // Use database...
 }
 
@@ -73,14 +74,14 @@ Custom hooks for database operations:
 ```typescript
 function useTaskOperations() {
   const { execute, isLoading, error } = useDatabaseOperation();
-  
-  const createTask = async (taskData) => {
+
+  const createTask = async taskData => {
     return await execute(async () => {
       const db = await getDatabase();
       return await db.execute('INSERT INTO tasks ...', [taskData]);
     });
   };
-  
+
   return { createTask, isLoading, error };
 }
 ```
@@ -90,7 +91,9 @@ function useTaskOperations() {
 ### Tables
 
 #### `tasks`
+
 Core task management table:
+
 ```sql
 CREATE TABLE tasks (
   id TEXT PRIMARY KEY,
@@ -114,7 +117,9 @@ CREATE TABLE tasks (
 ```
 
 #### `task_dependencies`
+
 Task dependency relationships:
+
 ```sql
 CREATE TABLE task_dependencies (
   id TEXT PRIMARY KEY,
@@ -128,7 +133,9 @@ CREATE TABLE task_dependencies (
 ```
 
 #### `time_sessions`
+
 Time tracking sessions:
+
 ```sql
 CREATE TABLE time_sessions (
   id TEXT PRIMARY KEY,
@@ -145,7 +152,9 @@ CREATE TABLE time_sessions (
 ```
 
 #### `focus_sessions`
+
 Focus session tracking:
+
 ```sql
 CREATE TABLE focus_sessions (
   id TEXT PRIMARY KEY,
@@ -166,7 +175,9 @@ CREATE TABLE focus_sessions (
 ```
 
 #### `productivity_patterns`
+
 Analytics and pattern recognition:
+
 ```sql
 CREATE TABLE productivity_patterns (
   id TEXT PRIMARY KEY,
@@ -182,7 +193,9 @@ CREATE TABLE productivity_patterns (
 ```
 
 #### `user_preferences`
+
 User settings and preferences:
+
 ```sql
 CREATE TABLE user_preferences (
   id TEXT PRIMARY KEY DEFAULT 'default',
@@ -198,7 +211,9 @@ CREATE TABLE user_preferences (
 ```
 
 #### `ai_suggestions`
+
 AI assistant suggestions:
+
 ```sql
 CREATE TABLE ai_suggestions (
   id TEXT PRIMARY KEY,
@@ -220,6 +235,7 @@ CREATE TABLE ai_suggestions (
 ### Indexes
 
 Performance indexes are automatically created:
+
 - Task status, priority, due date, scheduled date, creation date
 - Task dependencies for both directions
 - Time sessions by task and start time
@@ -241,6 +257,7 @@ Performance indexes are automatically created:
 To add a new migration:
 
 1. **Create Migration Object**:
+
 ```typescript
 {
   version: '003',
@@ -280,16 +297,15 @@ await db.execute(
 );
 
 // Select
-const tasks = await db.select<Task[]>(
-  'SELECT * FROM tasks WHERE status = ?',
-  ['pending']
-);
+const tasks = await db.select<Task[]>('SELECT * FROM tasks WHERE status = ?', [
+  'pending',
+]);
 
 // Update
-await db.execute(
-  'UPDATE tasks SET status = ? WHERE id = ?',
-  ['completed', taskId]
-);
+await db.execute('UPDATE tasks SET status = ? WHERE id = ?', [
+  'completed',
+  taskId,
+]);
 
 // Delete
 await db.execute('DELETE FROM tasks WHERE id = ?', [taskId]);
@@ -298,17 +314,20 @@ await db.execute('DELETE FROM tasks WHERE id = ?', [taskId]);
 ### Transactions
 
 ```typescript
-await executeTransaction(async (db) => {
+await executeTransaction(async db => {
   // Create task
   await db.execute('INSERT INTO tasks ...', [taskData]);
-  
+
   // Create dependencies
   for (const depId of dependencies) {
     await db.execute('INSERT INTO task_dependencies ...', [taskId, depId]);
   }
-  
+
   // Update parent task
-  await db.execute('UPDATE tasks SET subtasks = ? WHERE id = ?', [subtasks, parentId]);
+  await db.execute('UPDATE tasks SET subtasks = ? WHERE id = ?', [
+    subtasks,
+    parentId,
+  ]);
 });
 ```
 
@@ -316,7 +335,8 @@ await executeTransaction(async (db) => {
 
 ```typescript
 // Tasks with dependencies
-const tasksWithDeps = await db.select(`
+const tasksWithDeps = await db.select(
+  `
   SELECT 
     t.*,
     GROUP_CONCAT(td.depends_on_id) as dependency_ids
@@ -324,7 +344,9 @@ const tasksWithDeps = await db.select(`
   LEFT JOIN task_dependencies td ON t.id = td.task_id
   WHERE t.status = ?
   GROUP BY t.id
-`, ['pending']);
+`,
+  ['pending']
+);
 
 // Productivity analytics
 const productivity = await db.select(`
@@ -345,12 +367,12 @@ const productivity = await db.select(`
 ### Maintenance Operations
 
 ```typescript
-import { 
-  resetDatabase, 
-  getDatabaseStats, 
-  vacuumDatabase, 
+import {
+  resetDatabase,
+  getDatabaseStats,
+  vacuumDatabase,
   analyzeDatabase,
-  checkDatabaseIntegrity 
+  checkDatabaseIntegrity,
 } from './utils';
 
 // Get database statistics
@@ -383,6 +405,7 @@ await resetDatabase();
 ### Database Testing Component
 
 The `DatabaseTest` component provides:
+
 - Connection testing
 - CRUD operation validation
 - Foreign key constraint verification

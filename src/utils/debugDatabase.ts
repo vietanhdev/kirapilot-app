@@ -11,7 +11,7 @@ export async function checkActiveTimerSessions(): Promise<void> {
       'SELECT * FROM time_sessions WHERE is_active = ?',
       [true]
     );
-    
+
     console.log('Active timer sessions:', activeSessions.length);
     activeSessions.forEach(session => {
       console.log(`- Session ${session.id} for task ${session.task_id}`);
@@ -31,7 +31,7 @@ export async function forceStopAllTimers(): Promise<void> {
       'UPDATE time_sessions SET is_active = ?, end_time = ? WHERE is_active = ?',
       [false, new Date().toISOString(), true]
     );
-    
+
     console.log('Force stopped all active timers:', result);
   } catch (error) {
     console.error('Error force stopping timers:', error);

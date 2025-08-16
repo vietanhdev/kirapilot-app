@@ -1,14 +1,14 @@
 // Focus session repository for database operations
 import { getDatabase, executeTransaction } from '../index';
-import { 
-  FocusSession, 
-  FocusConfig, 
-  FocusMetrics, 
-  FocusBreak
+import {
+  FocusSession,
+  FocusConfig,
+  FocusMetrics,
+  FocusBreak,
 } from '../../../types';
-import { 
-  focusSessionToDbRow, 
-  dbRowToFocusSession 
+import {
+  focusSessionToDbRow,
+  dbRowToFocusSession,
 } from '../../../utils/transformations';
 import { validateFocusConfig } from '../../../types/validation';
 import { generateId } from '../../../utils';
@@ -21,10 +21,12 @@ export class FocusRepository {
     // Validate config
     const validation = validateFocusConfig(config);
     if (!validation.success) {
-      throw new Error(`Invalid focus config: ${validation.error.issues.map(i => i.message).join(', ')}`);
+      throw new Error(
+        `Invalid focus config: ${validation.error.issues.map(i => i.message).join(', ')}`
+      );
     }
 
-    return await executeTransaction(async (db) => {
+    return await executeTransaction(async db => {
       // Check if there's already an active focus session
       const activeSession = await this.getActiveSession();
       if (activeSession) {
@@ -36,7 +38,7 @@ export class FocusRepository {
         'SELECT COUNT(*) as count FROM tasks WHERE id = ?',
         [config.taskId]
       );
-      
+
       if (taskExists[0]?.count === 0) {
         throw new Error(`Task with id ${config.taskId} not found`);
       }
@@ -55,24 +57,36 @@ export class FocusRepository {
           longestFocusStreak: 0,
           averageFocusStreak: 0,
           productivityScore: 0,
-          energyLevel: 100
+          energyLevel: 100,
         },
-        createdAt: new Date()
+        createdAt: new Date(),
       };
 
       const dbRow = focusSessionToDbRow(session);
-      await db.execute(`
+      await db.execute(
+        `
         INSERT INTO focus_sessions (
           id, task_id, planned_duration, actual_duration, focus_score,
           distraction_count, distraction_level, background_audio, notes,
           breaks, metrics, created_at, completed_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `, [
-        dbRow.id, dbRow.task_id, dbRow.planned_duration, dbRow.actual_duration,
-        dbRow.focus_score, dbRow.distraction_count, dbRow.distraction_level,
-        dbRow.background_audio, dbRow.notes, dbRow.breaks, dbRow.metrics,
-        dbRow.created_at, dbRow.completed_at
-      ]);
+      `,
+        [
+          dbRow.id,
+          dbRow.task_id,
+          dbRow.planned_duration,
+          dbRow.actual_duration,
+          dbRow.focus_score,
+          dbRow.distraction_count,
+          dbRow.distraction_level,
+          dbRow.background_audio,
+          dbRow.notes,
+          dbRow.breaks,
+          dbRow.metrics,
+          dbRow.created_at,
+          dbRow.completed_at,
+        ]
+      );
 
       return session;
     });
@@ -81,8 +95,11 @@ export class FocusRepository {
   /**
    * Complete focus session
    */
-  async completeSession(sessionId: string, notes?: string): Promise<FocusSession> {
-    return await executeTransaction(async (db) => {
+  async completeSession(
+    sessionId: string,
+    notes?: string
+  ): Promise<FocusSession> {
+    return await executeTransaction(async db => {
       const session = await this.findById(sessionId);
       if (!session) {
         throw new Error(`Focus session with id ${sessionId} not found`);
@@ -93,8 +110,10 @@ export class FocusRepository {
       }
 
       const completedAt = new Date();
-      const actualDuration = Math.round((completedAt.getTime() - session.createdAt.getTime()) / (1000 * 60));
-      
+      const actualDuration = Math.round(
+        (completedAt.getTime() - session.createdAt.getTime()) / (1000 * 60)
+      );
+
       // Calculate final metrics
       const finalMetrics = this.calculateFinalMetrics(session, actualDuration);
       const focusScore = this.calculateFocusScore(session, actualDuration);
@@ -105,11 +124,12 @@ export class FocusRepository {
         focusScore,
         notes: notes || session.notes,
         metrics: finalMetrics,
-        completedAt
+        completedAt,
       };
 
       const dbRow = focusSessionToDbRow(updatedSession);
-      await db.execute(`
+      await db.execute(
+        `
         UPDATE focus_sessions SET 
           actual_duration = ?,
           focus_score = ?,
@@ -117,10 +137,16 @@ export class FocusRepository {
           metrics = ?,
           completed_at = ?
         WHERE id = ?
-      `, [
-        dbRow.actual_duration, dbRow.focus_score, dbRow.notes,
-        dbRow.metrics, dbRow.completed_at, sessionId
-      ]);
+      `,
+        [
+          dbRow.actual_duration,
+          dbRow.focus_score,
+          dbRow.notes,
+          dbRow.metrics,
+          dbRow.completed_at,
+          sessionId,
+        ]
+      );
 
       return updatedSession;
     });
@@ -129,8 +155,11 @@ export class FocusRepository {
   /**
    * Add distraction to session
    */
-  async addDistraction(sessionId: string, reason?: string): Promise<FocusSession> {
-    return await executeTransaction(async (db) => {
+  async addDistraction(
+    sessionId: string,
+    reason?: string
+  ): Promise<FocusSession> {
+    return await executeTransaction(async db => {
       const session = await this.findById(sessionId);
       if (!session) {
         throw new Error(`Focus session with id ${sessionId} not found`);
@@ -146,7 +175,7 @@ export class FocusRepository {
         startTime: now,
         endTime: now,
         type: 'distraction',
-        reason: reason || 'Unspecified distraction'
+        reason: reason || 'Unspecified distraction',
       };
 
       const updatedSession: FocusSession = {
@@ -155,20 +184,21 @@ export class FocusRepository {
         breaks: [...session.breaks, distractionBreak],
         metrics: {
           ...session.metrics,
-          totalDistractions: session.metrics.totalDistractions + 1
-        }
+          totalDistractions: session.metrics.totalDistractions + 1,
+        },
       };
 
       const dbRow = focusSessionToDbRow(updatedSession);
-      await db.execute(`
+      await db.execute(
+        `
         UPDATE focus_sessions SET 
           distraction_count = ?,
           breaks = ?,
           metrics = ?
         WHERE id = ?
-      `, [
-        dbRow.distraction_count, dbRow.breaks, dbRow.metrics, sessionId
-      ]);
+      `,
+        [dbRow.distraction_count, dbRow.breaks, dbRow.metrics, sessionId]
+      );
 
       return updatedSession;
     });
@@ -177,8 +207,12 @@ export class FocusRepository {
   /**
    * Add planned break to session
    */
-  async addPlannedBreak(sessionId: string, duration: number, reason?: string): Promise<FocusSession> {
-    return await executeTransaction(async (db) => {
+  async addPlannedBreak(
+    sessionId: string,
+    duration: number,
+    reason?: string
+  ): Promise<FocusSession> {
+    return await executeTransaction(async db => {
       const session = await this.findById(sessionId);
       if (!session) {
         throw new Error(`Focus session with id ${sessionId} not found`);
@@ -194,19 +228,19 @@ export class FocusRepository {
         startTime: new Date(now.getTime() - duration * 1000),
         endTime: now,
         type: 'planned',
-        reason: reason || 'Planned break'
+        reason: reason || 'Planned break',
       };
 
       const updatedSession: FocusSession = {
         ...session,
-        breaks: [...session.breaks, plannedBreak]
+        breaks: [...session.breaks, plannedBreak],
       };
 
       const dbRow = focusSessionToDbRow(updatedSession);
-      await db.execute(
-        'UPDATE focus_sessions SET breaks = ? WHERE id = ?',
-        [dbRow.breaks, sessionId]
-      );
+      await db.execute('UPDATE focus_sessions SET breaks = ? WHERE id = ?', [
+        dbRow.breaks,
+        sessionId,
+      ]);
 
       return updatedSession;
     });
@@ -215,8 +249,11 @@ export class FocusRepository {
   /**
    * Update session energy level
    */
-  async updateEnergyLevel(sessionId: string, energyLevel: number): Promise<FocusSession> {
-    return await executeTransaction(async (db) => {
+  async updateEnergyLevel(
+    sessionId: string,
+    energyLevel: number
+  ): Promise<FocusSession> {
+    return await executeTransaction(async db => {
       const session = await this.findById(sessionId);
       if (!session) {
         throw new Error(`Focus session with id ${sessionId} not found`);
@@ -224,19 +261,19 @@ export class FocusRepository {
 
       const updatedMetrics: FocusMetrics = {
         ...session.metrics,
-        energyLevel: Math.max(0, Math.min(100, energyLevel))
+        energyLevel: Math.max(0, Math.min(100, energyLevel)),
       };
 
       const updatedSession: FocusSession = {
         ...session,
-        metrics: updatedMetrics
+        metrics: updatedMetrics,
       };
 
       const dbRow = focusSessionToDbRow(updatedSession);
-      await db.execute(
-        'UPDATE focus_sessions SET metrics = ? WHERE id = ?',
-        [dbRow.metrics, sessionId]
-      );
+      await db.execute('UPDATE focus_sessions SET metrics = ? WHERE id = ?', [
+        dbRow.metrics,
+        sessionId,
+      ]);
 
       return updatedSession;
     });
@@ -247,7 +284,7 @@ export class FocusRepository {
    */
   async getActiveSession(): Promise<FocusSession | null> {
     const db = await getDatabase();
-    
+
     const result = await db.select<any[]>(
       'SELECT * FROM focus_sessions WHERE completed_at IS NULL LIMIT 1'
     );
@@ -260,7 +297,7 @@ export class FocusRepository {
    */
   async findById(id: string): Promise<FocusSession | null> {
     const db = await getDatabase();
-    
+
     const result = await db.select<any[]>(
       'SELECT * FROM focus_sessions WHERE id = ?',
       [id]
@@ -274,7 +311,7 @@ export class FocusRepository {
    */
   async getByTask(taskId: string): Promise<FocusSession[]> {
     const db = await getDatabase();
-    
+
     const result = await db.select<any[]>(
       'SELECT * FROM focus_sessions WHERE task_id = ? ORDER BY created_at DESC',
       [taskId]
@@ -286,9 +323,12 @@ export class FocusRepository {
   /**
    * Get sessions by date range
    */
-  async getByDateRange(startDate: Date, endDate: Date): Promise<FocusSession[]> {
+  async getByDateRange(
+    startDate: Date,
+    endDate: Date
+  ): Promise<FocusSession[]> {
     const db = await getDatabase();
-    
+
     const result = await db.select<any[]>(
       'SELECT * FROM focus_sessions WHERE created_at >= ? AND created_at <= ? ORDER BY created_at DESC',
       [startDate.toISOString(), endDate.toISOString()]
@@ -312,7 +352,10 @@ export class FocusRepository {
   /**
    * Get focus statistics
    */
-  async getStatistics(startDate?: Date, endDate?: Date): Promise<{
+  async getStatistics(
+    startDate?: Date,
+    endDate?: Date
+  ): Promise<{
     totalSessions: number;
     completedSessions: number;
     totalFocusTime: number;
@@ -323,7 +366,7 @@ export class FocusRepository {
     distractionTypes: Record<string, number>;
   }> {
     const db = await getDatabase();
-    
+
     let query = 'SELECT * FROM focus_sessions';
     const params: any[] = [];
 
@@ -350,7 +393,7 @@ export class FocusRepository {
         averageDistractions: 0,
         bestFocusStreak: 0,
         mostProductiveTime: '09:00',
-        distractionTypes: {}
+        distractionTypes: {},
       };
     }
 
@@ -359,20 +402,21 @@ export class FocusRepository {
     let totalFocusScore = 0;
     let totalDistractions = 0;
     let bestFocusStreak = 0;
-    const hourCounts: Record<number, { sessions: number; avgScore: number }> = {};
+    const hourCounts: Record<number, { sessions: number; avgScore: number }> =
+      {};
     const distractionTypes: Record<string, number> = {};
 
     for (const session of completedSessions) {
       if (session.actualDuration) {
         totalFocusTime += session.actualDuration;
       }
-      
+
       if (session.focusScore) {
         totalFocusScore += session.focusScore;
       }
 
       totalDistractions += session.distractionCount;
-      
+
       if (session.metrics.longestFocusStreak > bestFocusStreak) {
         bestFocusStreak = session.metrics.longestFocusStreak;
       }
@@ -388,7 +432,8 @@ export class FocusRepository {
       // Track distraction types
       for (const breakItem of session.breaks) {
         if (breakItem.type === 'distraction' && breakItem.reason) {
-          distractionTypes[breakItem.reason] = (distractionTypes[breakItem.reason] || 0) + 1;
+          distractionTypes[breakItem.reason] =
+            (distractionTypes[breakItem.reason] || 0) + 1;
         }
       }
     }
@@ -410,11 +455,17 @@ export class FocusRepository {
       totalSessions: focusSessions.length,
       completedSessions: completedSessions.length,
       totalFocusTime,
-      averageFocusScore: completedSessions.length > 0 ? totalFocusScore / completedSessions.length : 0,
-      averageDistractions: completedSessions.length > 0 ? totalDistractions / completedSessions.length : 0,
+      averageFocusScore:
+        completedSessions.length > 0
+          ? totalFocusScore / completedSessions.length
+          : 0,
+      averageDistractions:
+        completedSessions.length > 0
+          ? totalDistractions / completedSessions.length
+          : 0,
       bestFocusStreak,
       mostProductiveTime,
-      distractionTypes
+      distractionTypes,
     };
   }
 
@@ -423,7 +474,7 @@ export class FocusRepository {
    */
   async delete(id: string): Promise<void> {
     const db = await getDatabase();
-    
+
     const session = await this.findById(id);
     if (!session) {
       throw new Error(`Focus session with id ${id} not found`);
@@ -437,7 +488,7 @@ export class FocusRepository {
    */
   async getIncompleteSessions(): Promise<FocusSession[]> {
     const db = await getDatabase();
-    
+
     const result = await db.select<any[]>(
       'SELECT * FROM focus_sessions WHERE completed_at IS NULL ORDER BY created_at DESC'
     );
@@ -448,57 +499,88 @@ export class FocusRepository {
   /**
    * Calculate final metrics for completed session
    */
-  private calculateFinalMetrics(session: FocusSession, actualDuration: number): FocusMetrics {
+  private calculateFinalMetrics(
+    session: FocusSession,
+    actualDuration: number
+  ): FocusMetrics {
     const plannedMinutes = session.plannedDuration;
     const actualMinutes = actualDuration;
-    
+
     // Calculate focus streaks
-    const distractionBreaks = session.breaks.filter(b => b.type === 'distraction');
-    const focusStreaks = this.calculateFocusStreaks(session.createdAt, distractionBreaks, actualMinutes);
-    
+    const distractionBreaks = session.breaks.filter(
+      b => b.type === 'distraction'
+    );
+    const focusStreaks = this.calculateFocusStreaks(
+      session.createdAt,
+      distractionBreaks,
+      actualMinutes
+    );
+
     const longestFocusStreak = Math.max(...focusStreaks, 0);
-    const averageFocusStreak = focusStreaks.length > 0 ? focusStreaks.reduce((a, b) => a + b, 0) / focusStreaks.length : 0;
+    const averageFocusStreak =
+      focusStreaks.length > 0
+        ? focusStreaks.reduce((a, b) => a + b, 0) / focusStreaks.length
+        : 0;
 
     // Calculate productivity score
     const completionRatio = Math.min(actualMinutes / plannedMinutes, 1);
     const distractionPenalty = Math.min(session.distractionCount * 0.1, 0.5);
-    const productivityScore = Math.max(0, (completionRatio * 100) - (distractionPenalty * 100));
+    const productivityScore = Math.max(
+      0,
+      completionRatio * 100 - distractionPenalty * 100
+    );
 
     return {
       totalDistractions: session.distractionCount,
       longestFocusStreak,
       averageFocusStreak,
       productivityScore,
-      energyLevel: session.metrics.energyLevel
+      energyLevel: session.metrics.energyLevel,
     };
   }
 
   /**
    * Calculate focus score
    */
-  private calculateFocusScore(session: FocusSession, actualDuration: number): number {
+  private calculateFocusScore(
+    session: FocusSession,
+    actualDuration: number
+  ): number {
     const plannedMinutes = session.plannedDuration;
     const actualMinutes = actualDuration;
-    
+
     // Base score from completion ratio
     const completionScore = Math.min(actualMinutes / plannedMinutes, 1) * 50;
-    
+
     // Distraction penalty
     const distractionPenalty = Math.min(session.distractionCount * 5, 30);
-    
+
     // Duration bonus (longer sessions get slight bonus)
     const durationBonus = Math.min(actualMinutes / 60, 1) * 10;
-    
+
     // Energy level contribution
     const energyContribution = (session.metrics.energyLevel / 100) * 20;
-    
-    return Math.max(0, Math.min(100, completionScore - distractionPenalty + durationBonus + energyContribution));
+
+    return Math.max(
+      0,
+      Math.min(
+        100,
+        completionScore -
+          distractionPenalty +
+          durationBonus +
+          energyContribution
+      )
+    );
   }
 
   /**
    * Calculate focus streaks between distractions
    */
-  private calculateFocusStreaks(startTime: Date, distractions: FocusBreak[], totalMinutes: number): number[] {
+  private calculateFocusStreaks(
+    startTime: Date,
+    distractions: FocusBreak[],
+    totalMinutes: number
+  ): number[] {
     if (distractions.length === 0) {
       return [totalMinutes];
     }
@@ -507,10 +589,13 @@ export class FocusRepository {
     let lastTime = startTime.getTime();
 
     // Sort distractions by time
-    const sortedDistractions = distractions.sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
+    const sortedDistractions = distractions.sort(
+      (a, b) => a.startTime.getTime() - b.startTime.getTime()
+    );
 
     for (const distraction of sortedDistractions) {
-      const streakDuration = (distraction.startTime.getTime() - lastTime) / (1000 * 60);
+      const streakDuration =
+        (distraction.startTime.getTime() - lastTime) / (1000 * 60);
       if (streakDuration > 0) {
         streaks.push(streakDuration);
       }
@@ -518,7 +603,7 @@ export class FocusRepository {
     }
 
     // Add final streak
-    const endTime = startTime.getTime() + (totalMinutes * 60 * 1000);
+    const endTime = startTime.getTime() + totalMinutes * 60 * 1000;
     const finalStreak = (endTime - lastTime) / (1000 * 60);
     if (finalStreak > 0) {
       streaks.push(finalStreak);
@@ -530,7 +615,10 @@ export class FocusRepository {
   /**
    * Get focus session summary for a specific period
    */
-  async getFocusSummary(startDate: Date, endDate: Date): Promise<{
+  async getFocusSummary(
+    startDate: Date,
+    endDate: Date
+  ): Promise<{
     totalSessions: number;
     completedSessions: number;
     totalFocusHours: number;
@@ -552,7 +640,7 @@ export class FocusRepository {
         averageFocusScore: 0,
         totalDistractions: 0,
         mostCommonDistraction: 'None',
-        focusEfficiency: 0
+        focusEfficiency: 0,
       };
     }
 
@@ -569,14 +657,16 @@ export class FocusRepository {
       // Count distraction reasons
       for (const breakItem of session.breaks) {
         if (breakItem.type === 'distraction' && breakItem.reason) {
-          distractionReasons[breakItem.reason] = (distractionReasons[breakItem.reason] || 0) + 1;
+          distractionReasons[breakItem.reason] =
+            (distractionReasons[breakItem.reason] || 0) + 1;
         }
       }
     }
 
-    const mostCommonDistraction = Object.entries(distractionReasons)
-      .reduce((max, [reason, count]) => count > max.count ? { reason, count } : max, { reason: 'None', count: 0 })
-      .reason;
+    const mostCommonDistraction = Object.entries(distractionReasons).reduce(
+      (max, [reason, count]) => (count > max.count ? { reason, count } : max),
+      { reason: 'None', count: 0 }
+    ).reason;
 
     const averageSessionLength = totalFocusTime / completedSessions.length;
     const averageFocusScore = totalFocusScore / completedSessions.length;
@@ -590,7 +680,7 @@ export class FocusRepository {
       averageFocusScore,
       totalDistractions,
       mostCommonDistraction,
-      focusEfficiency
+      focusEfficiency,
     };
   }
 }

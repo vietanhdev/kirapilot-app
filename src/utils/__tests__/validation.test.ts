@@ -1,10 +1,10 @@
 // Tests for validation schemas
 import { describe, test, expect } from '@jest/globals';
-import { 
-  validateCreateTaskRequest, 
+import {
+  validateCreateTaskRequest,
   validateUpdateTaskRequest,
   validateFocusConfig,
-  validateUserPreferences 
+  validateUserPreferences,
 } from '../../types/validation';
 import { Priority, DistractionLevel } from '../../types';
 
@@ -221,7 +221,9 @@ describe('Validation Schemas', () => {
       const result = validateUserPreferences(invalidPreferences);
       expect(result.success).toBe(false);
       if (!result.success) {
-        expect(result.error.issues[0].message).toContain('End time must be after start time');
+        expect(result.error.issues[0].message).toContain(
+          'End time must be after start time'
+        );
       }
     });
   });

@@ -5,6 +5,7 @@ This directory contains the comprehensive type definitions and validation schema
 ## Overview
 
 The type system is designed with the following principles:
+
 - **Type Safety**: All data structures are strongly typed with TypeScript
 - **Runtime Validation**: Zod schemas provide runtime type checking and validation
 - **Data Transformation**: Utilities for converting between different data representations
@@ -13,6 +14,7 @@ The type system is designed with the following principles:
 ## Files
 
 ### `index.ts`
+
 Core TypeScript interfaces and enums for all KiraPilot data structures:
 
 - **Task Management**: `Task`, `CreateTaskRequest`, `UpdateTaskRequest`
@@ -23,6 +25,7 @@ Core TypeScript interfaces and enums for all KiraPilot data structures:
 - **User Preferences**: `UserPreferences`, `AppContext`
 
 ### `validation.ts`
+
 Zod validation schemas corresponding to each TypeScript interface:
 
 - Runtime type validation
@@ -34,6 +37,7 @@ Zod validation schemas corresponding to each TypeScript interface:
 ## Key Features
 
 ### Enums
+
 ```typescript
 enum Priority {
   LOW = 0,
@@ -53,6 +57,7 @@ enum TaskStatus {
 ### Core Data Models
 
 #### Task
+
 ```typescript
 interface Task {
   id: string;
@@ -62,7 +67,7 @@ interface Task {
   status: TaskStatus;
   dependencies: string[];
   timeEstimate: number; // in minutes
-  actualTime: number;   // in minutes
+  actualTime: number; // in minutes
   dueDate?: Date;
   tags: string[];
   // ... additional fields
@@ -70,6 +75,7 @@ interface Task {
 ```
 
 #### Timer Session
+
 ```typescript
 interface TimerSession {
   id: string;
@@ -84,6 +90,7 @@ interface TimerSession {
 ```
 
 #### Focus Session
+
 ```typescript
 interface FocusSession {
   id: string;
@@ -100,6 +107,7 @@ interface FocusSession {
 ### Validation Examples
 
 #### Creating a Task
+
 ```typescript
 import { validateCreateTaskRequest } from './validation';
 
@@ -123,6 +131,7 @@ if (result.success) {
 ```
 
 #### Focus Configuration
+
 ```typescript
 import { validateFocusConfig } from './validation';
 
@@ -143,6 +152,7 @@ const result = validateFocusConfig(focusConfig);
 ### Validation Features
 
 #### Built-in Validations
+
 - **String Length**: Min/max length validation for titles, descriptions
 - **Number Ranges**: Valid ranges for durations, scores, volumes
 - **Date Validation**: Proper date formats and logical date ranges
@@ -151,12 +161,14 @@ const result = validateFocusConfig(focusConfig);
 - **Enum Validation**: Valid enum values only
 
 #### Custom Validations
+
 - **Time Range Logic**: End time must be after start time
 - **Circular Dependencies**: Prevent circular task dependencies
 - **Working Hours**: Logical working hour ranges
 - **Break Intervals**: Sensible break timing
 
 #### Error Handling
+
 ```typescript
 const result = validateCreateTaskRequest(invalidData);
 if (!result.success) {
@@ -169,6 +181,7 @@ if (!result.success) {
 ## Usage Patterns
 
 ### 1. API Input Validation
+
 ```typescript
 // In API handlers
 const result = validateCreateTaskRequest(req.body);
@@ -179,6 +192,7 @@ const task = createTaskRequestToTask(result.data);
 ```
 
 ### 2. Form Validation
+
 ```typescript
 // In React components
 const [errors, setErrors] = useState<string[]>([]);
@@ -195,6 +209,7 @@ const handleSubmit = (formData: unknown) => {
 ```
 
 ### 3. Database Operations
+
 ```typescript
 // Before saving to database
 const result = validateTask(taskData);
@@ -207,6 +222,7 @@ if (result.success) {
 ## Testing
 
 The validation schemas are thoroughly tested with:
+
 - Valid input cases
 - Invalid input cases
 - Edge cases
@@ -214,6 +230,7 @@ The validation schemas are thoroughly tested with:
 - Complex validation rules
 
 Run tests with:
+
 ```bash
 npm test
 ```
@@ -229,6 +246,7 @@ When adding new types:
 5. **Update Documentation**: Document the new types
 
 ### Example: Adding a New Type
+
 ```typescript
 // 1. TypeScript interface
 interface Project {

@@ -1,5 +1,16 @@
 import React, { useState } from 'react';
-import { BarChart3, Settings, CheckCircle, Clock, Pause, Play, Square, History, X, Trash2 } from 'lucide-react';
+import {
+  BarChart3,
+  Settings,
+  CheckCircle,
+  Clock,
+  Pause,
+  Play,
+  Square,
+  History,
+  X,
+  Trash2,
+} from 'lucide-react';
 import { useTimerContext } from '../../contexts/TimerContext';
 import { SessionHistoryModal } from '../timer/SessionHistory';
 
@@ -8,23 +19,26 @@ interface HeaderProps {
   onViewChange: (view: string) => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ currentView, onViewChange }) => {
-  const { 
-    elapsedTime, 
-    isRunning, 
+export const Header: React.FC<HeaderProps> = ({
+  currentView,
+  onViewChange,
+}) => {
+  const {
+    elapsedTime,
+    isRunning,
     hasActiveTimer,
-    formatElapsedTime, 
+    formatElapsedTime,
     activeTask,
     handleTimerStart,
     handleTimerPause,
-    handleTimerStop
+    handleTimerStop,
   } = useTimerContext();
-  
+
   const [showSessionLogs, setShowSessionLogs] = useState(false);
 
   const handleTimerControl = () => {
     if (!activeTask) return;
-    
+
     try {
       if (isRunning) {
         handleTimerPause(activeTask);
@@ -38,7 +52,7 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onViewChange }) => 
 
   const handleStopTimer = () => {
     if (!activeTask) return;
-    
+
     try {
       handleTimerStop(activeTask);
     } catch (error) {
@@ -48,33 +62,40 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onViewChange }) => 
 
   const handleClearDatabase = async () => {
     if (!import.meta.env.DEV) return;
-    
+
     const confirmed = window.confirm(
       'Are you sure you want to clear all database data? This action cannot be undone.\n\n' +
-      'This will clear:\n' +
-      '- All tasks and projects\n' +
-      '- Timer sessions and history\n' +
-      '- User preferences\n' +
-      '- All other application data\n\n' +
-      'The application will restart after clearing.'
+        'This will clear:\n' +
+        '- All tasks and projects\n' +
+        '- Timer sessions and history\n' +
+        '- User preferences\n' +
+        '- All other application data\n\n' +
+        'The application will restart after clearing.'
     );
-    
+
     if (confirmed) {
       try {
         // First try to clear the actual SQLite database
         try {
-          const { resetDatabase } = await import('../../services/database/utils');
+          const { resetDatabase } = await import(
+            '../../services/database/utils'
+          );
           await resetDatabase();
           console.log('SQLite database cleared successfully');
         } catch (sqliteError) {
-          console.warn('SQLite database clear failed, trying mock database:', sqliteError);
-          
+          console.warn(
+            'SQLite database clear failed, trying mock database:',
+            sqliteError
+          );
+
           // Fallback to clearing localStorage (mock database)
-          const { resetDatabase: resetMockDatabase } = await import('../../utils/resetDatabase');
+          const { resetDatabase: resetMockDatabase } = await import(
+            '../../utils/resetDatabase'
+          );
           resetMockDatabase();
           console.log('Mock database cleared successfully');
         }
-        
+
         // Force application restart to reinitialize everything
         if (typeof window !== 'undefined') {
           window.location.reload();
@@ -87,69 +108,69 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onViewChange }) => 
   };
 
   return (
-    <header className="flex items-center justify-between px-6 py-4 border-b border-gray-700/30 glass-effect">
-      <div className="flex items-center gap-3">
-        <div className="w-8 h-8 bg-linear-to-br from-primary-500 to-accent-emerald rounded-lg flex items-center justify-center">
-          <CheckCircle className="w-5 h-5 text-white" />
+    <header className='flex items-center justify-between px-6 py-4 border-b border-gray-700/30 glass-effect'>
+      <div className='flex items-center gap-3'>
+        <div className='w-8 h-8 bg-linear-to-br from-primary-500 to-accent-emerald rounded-lg flex items-center justify-center'>
+          <CheckCircle className='w-5 h-5 text-white' />
         </div>
-        <h1 className="text-xl font-bold text-gray-100">KiraPilot</h1>
-        
+        <h1 className='text-xl font-bold text-gray-100'>KiraPilot</h1>
+
         {/* Timer Display and Controls */}
         {hasActiveTimer && activeTask && (
-          <div className="flex items-center gap-2 ml-4 px-3 py-1 bg-gray-800/50 rounded-lg border border-gray-600/30">
-            <div className="flex items-center gap-1">
+          <div className='flex items-center gap-2 ml-4 px-3 py-1 bg-gray-800/50 rounded-lg border border-gray-600/30'>
+            <div className='flex items-center gap-1'>
               {isRunning ? (
-                <div className="flex items-center gap-1">
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                  <Clock className="w-4 h-4 text-green-400" />
+                <div className='flex items-center gap-1'>
+                  <div className='w-2 h-2 bg-green-500 rounded-full animate-pulse' />
+                  <Clock className='w-4 h-4 text-green-400' />
                 </div>
               ) : (
-                <div className="flex items-center gap-1">
-                  <div className="w-2 h-2 bg-yellow-500 rounded-full" />
-                  <Pause className="w-4 h-4 text-yellow-400" />
+                <div className='flex items-center gap-1'>
+                  <div className='w-2 h-2 bg-yellow-500 rounded-full' />
+                  <Pause className='w-4 h-4 text-yellow-400' />
                 </div>
               )}
             </div>
-            <span className="text-sm font-mono text-gray-300">
+            <span className='text-sm font-mono text-gray-300'>
               {formatElapsedTime(elapsedTime)}
             </span>
-            <span className="text-xs text-gray-400 max-w-24 truncate">
+            <span className='text-xs text-gray-400 max-w-24 truncate'>
               {activeTask.title}
             </span>
-            
+
             {/* Timer Controls */}
-            <div className="flex items-center gap-1 ml-2">
+            <div className='flex items-center gap-1 ml-2'>
               <button
                 onClick={handleTimerControl}
                 className={`p-1 rounded transition-colors ${
-                  isRunning 
-                    ? 'text-yellow-400 hover:text-yellow-300 hover:bg-yellow-500/20' 
+                  isRunning
+                    ? 'text-yellow-400 hover:text-yellow-300 hover:bg-yellow-500/20'
                     : 'text-green-400 hover:text-green-300 hover:bg-green-500/20'
                 }`}
                 title={isRunning ? 'Pause timer' : 'Resume timer'}
               >
                 {isRunning ? (
-                  <Pause className="w-3 h-3" />
+                  <Pause className='w-3 h-3' />
                 ) : (
-                  <Play className="w-3 h-3" />
+                  <Play className='w-3 h-3' />
                 )}
               </button>
-              
+
               <button
                 onClick={handleStopTimer}
-                className="p-1 rounded text-red-400 hover:text-red-300 hover:bg-red-500/20 transition-colors"
-                title="Stop timer"
+                className='p-1 rounded text-red-400 hover:text-red-300 hover:bg-red-500/20 transition-colors'
+                title='Stop timer'
               >
-                <Square className="w-3 h-3" />
+                <Square className='w-3 h-3' />
               </button>
             </div>
           </div>
         )}
       </div>
-      
-      <nav className="flex items-center gap-3">
+
+      <nav className='flex items-center gap-3'>
         {/* Week/Day Toggle */}
-        <div className="flex rounded-md border border-gray-600 overflow-hidden">
+        <div className='flex rounded-md border border-gray-600 overflow-hidden'>
           <button
             onClick={() => onViewChange('week')}
             className={`px-2 py-1 text-xs font-medium transition-colors duration-200 ${
@@ -175,20 +196,20 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onViewChange }) => 
         {/* Session Logs Button */}
         <button
           onClick={() => setShowSessionLogs(true)}
-          className="p-2 rounded-lg transition-colors text-gray-400 hover:text-gray-300 hover:bg-gray-700/30"
-          title="Session History"
+          className='p-2 rounded-lg transition-colors text-gray-400 hover:text-gray-300 hover:bg-gray-700/30'
+          title='Session History'
         >
-          <History className="w-5 h-5" />
+          <History className='w-5 h-5' />
         </button>
 
         {/* Development Clear Database Button */}
         {import.meta.env.DEV && (
           <button
             onClick={handleClearDatabase}
-            className="p-2 rounded-lg transition-colors text-red-400 hover:text-red-300 hover:bg-red-500/20"
-            title="Clear Database (Dev Only)"
+            className='p-2 rounded-lg transition-colors text-red-400 hover:text-red-300 hover:bg-red-500/20'
+            title='Clear Database (Dev Only)'
           >
-            <Trash2 className="w-5 h-5" />
+            <Trash2 className='w-5 h-5' />
           </button>
         )}
 
@@ -201,17 +222,17 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onViewChange }) => 
             key={id}
             onClick={() => onViewChange(id)}
             className={`p-2 rounded-lg transition-colors ${
-              currentView === id 
-                ? 'bg-primary-500/20 text-primary-400' 
+              currentView === id
+                ? 'bg-primary-500/20 text-primary-400'
                 : 'text-gray-400 hover:text-gray-300 hover:bg-gray-700/30'
             }`}
             title={label}
           >
-            <Icon className="w-5 h-5" />
+            <Icon className='w-5 h-5' />
           </button>
         ))}
       </nav>
-      
+
       {/* Session History Modal */}
       <SessionHistoryModal
         isOpen={showSessionLogs}

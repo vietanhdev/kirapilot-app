@@ -12,14 +12,16 @@ export class MockDatabase {
 
   private getData(): any {
     const data = localStorage.getItem(this.storageKey);
-    return data ? JSON.parse(data) : {
-      tasks: [],
-      timeSessions: [],
-      focusSessions: [],
-      patterns: [],
-      preferences: {},
-      suggestions: []
-    };
+    return data
+      ? JSON.parse(data)
+      : {
+          tasks: [],
+          timeSessions: [],
+          focusSessions: [],
+          patterns: [],
+          preferences: {},
+          suggestions: [],
+        };
   }
 
   private saveData(data: any): void {
@@ -35,20 +37,22 @@ export class MockDatabase {
 
   async execute(query: string, params?: any[]): Promise<any> {
     console.log('Mock DB Execute:', query, params);
-    
+
     // Handle transaction commands
     const cleanQuery = query.trim().toUpperCase();
-    
+
     if (cleanQuery === 'BEGIN TRANSACTION') {
       this.transactionActive = true;
       this.transactionData = this.getData(); // Snapshot current data
       console.log('Mock DB: Transaction started');
       return { changes: 0 };
     }
-    
+
     if (cleanQuery === 'COMMIT') {
       if (!this.transactionActive) {
-        console.warn('Mock DB: Commit called but no transaction is active - treating as no-op');
+        console.warn(
+          'Mock DB: Commit called but no transaction is active - treating as no-op'
+        );
         return { changes: 0 };
       }
       this.transactionActive = false;
@@ -56,10 +60,12 @@ export class MockDatabase {
       console.log('Mock DB: Transaction committed');
       return { changes: 0 };
     }
-    
+
     if (cleanQuery === 'ROLLBACK') {
       if (!this.transactionActive) {
-        console.warn('Mock DB: Rollback called but no transaction is active - treating as no-op');
+        console.warn(
+          'Mock DB: Rollback called but no transaction is active - treating as no-op'
+        );
         return { changes: 0 };
       }
       // Restore data from transaction start
@@ -71,12 +77,12 @@ export class MockDatabase {
       console.log('Mock DB: Transaction rolled back');
       return { changes: 0 };
     }
-    
+
     // Handle INSERT INTO tasks
     if (cleanQuery.startsWith('INSERT INTO TASKS')) {
       if (params && params.length >= 17) {
         const data = this.getData();
-        
+
         // Map the parameters to a task object based on the INSERT column order
         const newTask = {
           id: params[0],
@@ -97,45 +103,45 @@ export class MockDatabase {
           createdAt: params[15], // ISO string
           updatedAt: params[16], // ISO string
         };
-        
+
         data.tasks.push(newTask);
         this.saveData(data);
-        
+
         return { changes: 1, lastInsertRowid: Date.now() };
       }
     }
-    
+
     // For other queries, just return success
     return { changes: 1, lastInsertRowid: Date.now() };
   }
 
   async select<T>(query: string, params?: any[]): Promise<T> {
     console.log('Mock DB Select:', query, params);
-    
+
     const data = this.getData();
-    
+
     // Simple query parsing for common cases
     if (query.includes('sqlite_version')) {
       return [{ sqlite_version: 'mock-3.0.0' }] as T;
     }
-    
+
     if (query.includes('FROM migrations')) {
       return [{ version: '002' }] as T;
     }
-    
+
     if (query.includes('FROM sqlite_master')) {
       return [
         { name: 'tasks' },
         { name: 'time_sessions' },
         { name: 'focus_sessions' },
-        { name: 'migrations' }
+        { name: 'migrations' },
       ] as T;
     }
-    
+
     if (query.includes('FROM tasks')) {
       return data.tasks as T;
     }
-    
+
     return [] as T;
   }
 
@@ -163,7 +169,7 @@ export function clearMockDatabase(): void {
  */
 export async function initializeMockDatabase(): Promise<MockDatabase> {
   const mockDb = new MockDatabase();
-  
+
   // Check if we have old format data and migrate it
   const existingData = localStorage.getItem('kirapilot-mock-db');
   if (existingData) {
@@ -171,29 +177,36 @@ export async function initializeMockDatabase(): Promise<MockDatabase> {
       const parsed = JSON.parse(existingData);
       if (parsed.tasks && parsed.tasks.length > 0) {
         // Check if any task has old format ID or is missing scheduledDate field
-        const hasOldFormatIds = parsed.tasks.some((task: any) => 
-          !task.id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i)
+        const hasOldFormatIds = parsed.tasks.some(
+          (task: any) =>
+            !task.id.match(
+              /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+            )
         );
-        const missingScheduledDate = parsed.tasks.some((task: any) => 
-          task.scheduledDate === undefined && task.hasOwnProperty('scheduledDate') === false
+        const missingScheduledDate = parsed.tasks.some(
+          (task: any) =>
+            task.scheduledDate === undefined &&
+            task.hasOwnProperty('scheduledDate') === false
         );
-        
+
         if (hasOldFormatIds) {
           console.log('Found old format task IDs, migrating to UUID format...');
           // Import migration utilities
           const { migrateTaskData } = await import('../../utils/migration');
           const migratedTasks = migrateTaskData(parsed.tasks);
-          
+
           const newData = {
             ...parsed,
-            tasks: migratedTasks
+            tasks: migratedTasks,
           };
-          
+
           localStorage.setItem('kirapilot-mock-db', JSON.stringify(newData));
           console.log('Migration completed successfully');
           return mockDb;
         } else if (missingScheduledDate) {
-          console.log('Found tasks missing scheduledDate field, clearing database to reinitialize...');
+          console.log(
+            'Found tasks missing scheduledDate field, clearing database to reinitialize...'
+          );
           clearMockDatabase();
         } else {
           // Data looks good, no need to reinitialize
@@ -205,13 +218,14 @@ export async function initializeMockDatabase(): Promise<MockDatabase> {
       clearMockDatabase();
     }
   }
-  
+
   // Initialize with some sample data
   const sampleTasks: Task[] = [
     {
       id: '550e8400-e29b-41d4-a716-446655440001',
       title: 'Complete project documentation',
-      description: 'Write comprehensive documentation for the KiraPilot project',
+      description:
+        'Write comprehensive documentation for the KiraPilot project',
       priority: Priority.HIGH,
       status: TaskStatus.IN_PROGRESS,
       dependencies: [],
@@ -259,7 +273,8 @@ export async function initializeMockDatabase(): Promise<MockDatabase> {
     {
       id: '550e8400-e29b-41d4-a716-446655440004',
       title: 'Design new UI components',
-      description: 'Create mockups and designs for the new dashboard components',
+      description:
+        'Create mockups and designs for the new dashboard components',
       priority: Priority.HIGH,
       status: TaskStatus.PENDING,
       dependencies: ['550e8400-e29b-41d4-a716-446655440001'], // Depends on documentation
@@ -292,7 +307,8 @@ export async function initializeMockDatabase(): Promise<MockDatabase> {
     {
       id: '550e8400-e29b-41d4-a716-446655440006',
       title: 'TASK SCHEDULED FOR YESTERDAY',
-      description: 'This task should appear in Today column when viewing today (overdue schedule)',
+      description:
+        'This task should appear in Today column when viewing today (overdue schedule)',
       priority: Priority.MEDIUM,
       status: TaskStatus.PENDING,
       dependencies: [],
@@ -346,11 +362,11 @@ export async function initializeMockDatabase(): Promise<MockDatabase> {
     focusSessions: [],
     patterns: [],
     preferences: {},
-    suggestions: []
+    suggestions: [],
   };
-  
+
   localStorage.setItem('kirapilot-mock-db', JSON.stringify(data));
-  
+
   console.log('Mock database initialized with sample data');
   return mockDb;
 }
@@ -359,16 +375,20 @@ export async function initializeMockDatabase(): Promise<MockDatabase> {
  * Get sample tasks for development
  */
 export function getSampleTasks(): Task[] {
-  const data = JSON.parse(localStorage.getItem('kirapilot-mock-db') || '{"tasks":[]}');
+  const data = JSON.parse(
+    localStorage.getItem('kirapilot-mock-db') || '{"tasks":[]}'
+  );
   const tasks = data.tasks || [];
-  
+
   // Convert date strings back to Date objects
   return tasks.map((task: any) => ({
     ...task,
     createdAt: new Date(task.createdAt),
     updatedAt: new Date(task.updatedAt),
     dueDate: task.dueDate ? new Date(task.dueDate) : undefined,
-    scheduledDate: task.scheduledDate ? new Date(task.scheduledDate) : undefined,
+    scheduledDate: task.scheduledDate
+      ? new Date(task.scheduledDate)
+      : undefined,
     completedAt: task.completedAt ? new Date(task.completedAt) : undefined,
   }));
 }

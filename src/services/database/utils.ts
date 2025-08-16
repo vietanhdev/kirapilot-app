@@ -6,21 +6,21 @@ import { getDatabase } from './index';
  */
 export async function resetDatabase(): Promise<void> {
   const db = await getDatabase();
-  
+
   console.log('Resetting database...');
-  
+
   // Drop all tables in reverse dependency order
   const dropTables = [
     'ai_suggestions',
-    'user_preferences', 
+    'user_preferences',
     'productivity_patterns',
     'focus_sessions',
     'time_sessions',
     'task_dependencies',
     'tasks',
-    'migrations'
+    'migrations',
   ];
-  
+
   for (const table of dropTables) {
     try {
       await db.execute(`DROP TABLE IF EXISTS ${table}`);
@@ -29,17 +29,19 @@ export async function resetDatabase(): Promise<void> {
       console.warn(`Failed to drop table ${table}:`, error);
     }
   }
-  
+
   // Reset the database connection to force reinitialization
   try {
-    const { resetDatabaseConnection, initializeDatabase } = await import('./index');
+    const { resetDatabaseConnection, initializeDatabase } = await import(
+      './index'
+    );
     await resetDatabaseConnection();
     await initializeDatabase();
     console.log('Database reinitialized with fresh schema');
   } catch (error) {
     console.warn('Failed to reinitialize database:', error);
   }
-  
+
   console.log('Database reset complete.');
 }
 
@@ -52,15 +54,15 @@ export async function getDatabaseStats(): Promise<{
   databaseSize: string;
 }> {
   const db = await getDatabase();
-  
+
   // Get all user tables
   const tables = await db.select<{ name: string }[]>(
     "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name != 'migrations'"
   );
-  
+
   const tableStats = [];
   let totalRecords = 0;
-  
+
   for (const table of tables) {
     try {
       const countResult = await db.select<{ count: number }[]>(
@@ -74,22 +76,23 @@ export async function getDatabaseStats(): Promise<{
       tableStats.push({ name: table.name, count: 0 });
     }
   }
-  
+
   // Get database size (approximate)
-  const sizeResult = await db.select<{ page_count: number; page_size: number }[]>(
-    'PRAGMA page_count, page_size'
-  );
-  
+  const sizeResult = await db.select<
+    { page_count: number; page_size: number }[]
+  >('PRAGMA page_count, page_size');
+
   const pageCount = sizeResult[0]?.page_count || 0;
   const pageSize = sizeResult[1]?.page_size || 4096;
   const sizeBytes = pageCount * pageSize;
   const sizeKB = Math.round(sizeBytes / 1024);
-  const databaseSize = sizeKB > 1024 ? `${Math.round(sizeKB / 1024)} MB` : `${sizeKB} KB`;
-  
+  const databaseSize =
+    sizeKB > 1024 ? `${Math.round(sizeKB / 1024)} MB` : `${sizeKB} KB`;
+
   return {
     tables: tableStats,
     totalRecords,
-    databaseSize
+    databaseSize,
   };
 }
 
@@ -98,14 +101,14 @@ export async function getDatabaseStats(): Promise<{
  */
 export async function exportDatabaseToJSON(): Promise<string> {
   const db = await getDatabase();
-  
+
   const backup: Record<string, any[]> = {};
-  
+
   // Get all user tables
   const tables = await db.select<{ name: string }[]>(
     "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name != 'migrations'"
   );
-  
+
   for (const table of tables) {
     try {
       const data = await db.select<any[]>(`SELECT * FROM ${table.name}`);
@@ -115,7 +118,7 @@ export async function exportDatabaseToJSON(): Promise<string> {
       backup[table.name] = [];
     }
   }
-  
+
   return JSON.stringify(backup, null, 2);
 }
 
@@ -124,7 +127,7 @@ export async function exportDatabaseToJSON(): Promise<string> {
  */
 export async function vacuumDatabase(): Promise<void> {
   const db = await getDatabase();
-  
+
   console.log('Vacuuming database...');
   await db.execute('VACUUM');
   console.log('Database vacuum complete');
@@ -135,7 +138,7 @@ export async function vacuumDatabase(): Promise<void> {
  */
 export async function analyzeDatabase(): Promise<void> {
   const db = await getDatabase();
-  
+
   console.log('Analyzing database...');
   await db.execute('ANALYZE');
   console.log('Database analysis complete');
@@ -149,22 +152,24 @@ export async function checkDatabaseIntegrity(): Promise<{
   errors: string[];
 }> {
   const db = await getDatabase();
-  
+
   try {
-    const result = await db.select<{ integrity_check: string }[]>('PRAGMA integrity_check');
-    
+    const result = await db.select<{ integrity_check: string }[]>(
+      'PRAGMA integrity_check'
+    );
+
     const errors = result
       .map(row => row.integrity_check)
       .filter(check => check !== 'ok');
-    
+
     return {
       isValid: errors.length === 0,
-      errors
+      errors,
     };
   } catch (error) {
     return {
       isValid: false,
-      errors: [`Integrity check failed: ${error}`]
+      errors: [`Integrity check failed: ${error}`],
     };
   }
 }
@@ -172,14 +177,16 @@ export async function checkDatabaseIntegrity(): Promise<{
 /**
  * Get foreign key violations
  */
-export async function checkForeignKeys(): Promise<Array<{
-  table: string;
-  rowid: number;
-  parent: string;
-  fkid: number;
-}>> {
+export async function checkForeignKeys(): Promise<
+  Array<{
+    table: string;
+    rowid: number;
+    parent: string;
+    fkid: number;
+  }>
+> {
   const db = await getDatabase();
-  
+
   try {
     return await db.select('PRAGMA foreign_key_check');
   } catch (error) {

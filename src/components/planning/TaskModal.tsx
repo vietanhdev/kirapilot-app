@@ -13,10 +13,10 @@ import {
   Select,
   SelectItem,
   Chip,
-} from "@heroui/react";
-import { 
-  Calendar, 
-  Hash, 
+} from '@heroui/react';
+import {
+  Calendar,
+  Hash,
   Plus,
   Save,
   Target,
@@ -25,7 +25,7 @@ import {
   Flame,
   Timer,
   Edit3,
-  PlusCircle
+  PlusCircle,
 } from 'lucide-react';
 
 interface TaskModalProps {
@@ -100,7 +100,7 @@ export function TaskModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.title.trim()) return;
 
     setIsSubmitting(true);
@@ -118,7 +118,7 @@ export function TaskModal({
           tags: formData.tags,
           updatedAt: new Date(),
         };
-        
+
         onUpdateTask(updatedFields);
       } else if (onCreateTask) {
         // Create new task
@@ -139,9 +139,7 @@ export function TaskModal({
           createdAt: new Date(),
           updatedAt: new Date(),
         };
-        
 
-        
         onCreateTask(newTask);
       }
 
@@ -162,7 +160,7 @@ export function TaskModal({
     if (newTag.trim() && !formData.tags.includes(newTag.trim())) {
       setFormData(prev => ({
         ...prev,
-        tags: [...prev.tags, newTag.trim()]
+        tags: [...prev.tags, newTag.trim()],
       }));
       setNewTag('');
     }
@@ -171,105 +169,113 @@ export function TaskModal({
   const removeTag = (tagToRemove: string) => {
     setFormData(prev => ({
       ...prev,
-      tags: prev.tags.filter(tag => tag !== tagToRemove)
+      tags: prev.tags.filter(tag => tag !== tagToRemove),
     }));
   };
 
   const priorityOptions = [
-    { 
-      key: Priority.LOW, 
-      label: 'Low', 
-      icon: <CheckCircle2 className="w-3 h-3" />
+    {
+      key: Priority.LOW,
+      label: 'Low',
+      icon: <CheckCircle2 className='w-3 h-3' />,
     },
-    { 
-      key: Priority.MEDIUM, 
-      label: 'Medium', 
-      icon: <Target className="w-3 h-3" />
+    {
+      key: Priority.MEDIUM,
+      label: 'Medium',
+      icon: <Target className='w-3 h-3' />,
     },
-    { 
-      key: Priority.HIGH, 
-      label: 'High', 
-      icon: <AlertCircle className="w-3 h-3" />
+    {
+      key: Priority.HIGH,
+      label: 'High',
+      icon: <AlertCircle className='w-3 h-3' />,
     },
-    { 
-      key: Priority.URGENT, 
-      label: 'Urgent', 
-      icon: <Flame className="w-3 h-3" />
+    {
+      key: Priority.URGENT,
+      label: 'Urgent',
+      icon: <Flame className='w-3 h-3' />,
     },
   ];
 
-  const selectedPriority = priorityOptions.find(p => p.key === formData.priority);
+  const selectedPriority = priorityOptions.find(
+    p => p.key === formData.priority
+  );
 
   return (
-    <Modal 
-      isOpen={isOpen} 
+    <Modal
+      isOpen={isOpen}
       onClose={handleClose}
-      size="lg"
-      scrollBehavior="inside"
-      backdrop="blur"
+      size='lg'
+      scrollBehavior='inside'
+      backdrop='blur'
     >
       <ModalContent>
         <form onSubmit={handleSubmit}>
-          <ModalHeader className="flex flex-col gap-1">
-            <div className="flex items-center gap-2">
+          <ModalHeader className='flex flex-col gap-1'>
+            <div className='flex items-center gap-2'>
               {isEditMode ? (
-                <Edit3 className="w-4 h-4" />
+                <Edit3 className='w-4 h-4' />
               ) : (
-                <PlusCircle className="w-4 h-4" />
+                <PlusCircle className='w-4 h-4' />
               )}
-              <h2 className="text-lg font-semibold">
+              <h2 className='text-lg font-semibold'>
                 {isEditMode ? 'Edit Task' : 'Create New Task'}
               </h2>
             </div>
           </ModalHeader>
-          
-          <ModalBody className="gap-4">
+
+          <ModalBody className='gap-4'>
             {/* Title */}
             <Input
               autoFocus
-              label="Title"
-              placeholder="What needs to be done?"
+              label='Title'
+              placeholder='What needs to be done?'
               value={formData.title}
-              onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+              onChange={e =>
+                setFormData(prev => ({ ...prev, title: e.target.value }))
+              }
               isRequired
-              size="sm"
+              size='sm'
             />
 
             {/* Description */}
             <Textarea
-              label="Description"
-              placeholder="Add details about this task..."
+              label='Description'
+              placeholder='Add details about this task...'
               value={formData.description}
-              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-              size="sm"
+              onChange={e =>
+                setFormData(prev => ({ ...prev, description: e.target.value }))
+              }
+              size='sm'
               minRows={2}
               maxRows={4}
             />
 
             {/* Priority & Time Row */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className='grid grid-cols-2 gap-3'>
               {/* Priority */}
               <Select
-                label="Priority"
-                placeholder="Select priority"
+                label='Priority'
+                placeholder='Select priority'
                 selectedKeys={[formData.priority.toString()]}
-                onSelectionChange={(keys) => {
+                onSelectionChange={keys => {
                   const priority = Array.from(keys)[0] as string;
-                  setFormData(prev => ({ ...prev, priority: parseInt(priority) as Priority }));
+                  setFormData(prev => ({
+                    ...prev,
+                    priority: parseInt(priority) as Priority,
+                  }));
                 }}
-                size="sm"
-                renderValue={() => selectedPriority && (
-                  <div className="flex items-center gap-2">
-                    {selectedPriority.icon}
-                    <span>{selectedPriority.label}</span>
-                  </div>
-                )}
+                size='sm'
+                renderValue={() =>
+                  selectedPriority && (
+                    <div className='flex items-center gap-2'>
+                      {selectedPriority.icon}
+                      <span>{selectedPriority.label}</span>
+                    </div>
+                  )
+                }
               >
-                {priorityOptions.map((priority) => (
-                  <SelectItem 
-                    key={priority.key}
-                    startContent={priority.icon}
-                  >
+                {priorityOptions.map(priority => (
+                  <SelectItem key={priority.key} startContent={priority.icon}>
                     {priority.label}
                   </SelectItem>
                 ))}
@@ -277,83 +283,105 @@ export function TaskModal({
 
               {/* Time Estimate */}
               <Input
-                type="number"
-                label="Time (min)"
-                placeholder="60"
+                type='number'
+                label='Time (min)'
+                placeholder='60'
                 value={formData.timeEstimate.toString()}
-                onChange={(e) => setFormData(prev => ({ 
-                  ...prev, 
-                  timeEstimate: parseInt(e.target.value) || 60 
-                }))}
+                onChange={e =>
+                  setFormData(prev => ({
+                    ...prev,
+                    timeEstimate: parseInt(e.target.value) || 60,
+                  }))
+                }
                 min={15}
                 step={15}
-                startContent={<Timer className="w-3 h-3" />}
+                startContent={<Timer className='w-3 h-3' />}
               />
             </div>
 
             {/* Dates Row */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className='grid grid-cols-2 gap-3'>
               {/* Due Date */}
               <Input
-                type="date"
-                label="Due Date"
-                value={formData.dueDate ? formData.dueDate.toISOString().split('T')[0] : ''}
-                onChange={(e) => setFormData(prev => ({ 
-                  ...prev, 
-                  dueDate: e.target.value ? new Date(e.target.value) : undefined 
-                }))}
-                size="sm"
-                startContent={<Calendar className="w-3 h-3" />}
+                type='date'
+                label='Due Date'
+                value={
+                  formData.dueDate
+                    ? formData.dueDate.toISOString().split('T')[0]
+                    : ''
+                }
+                onChange={e =>
+                  setFormData(prev => ({
+                    ...prev,
+                    dueDate: e.target.value
+                      ? new Date(e.target.value)
+                      : undefined,
+                  }))
+                }
+                size='sm'
+                startContent={<Calendar className='w-3 h-3' />}
               />
 
               {/* Scheduled Date */}
               <Input
-                type="date"
-                label="Scheduled"
-                value={formData.scheduledDate ? formData.scheduledDate.toISOString().split('T')[0] : ''}
-                onChange={(e) => setFormData(prev => ({ 
-                  ...prev, 
-                  scheduledDate: e.target.value ? new Date(e.target.value) : undefined 
-                }))}
-                size="sm"
-                startContent={<Calendar className="w-3 h-3" />}
+                type='date'
+                label='Scheduled'
+                value={
+                  formData.scheduledDate
+                    ? formData.scheduledDate.toISOString().split('T')[0]
+                    : ''
+                }
+                onChange={e =>
+                  setFormData(prev => ({
+                    ...prev,
+                    scheduledDate: e.target.value
+                      ? new Date(e.target.value)
+                      : undefined,
+                  }))
+                }
+                size='sm'
+                startContent={<Calendar className='w-3 h-3' />}
               />
             </div>
 
             {/* Tags */}
-            <div className="space-y-2">
-              <div className="flex gap-2">
+            <div className='space-y-2'>
+              <div className='flex gap-2'>
                 <Input
-                  placeholder="Add tag..."
+                  placeholder='Add tag...'
                   value={newTag}
-                  onChange={(e) => setNewTag(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
-                  size="sm"
-                  startContent={<Hash className="w-3 h-3" />}
-                  className="flex-1"
+                  onChange={e => setNewTag(e.target.value)}
+                  onKeyPress={e =>
+                    e.key === 'Enter' && (e.preventDefault(), addTag())
+                  }
+                  size='sm'
+                  startContent={<Hash className='w-3 h-3' />}
+                  className='flex-1'
                 />
                 <Button
-                  type="button"
+                  type='button'
                   onPress={addTag}
-                  color="primary"
-                  variant="flat"
-                  size="sm"
+                  color='primary'
+                  variant='flat'
+                  size='sm'
                   isIconOnly
-                  isDisabled={!newTag.trim() || formData.tags.includes(newTag.trim())}
+                  isDisabled={
+                    !newTag.trim() || formData.tags.includes(newTag.trim())
+                  }
                 >
-                  <Plus className="w-3 h-3" />
+                  <Plus className='w-3 h-3' />
                 </Button>
               </div>
-              
+
               {formData.tags.length > 0 && (
-                <div className="flex flex-wrap gap-1">
+                <div className='flex flex-wrap gap-1'>
                   {formData.tags.map((tag, index) => (
                     <Chip
                       key={index}
                       onClose={() => removeTag(tag)}
-                      variant="flat"
-                      color="primary"
-                      size="sm"
+                      variant='flat'
+                      color='primary'
+                      size='sm'
                     >
                       {tag}
                     </Chip>
@@ -364,22 +392,29 @@ export function TaskModal({
           </ModalBody>
 
           <ModalFooter>
-            <Button 
-              color="danger" 
-              variant="light" 
+            <Button
+              color='danger'
+              variant='light'
               onPress={handleClose}
-              size="sm"
+              size='sm'
               isDisabled={isSubmitting}
             >
               Cancel
             </Button>
-            <Button 
-              color="primary" 
-              type="submit"
+            <Button
+              color='primary'
+              type='submit'
               isDisabled={!formData.title.trim() || isSubmitting}
               isLoading={isSubmitting}
-              size="sm"
-              startContent={!isSubmitting && (isEditMode ? <Save className="w-3 h-3" /> : <Plus className="w-3 h-3" />)}
+              size='sm'
+              startContent={
+                !isSubmitting &&
+                (isEditMode ? (
+                  <Save className='w-3 h-3' />
+                ) : (
+                  <Plus className='w-3 h-3' />
+                ))
+              }
             >
               {isEditMode ? 'Save Changes' : 'Create Task'}
             </Button>
@@ -388,4 +423,4 @@ export function TaskModal({
       </ModalContent>
     </Modal>
   );
-} 
+}

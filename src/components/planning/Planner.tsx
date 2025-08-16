@@ -28,7 +28,6 @@ export function Planner({ viewMode = 'week' }: PlanningScreenProps) {
           // Clear and reinitialize sample data for testing
           localStorage.removeItem('kirapilot-mock-db');
           const sampleTasks = getSampleTasks();
-          console.log('Using sample tasks (database not initialized):', sampleTasks.length, sampleTasks);
           setTasks(sampleTasks);
         }
       } catch (error) {
@@ -36,7 +35,6 @@ export function Planner({ viewMode = 'week' }: PlanningScreenProps) {
         // Clear and reinitialize sample data on error
         localStorage.removeItem('kirapilot-mock-db');
         const fallbackTasks = getSampleTasks();
-        console.log('Using fallback sample tasks:', fallbackTasks.length, fallbackTasks);
         setTasks(fallbackTasks);
       }
     };
@@ -44,25 +42,31 @@ export function Planner({ viewMode = 'week' }: PlanningScreenProps) {
     loadTasks();
   }, [isInitialized]);
 
-
-  const handleTaskMove = async (taskId: string, fromColumn: string, toColumn: string, date?: Date) => {
+  const handleTaskMove = async (
+    taskId: string,
+    fromColumn: string,
+    toColumn: string,
+    date?: Date
+  ) => {
     console.log('Moving task:', { taskId, fromColumn, toColumn, date });
-    
+
     const task = tasks.find(t => t.id === taskId);
     if (!task) return;
 
     let newScheduledDate: Date | undefined;
-    
+
     // Determine new scheduled date based on target column
     if (toColumn === 'backlog') {
       newScheduledDate = undefined; // No scheduled date for backlog
     } else if (toColumn === 'upcoming') {
       // Set to next week if no specific date provided
-      newScheduledDate = date || (() => {
-        const nextWeek = new Date();
-        nextWeek.setDate(nextWeek.getDate() + 7);
-        return nextWeek;
-      })();
+      newScheduledDate =
+        date ||
+        (() => {
+          const nextWeek = new Date();
+          nextWeek.setDate(nextWeek.getDate() + 7);
+          return nextWeek;
+        })();
     } else if (date) {
       // Use the provided date for daily columns
       newScheduledDate = new Date(date);
@@ -70,11 +74,11 @@ export function Planner({ viewMode = 'week' }: PlanningScreenProps) {
       // Fallback: keep existing scheduled date
       newScheduledDate = task.scheduledDate;
     }
-    
+
     const updatedTask = {
       ...task,
       scheduledDate: newScheduledDate,
-      updatedAt: new Date()
+      updatedAt: new Date(),
     };
 
     try {
@@ -82,32 +86,26 @@ export function Planner({ viewMode = 'week' }: PlanningScreenProps) {
       if (isInitialized) {
         const taskRepo = getTaskRepository();
         await taskRepo.update(taskId, {
-          scheduledDate: newScheduledDate
+          scheduledDate: newScheduledDate,
         });
         console.log('Task updated in database:', taskId);
       }
 
       // Update local state
-      setTasks(prev => prev.map(t => 
-        t.id === taskId ? updatedTask : t
-      ));
+      setTasks(prev => prev.map(t => (t.id === taskId ? updatedTask : t)));
 
       console.log('Updated task:', {
         title: task.title,
         oldScheduledDate: task.scheduledDate,
         newScheduledDate,
-        toColumn
+        toColumn,
       });
     } catch (error) {
       console.error('Failed to update task in database:', error);
       // Still update local state as fallback
-      setTasks(prev => prev.map(t => 
-        t.id === taskId ? updatedTask : t
-      ));
+      setTasks(prev => prev.map(t => (t.id === taskId ? updatedTask : t)));
     }
   };
-
-
 
   const handleTaskCreate = async (task: Task) => {
     try {
@@ -124,9 +122,9 @@ export function Planner({ viewMode = 'week' }: PlanningScreenProps) {
           tags: task.tags || [],
           dependencies: task.dependencies || [],
           projectId: task.projectId,
-          parentTaskId: task.parentTaskId
+          parentTaskId: task.parentTaskId,
         });
-        
+
         // Update local state with the task from database
         setTasks(prev => [createdTask, ...prev]);
         console.log('New task created in database:', createdTask.title);
@@ -144,7 +142,7 @@ export function Planner({ viewMode = 'week' }: PlanningScreenProps) {
 
   const handleTaskEdit = async (taskId: string, updates: Partial<Task>) => {
     console.log('Edit task:', taskId, updates);
-    
+
     try {
       // Update in database
       if (isInitialized) {
@@ -154,15 +152,19 @@ export function Planner({ viewMode = 'week' }: PlanningScreenProps) {
       }
 
       // Update local state
-      setTasks(prev => prev.map(t => 
-        t.id === taskId ? { ...t, ...updates, updatedAt: new Date() } : t
-      ));
+      setTasks(prev =>
+        prev.map(t =>
+          t.id === taskId ? { ...t, ...updates, updatedAt: new Date() } : t
+        )
+      );
     } catch (error) {
       console.error('Failed to update task in database:', error);
       // Still update local state as fallback
-      setTasks(prev => prev.map(t => 
-        t.id === taskId ? { ...t, ...updates, updatedAt: new Date() } : t
-      ));
+      setTasks(prev =>
+        prev.map(t =>
+          t.id === taskId ? { ...t, ...updates, updatedAt: new Date() } : t
+        )
+      );
     }
   };
 
@@ -172,30 +174,41 @@ export function Planner({ viewMode = 'week' }: PlanningScreenProps) {
         ...task,
         status,
         updatedAt: new Date(),
-        completedAt: status === TaskStatus.COMPLETED ? new Date() : undefined
+        completedAt: status === TaskStatus.COMPLETED ? new Date() : undefined,
       };
 
       // Update in database
       if (isInitialized) {
         const taskRepo = getTaskRepository();
         await taskRepo.update(task.id, {
-          status
+          status,
         });
-        console.log('Task status updated in database:', task.title, 'to', status);
+        console.log(
+          'Task status updated in database:',
+          task.title,
+          'to',
+          status
+        );
       }
 
       // Update local state
-      setTasks(prev => prev.map(t => 
-        t.id === task.id ? updatedTask : t
-      ));
+      setTasks(prev => prev.map(t => (t.id === task.id ? updatedTask : t)));
     } catch (error) {
       console.error('Failed to update task status in database:', error);
       // Fallback: still update local state
-      setTasks(prev => prev.map(t => 
-        t.id === task.id 
-          ? { ...t, status, updatedAt: new Date(), completedAt: status === TaskStatus.COMPLETED ? new Date() : undefined }
-          : t
-      ));
+      setTasks(prev =>
+        prev.map(t =>
+          t.id === task.id
+            ? {
+                ...t,
+                status,
+                updatedAt: new Date(),
+                completedAt:
+                  status === TaskStatus.COMPLETED ? new Date() : undefined,
+              }
+            : t
+        )
+      );
     }
   };
 
@@ -218,7 +231,7 @@ export function Planner({ viewMode = 'week' }: PlanningScreenProps) {
   };
 
   return (
-    <div className="flex-1 p-6">
+    <div className='flex-1 p-6'>
       {/* Weekly Planning Interface */}
       <WeeklyPlan
         tasks={tasks}
