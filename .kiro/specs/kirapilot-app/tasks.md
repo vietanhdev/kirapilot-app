@@ -93,7 +93,7 @@
   - UI: Chat UI on bottom like a web/app bot
   - _Requirements: 4.1, 4.2, 6.2_
 
-- [ ] 5.2 Implement AI tool system for app control
+- [x] 5.2 Implement AI tool system for app control
   - Create tool definitions for task management operations
   - Build tools for time tracking control and data retrieval
   - Create tool execution engine with permission system
