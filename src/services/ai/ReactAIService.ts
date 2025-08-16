@@ -13,6 +13,16 @@ import {
   Priority,
   DistractionLevel,
 } from '../../types';
+import {
+  ToolExecutionEngine,
+  PermissionLevel,
+  getToolExecutionEngine,
+} from './ToolExecutionEngine';
+import {
+  ToolResultFormatter,
+  FormattedToolResult,
+  getToolResultFormatter,
+} from './ToolResultFormatter';
 
 // Internal types for AI service
 interface ToolCall {
@@ -27,14 +37,7 @@ interface ToolExecution {
   id: string;
 }
 
-interface TaskSummary {
-  id: string;
-  title: string;
-  priority: number;
-  status: string;
-  dueDate?: string;
-  timeEstimate?: number;
-}
+// TaskSummary interface removed as it's no longer used
 import { getKiraPilotTools } from './tools';
 
 // Configuration schema for the ReAct agent
@@ -227,23 +230,36 @@ export const graph = workflow.compile({
  */
 export class ReactAIService {
   private apiKey: string | null = null;
+  private toolExecutionEngine: ToolExecutionEngine;
+  private resultFormatter: ToolResultFormatter;
 
   constructor(apiKey?: string) {
     this.apiKey = apiKey || this.getEnvironmentApiKey() || null;
+    this.toolExecutionEngine = getToolExecutionEngine();
+    this.resultFormatter = getToolResultFormatter();
   }
 
   private getEnvironmentApiKey(): string | null {
     try {
       // Handle both browser and test environments
-      if (typeof window !== 'undefined' && (window as any).import?.meta?.env) {
-        return (window as any).import.meta.env.VITE_GOOGLE_API_KEY || null;
+      const windowWithImport = window as typeof window & {
+        import?: { meta?: { env?: { VITE_GOOGLE_API_KEY?: string } } };
+      };
+
+      if (typeof window !== 'undefined' && windowWithImport.import?.meta?.env) {
+        return windowWithImport.import.meta.env.VITE_GOOGLE_API_KEY || null;
       }
+
       // In browser environment with Vite
+      const globalWithImport = globalThis as typeof globalThis & {
+        import?: { meta?: { env?: { VITE_GOOGLE_API_KEY?: string } } };
+      };
+
       if (
         typeof globalThis !== 'undefined' &&
-        (globalThis as any).import?.meta?.env
+        globalWithImport.import?.meta?.env
       ) {
-        return (globalThis as any).import.meta.env.VITE_GOOGLE_API_KEY || null;
+        return globalWithImport.import.meta.env.VITE_GOOGLE_API_KEY || null;
       }
       return null;
     } catch {
@@ -311,23 +327,58 @@ export class ReactAIService {
 
       // Process tool executions from the conversation
       const toolExecutions = this.extractToolExecutions(messages);
-      if (toolExecutions.length > 0) {
-        // Create action records for executed tools
-        toolExecutions.forEach(execution => {
-          actions.push({
-            type: execution.name.toUpperCase() as AIAction['type'],
-            parameters: execution.args,
-            context,
-            confidence: 100,
-          });
-        });
+      const formattedResults: FormattedToolResult[] = [];
 
-        // If we have tool executions but no text response, generate one
-        if (!responseMessage.trim()) {
-          responseMessage = this.generateToolResponseSummary(
-            toolExecutions,
-            messages
+      if (toolExecutions.length > 0) {
+        // Validate and format tool executions
+        for (const execution of toolExecutions) {
+          const validation = this.toolExecutionEngine.validateExecution(
+            execution.name,
+            execution.args
           );
+
+          if (!validation.allowed) {
+            formattedResults.push({
+              success: false,
+              error: validation.reason,
+              userMessage: `❌ ${execution.name} failed: ${validation.reason}`,
+              formattedMessage: `❌ ${execution.name} failed: ${validation.reason}`,
+            });
+            continue;
+          }
+
+          // Find corresponding tool result in messages
+          const toolResult = this.findToolResult(messages, execution.id);
+          if (toolResult) {
+            const executionResult = this.toolExecutionEngine.formatResult(
+              execution.name,
+              toolResult,
+              0 // execution time not available from LangGraph
+            );
+
+            const formattedResult = this.resultFormatter.format(
+              execution.name,
+              executionResult,
+              JSON.parse(toolResult)
+            );
+
+            formattedResults.push(formattedResult);
+
+            // Create action record
+            actions.push({
+              type: execution.name.toUpperCase() as AIAction['type'],
+              parameters: execution.args,
+              context,
+              confidence: formattedResult.success ? 100 : 0,
+            });
+          }
+        }
+
+        // If we have tool executions but no text response, generate one from formatted results
+        if (!responseMessage.trim()) {
+          responseMessage = formattedResults
+            .map(result => result.formattedMessage)
+            .join('\n\n');
         }
       }
 
@@ -355,6 +406,28 @@ export class ReactAIService {
   }
 
   /**
+   * Find tool result message by execution ID
+   */
+  private findToolResult(
+    messages: unknown[],
+    executionId: string
+  ): string | null {
+    for (const message of messages) {
+      if (
+        message &&
+        typeof message === 'object' &&
+        'tool_call_id' in message &&
+        (message as { tool_call_id: string }).tool_call_id === executionId &&
+        'content' in message &&
+        typeof (message as { content: string }).content === 'string'
+      ) {
+        return (message as { content: string }).content;
+      }
+    }
+    return null;
+  }
+
+  /**
    * Extract tool executions from message history
    */
   private extractToolExecutions(messages: unknown[]): ToolExecution[] {
@@ -379,145 +452,6 @@ export class ReactAIService {
     }
 
     return executions;
-  }
-
-  /**
-   * Generate a response summary based on tool executions and tool messages
-   */
-  private generateToolResponseSummary(
-    executions: ToolExecution[],
-    messages: unknown[]
-  ): string {
-    // Look for tool messages (responses from tool executions)
-    const toolMessages = messages.filter(
-      msg =>
-        msg &&
-        typeof msg === 'object' &&
-        ((msg.constructor && msg.constructor.name === 'ToolMessage') ||
-          ('_getType' in msg &&
-            typeof (msg as { _getType: () => string })._getType ===
-              'function' &&
-            (msg as { _getType: () => string })._getType() === 'tool'))
-    );
-
-    let summary = '';
-
-    for (let i = 0; i < executions.length; i++) {
-      const execution = executions[i];
-      const toolMessage = toolMessages[i];
-
-      try {
-        // Try to parse the tool result
-        const result =
-          toolMessage &&
-          typeof toolMessage === 'object' &&
-          'content' in toolMessage &&
-          typeof (toolMessage as { content: string }).content === 'string'
-            ? JSON.parse((toolMessage as { content: string }).content)
-            : null;
-
-        switch (execution.name) {
-          case 'get_tasks':
-            if (result?.success && result?.tasks) {
-              summary += `I found ${result.tasks.length} tasks:\n\n`;
-              result.tasks
-                .slice(0, 5)
-                .forEach((task: TaskSummary, index: number) => {
-                  const priority =
-                    ['Low', 'Medium', 'High', 'Urgent'][task.priority] ||
-                    'Medium';
-                  const status = task.status
-                    .replace('_', ' ')
-                    .replace(/\b\w/g, (l: string) => l.toUpperCase());
-                  summary += `${index + 1}. **${task.title}** (${priority} priority, ${status})\n`;
-                  if (task.dueDate) {
-                    summary += `   Due: ${new Date(task.dueDate).toLocaleDateString()}\n`;
-                  }
-                  if (task.timeEstimate) {
-                    summary += `   Estimated: ${task.timeEstimate} minutes\n`;
-                  }
-                });
-              if (result.tasks.length > 5) {
-                summary += `\n...and ${result.tasks.length - 5} more tasks.\n`;
-              }
-            } else {
-              summary += 'No tasks found matching your criteria.\n';
-            }
-            break;
-
-          case 'create_task':
-            if (result?.success && result?.task) {
-              summary += `✅ Created task: **${result.task.title}**\n`;
-              const priority =
-                ['Low', 'Medium', 'High', 'Urgent'][result.task.priority] ||
-                'Medium';
-              summary += `Priority: ${priority}\n`;
-            } else {
-              summary += '❌ Failed to create task.\n';
-            }
-            break;
-
-          case 'start_timer':
-            if (result?.success) {
-              summary +=
-                "✅ Timer started! You're now tracking time for this task.\n";
-            } else {
-              summary += '❌ Failed to start timer.\n';
-            }
-            break;
-
-          case 'stop_timer':
-            if (result?.success && result?.session) {
-              const duration = Math.round(
-                result.session.duration / (1000 * 60)
-              );
-              summary += `✅ Timer stopped! You worked for ${duration} minutes.\n`;
-            } else {
-              summary += '❌ Failed to stop timer.\n';
-            }
-            break;
-
-          case 'update_task':
-            if (result?.success) {
-              summary += '✅ Task updated successfully.\n';
-            } else {
-              summary += '❌ Failed to update task.\n';
-            }
-            break;
-
-          case 'get_time_data':
-            if (result?.success && result?.timeData) {
-              const totalHours =
-                Math.round(
-                  (result.timeData.totalTime / (1000 * 60 * 60)) * 10
-                ) / 10;
-              summary += `📊 Time Summary:\n`;
-              summary += `• Sessions: ${result.timeData.totalSessions}\n`;
-              summary += `• Total time: ${totalHours} hours\n`;
-            } else {
-              summary += 'No time tracking data available.\n';
-            }
-            break;
-
-          case 'analyze_productivity':
-            if (result?.success) {
-              summary += '📈 Productivity analysis completed.\n';
-            } else {
-              summary += '❌ Failed to analyze productivity.\n';
-            }
-            break;
-
-          default:
-            summary += `✅ Executed ${execution.name} successfully.\n`;
-        }
-      } catch (error) {
-        summary += `❌ Error processing ${execution.name}: ${error}\n`;
-      }
-
-      summary += '\n';
-    }
-
-    return summary.trim();
   }
 
   /**
@@ -585,6 +519,34 @@ export class ReactAIService {
    */
   setApiKey(apiKey: string): void {
     this.apiKey = apiKey;
+  }
+
+  /**
+   * Configure tool execution permissions
+   */
+  setToolPermissions(permissions: PermissionLevel[]): void {
+    this.toolExecutionEngine.setPermissions(permissions);
+  }
+
+  /**
+   * Get available tools based on current permissions
+   */
+  getAvailableTools(): string[] {
+    return this.toolExecutionEngine.getAvailableTools();
+  }
+
+  /**
+   * Check if a tool requires confirmation
+   */
+  toolRequiresConfirmation(toolName: string): boolean {
+    return this.toolExecutionEngine.requiresConfirmation(toolName);
+  }
+
+  /**
+   * Get tool information including permissions and description
+   */
+  getToolInfo(toolName: string) {
+    return this.toolExecutionEngine.getToolInfo(toolName);
   }
 
   /**
