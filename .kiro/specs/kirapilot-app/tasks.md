@@ -57,7 +57,7 @@
   - Write tests for weekly planning functionality
   - _Requirements: 1.4, 2.4_
 
-- [ ] 4. Implement time tracking engine
+- [x] 4. Implement time tracking engine
 - [x] 4.1 Create timer component and session management
   - Build Timer component with start, pause, reset functionality
   - Implement session state management with persistence
@@ -84,13 +84,13 @@
   - Adjust linting configs to improve it and iterate
 
 - [ ] 5. Develop Kira AI assistant foundation
-- [ ] 5.1 Set up AI service architecture
+- [-] 5.1 Set up AI service architecture
   - Create AIService interface and implementation
   - Set up cloud LLM API integration with error handling
   - Implement conversation context management
   - Build AI response parsing and action extraction
   - Create AI service error handling and fallback mechanisms
-  - Write unit tests for AI service components
+  - UI: Chat UI on bottom like a web/app bot
   - _Requirements: 4.1, 4.2, 6.2_
 
 - [ ] 5.2 Implement AI tool system for app control
@@ -98,7 +98,6 @@
   - Build tools for time tracking control and data retrieval
   - Create tool execution engine with permission system
   - Add tool result formatting and user feedback
-  - Write integration tests for AI tool execution
   - _Requirements: 4.2, 4.3_
 
 - [ ] 5.3 Build natural language interface
@@ -107,7 +106,6 @@
   - Build context-aware suggestion generation
   - Create helpful notification system
   - Add conversation history and context persistence
-  - Write tests for natural language processing
   - _Requirements: 4.1, 4.4, 4.5_
 
 - [ ] 6. Implement privacy and security features
@@ -117,7 +115,7 @@
   - Build data export and deletion functionality
   - Create transparent AI operation logging
   - Add user control over AI data usage
-  - Write tests for privacy and security features
+  - Implement Settings screen
   - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5_
 
 - [ ] 7. Implement comprehensive testing and quality assurance
