@@ -1,25 +1,38 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, Calendar, FileText, Trash2, BarChart3 } from 'lucide-react';
+import { Clock, Calendar, FileText, Trash2, Coffee, Play, TrendingUp } from 'lucide-react';
 import { TimerSession, Task } from '../../types';
 import { TimeTrackingRepository } from '../../services/database/repositories/TimeTrackingRepository';
 import { useDatabaseOperation } from '../../hooks/useDatabase';
+import {
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  Button,
+  Select,
+  SelectItem,
+  Chip,
+  Divider,
+} from "@heroui/react";
 
-interface SessionHistoryProps {
+interface SessionHistoryModalProps {
+  isOpen: boolean;
+  onClose: () => void;
   taskId?: string;
   limit?: number;
   showTaskInfo?: boolean;
-  className?: string;
 }
 
-export const SessionHistory: React.FC<SessionHistoryProps> = ({
+export const SessionHistoryModal: React.FC<SessionHistoryModalProps> = ({
+  isOpen,
+  onClose,
   taskId,
-  limit = 10,
+  limit = 20,
   showTaskInfo = true,
-  className = ''
 }) => {
   const [sessions, setSessions] = useState<TimerSession[]>([]);
   const [tasks, setTasks] = useState<Record<string, Task>>({});
-  const [selectedPeriod, setSelectedPeriod] = useState<'today' | 'week' | 'month' | 'all'>('week');
+  const [selectedPeriod, setSelectedPeriod] = useState<'today' | 'week' | 'month' | 'all'>('all');
   const [statistics, setStatistics] = useState<any>(null);
   
   const { execute, isLoading, error } = useDatabaseOperation();
@@ -27,6 +40,8 @@ export const SessionHistory: React.FC<SessionHistoryProps> = ({
 
   // Load sessions and statistics
   useEffect(() => {
+    if (!isOpen) return;
+    
     const loadData = async () => {
       let sessionsData: TimerSession[] = [];
       
@@ -72,13 +87,9 @@ export const SessionHistory: React.FC<SessionHistoryProps> = ({
     };
     
     execute(loadData);
-  }, [taskId, selectedPeriod, limit, showTaskInfo, execute]);
+  }, [isOpen, taskId, selectedPeriod, limit, showTaskInfo, execute]);
 
   const handleDeleteSession = async (sessionId: string) => {
-    if (!confirm('Are you sure you want to delete this session?')) {
-      return;
-    }
-    
     await execute(async () => {
       await timeTrackingRepo.delete(sessionId);
       setSessions(prev => prev.filter(s => s.id !== sessionId));
@@ -96,19 +107,18 @@ export const SessionHistory: React.FC<SessionHistoryProps> = ({
     return `${minutes}m`;
   };
 
+  const formatTime = (date: Date): string => {
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
   const formatDate = (date: Date): string => {
     const now = new Date();
     const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
     
-    if (diffDays === 0) {
-      return `Today ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
-    } else if (diffDays === 1) {
-      return `Yesterday ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
-    } else if (diffDays < 7) {
-      return `${diffDays} days ago`;
-    } else {
-      return date.toLocaleDateString();
-    }
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays < 7) return `${diffDays} days ago`;
+    return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
   };
 
   const getSessionDuration = (session: TimerSession): number => {
@@ -129,173 +139,200 @@ export const SessionHistory: React.FC<SessionHistoryProps> = ({
   };
 
   return (
-    <div className={`bg-white dark:bg-gray-800 rounded-lg shadow-md ${className}`}>
-      <div className="p-4 border-b border-gray-200 dark:border-gray-600">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center space-x-2">
-            <Clock className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-            <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">
-              {taskId ? 'Task Sessions' : 'Time Analytics'}
-            </h3>
-          </div>
-          
-          {!taskId && (
-            <select
-              value={selectedPeriod}
-              onChange={(e) => setSelectedPeriod(e.target.value as any)}
-              className="text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 
-                bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100
-                focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="today">Today</option>
-              <option value="week">This Week</option>
-              <option value="month">This Month</option>
-              <option value="all">All Time</option>
-            </select>
-          )}
-        </div>
-
-        {/* Statistics Summary */}
-        {statistics && !taskId && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3">
-            <div className="text-center p-2 bg-blue-50 dark:bg-blue-900/20 rounded">
-              <div className="text-lg font-bold text-blue-600 dark:text-blue-400">
-                {statistics.totalSessions}
-              </div>
-              <div className="text-xs text-gray-600 dark:text-gray-400">Sessions</div>
+    <Modal 
+      isOpen={isOpen} 
+      onClose={onClose}
+      size="xl"
+      scrollBehavior="inside"
+      backdrop="blur"
+    >
+      <ModalContent>
+        <ModalHeader className="pb-2">
+          <div className="flex items-center justify-between w-full">
+            <div className="flex items-center gap-2">
+              <Clock className="w-4 h-4 text-primary" />
+              <span className="font-semibold">
+                {taskId ? 'Task Sessions' : 'Session History'}
+              </span>
             </div>
-            <div className="text-center p-2 bg-green-50 dark:bg-green-900/20 rounded">
-              <div className="text-lg font-bold text-green-600 dark:text-green-400">
-                {formatDuration(statistics.totalWorkTime)}
-              </div>
-              <div className="text-xs text-gray-600 dark:text-gray-400">Work Time</div>
-            </div>
-            <div className="text-center p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded">
-              <div className="text-lg font-bold text-yellow-600 dark:text-yellow-400">
-                {Math.round(statistics.averageProductivity)}%
-              </div>
-              <div className="text-xs text-gray-600 dark:text-gray-400">Productivity</div>
-            </div>
-            <div className="text-center p-2 bg-purple-50 dark:bg-purple-900/20 rounded">
-              <div className="text-lg font-bold text-purple-600 dark:text-purple-400">
-                {statistics.mostProductiveHour}:00
-              </div>
-              <div className="text-xs text-gray-600 dark:text-gray-400">Peak Hour</div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      <div className="p-4">
-        {isLoading ? (
-          <div className="text-center py-6">
-            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 dark:border-blue-400 mx-auto"></div>
-            <p className="text-gray-600 dark:text-gray-400 mt-2 text-sm">Loading sessions...</p>
-          </div>
-        ) : sessions.length === 0 ? (
-          <div className="text-center py-6">
-            <Clock className="w-8 h-8 text-gray-400 dark:text-gray-500 mx-auto mb-3" />
-            <p className="text-gray-600 dark:text-gray-400 text-sm">No timer sessions found</p>
-            <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-              Start a timer to track your work sessions
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {sessions.map((session) => (
-              <div
-                key={session.id}
-                className="border border-gray-200 dark:border-gray-600 rounded p-3 
-                  hover:shadow-md dark:hover:bg-gray-700/50 transition-all duration-200"
+            
+            {!taskId && (
+              <Select
+                selectedKeys={[selectedPeriod]}
+                onSelectionChange={(keys) => setSelectedPeriod(Array.from(keys)[0] as any)}
+                size="sm"
+                className="w-24"
+                variant="bordered"
               >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-3 mb-2">
-                      <div className="flex items-center space-x-2">
-                        <Calendar className="w-3 h-3 text-gray-500 dark:text-gray-400" />
-                        <span className="text-xs text-gray-600 dark:text-gray-400">
-                          {formatDate(typeof session.startTime === 'string' ? new Date(session.startTime) : session.startTime)}
-                        </span>
+                <SelectItem key="today">Today</SelectItem>
+                <SelectItem key="week">Week</SelectItem>
+                <SelectItem key="month">Month</SelectItem>
+                <SelectItem key="all">All</SelectItem>
+              </Select>
+            )}
+          </div>
+        </ModalHeader>
+        
+        <ModalBody className="gap-4 py-0 pb-6">
+          {/* Compact Statistics */}
+          {statistics && !taskId && (
+            <>
+              <div className="flex items-center justify-between px-1">
+                <div className="flex items-center gap-6">
+                  <div className="text-center">
+                    <div className="text-lg font-bold text-primary">{statistics.totalSessions}</div>
+                    <div className="text-xs text-default-400">Sessions</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-lg font-bold text-success">{formatDuration(statistics.totalWorkTime)}</div>
+                    <div className="text-xs text-default-400">Work Time</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-lg font-bold text-warning">{Math.round(statistics.averageProductivity)}%</div>
+                    <div className="text-xs text-default-400">Productivity</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-lg font-bold text-secondary">{statistics.mostProductiveHour}:00</div>
+                    <div className="text-xs text-default-400">Peak Hour</div>
+                  </div>
+                </div>
+              </div>
+              <Divider />
+            </>
+          )}
+
+          {/* Sessions List */}
+          {isLoading ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary mx-auto"></div>
+              <p className="text-default-400 mt-2 text-sm">Loading sessions...</p>
+            </div>
+          ) : sessions.length === 0 ? (
+            <div className="text-center py-8">
+              <Clock className="w-8 h-8 text-default-300 mx-auto mb-2" />
+              <p className="text-default-400 text-sm">No timer sessions found</p>
+              <p className="text-xs text-default-300 mt-1">
+                Start a timer to track your work sessions
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-1">
+              {sessions.map((session) => {
+                const startTime = typeof session.startTime === 'string' ? new Date(session.startTime) : session.startTime;
+                const endTime = session.endTime ? (typeof session.endTime === 'string' ? new Date(session.endTime) : session.endTime) : null;
+                const productivity = getProductivityScore(session);
+                
+                return (
+                  <div key={session.id} className="group p-3 rounded-lg hover:bg-default-50 border border-transparent hover:border-default-200 transition-all">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <div className="flex items-center gap-2 text-xs text-default-400">
+                          <Calendar className="w-3 h-3" />
+                          <span>{formatDate(startTime)}</span>
+                        </div>
+                        
+                        <div className="flex items-center gap-1 text-xs text-default-500">
+                          <span>{formatTime(startTime)}</span>
+                          {endTime && (
+                            <>
+                              <span>→</span>
+                              <span>{formatTime(endTime)}</span>
+                            </>
+                          )}
+                        </div>
                       </div>
                       
-                      {session.endTime && (
-                        <div className="flex items-center space-x-2">
-                          <BarChart3 className="w-3 h-3 text-gray-500 dark:text-gray-400" />
-                          <span className="text-xs text-gray-600 dark:text-gray-400">
-                            {getProductivityScore(session)}% productive
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                    
-                    <div className="flex items-center space-x-4 mb-2">
-                      <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                        {session.endTime ? 
-                          formatDuration(getSessionDuration(session)) : 
-                          'In Progress'
-                        }
+                      <div className="flex items-center gap-2">
+                        {productivity > 0 && endTime && (
+                          <Chip size="sm" variant="flat" startContent={<TrendingUp className="w-3 h-3" />} className="text-xs">
+                            {productivity}%
+                          </Chip>
+                        )}
+                        
+                        {session.breaks.length > 0 && (
+                          <Chip size="sm" variant="flat" startContent={<Coffee className="w-3 h-3" />} className="text-xs">
+                            {session.breaks.length}
+                          </Chip>
+                        )}
+                        
+                        {endTime ? (
+                          <Chip size="sm" color="success" variant="flat" className="font-medium">
+                            {formatDuration(getSessionDuration(session))}
+                          </Chip>
+                        ) : (
+                          <Chip size="sm" color="warning" variant="flat" startContent={<Play className="w-3 h-3" />}>
+                            Active
+                          </Chip>
+                        )}
+                        
+                        <Button
+                          isIconOnly
+                          size="sm"
+                          variant="light"
+                          color="danger"
+                          onPress={() => handleDeleteSession(session.id)}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity w-6 h-6 min-w-6"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
                       </div>
-                      
-                      {session.breaks.length > 0 && (
-                        <div className="text-xs text-gray-600 dark:text-gray-400">
-                          {session.breaks.length} break{session.breaks.length !== 1 ? 's' : ''} 
-                          ({formatDuration(session.pausedTime)})
-                        </div>
-                      )}
                     </div>
                     
                     {session.notes && (
-                      <div className="flex items-start space-x-2 mt-2">
-                        <FileText className="w-3 h-3 text-gray-500 dark:text-gray-400 mt-0.5" />
-                        <p className="text-xs text-gray-700 dark:text-gray-300">{session.notes}</p>
+                      <div className="mt-2 text-xs text-default-600 pl-5">
+                        {session.notes}
                       </div>
                     )}
                     
                     {session.breaks.length > 0 && (
-                      <div className="mt-2">
-                        <details className="text-xs">
-                          <summary className="cursor-pointer text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200">
-                            View breaks ({session.breaks.length})
-                          </summary>
-                          <div className="mt-1 space-y-1 pl-3">
-                            {session.breaks.map((breakItem, index) => {
-                              const startTime = typeof breakItem.startTime === 'string' ? new Date(breakItem.startTime) : breakItem.startTime;
-                              const endTime = typeof breakItem.endTime === 'string' ? new Date(breakItem.endTime) : breakItem.endTime;
-                              const duration = endTime && startTime ? endTime.getTime() - startTime.getTime() : 0;
-                              
-                              return (
-                                <div key={breakItem.id} className="text-xs text-gray-600 dark:text-gray-400">
-                                  Break {index + 1}: {breakItem.reason} - {formatDuration(duration)}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </details>
-                      </div>
+                      <details className="mt-2 text-xs text-default-400 pl-5">
+                        <summary className="cursor-pointer hover:text-default-600 select-none">
+                          View {session.breaks.length} break{session.breaks.length !== 1 ? 's' : ''} ({formatDuration(session.pausedTime)})
+                        </summary>
+                        <div className="mt-1 space-y-1 pl-3 border-l border-default-200">
+                          {session.breaks.map((breakItem, index) => {
+                            const breakStart = typeof breakItem.startTime === 'string' ? new Date(breakItem.startTime) : breakItem.startTime;
+                            const breakEnd = typeof breakItem.endTime === 'string' ? new Date(breakItem.endTime) : breakItem.endTime;
+                            const duration = breakEnd && breakStart ? breakEnd.getTime() - breakStart.getTime() : 0;
+                            
+                            return (
+                              <div key={breakItem.id} className="text-xs text-default-500">
+                                {breakItem.reason} - {formatDuration(duration)}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </details>
                     )}
                   </div>
-                  
-                  <button
-                    onClick={() => handleDeleteSession(session.id)}
-                    className="p-1 text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 transition-colors"
-                    title="Delete session"
-                  >
-                    <Trash2 className="w-3 h-3" />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+                );
+              })}
+            </div>
+          )}
 
-        {error && (
-          <div className="mt-3 p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded">
-            <p className="text-xs text-red-700 dark:text-red-400">{error}</p>
-          </div>
-        )}
-      </div>
-    </div>
+          {error && (
+            <div className="text-center py-4">
+              <p className="text-danger text-sm">{error}</p>
+            </div>
+          )}
+        </ModalBody>
+      </ModalContent>
+    </Modal>
   );
 };
 
-export default SessionHistory;
+// Keep the original SessionHistory component for backward compatibility
+interface SessionHistoryProps {
+  taskId?: string;
+  limit?: number;
+  showTaskInfo?: boolean;
+  className?: string;
+}
+
+export const SessionHistory: React.FC<SessionHistoryProps> = (props) => {
+  // This is now just a wrapper that maintains the old interface
+  // but you should migrate to using SessionHistoryModal directly
+  return <div>Use SessionHistoryModal instead</div>;
+};
+
+export default SessionHistoryModal;

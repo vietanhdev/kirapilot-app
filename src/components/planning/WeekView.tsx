@@ -16,7 +16,7 @@ import {
 import { Task, TaskStatus } from '../../types';
 import { TaskColumn } from './TaskColumn';
 import { TaskCard } from './TaskCard';
-import { TaskCreationModal } from './TaskCreationModal';
+import { TaskModal } from './TaskModal';
 import {
     ChevronLeft,
     ChevronRight,
@@ -431,7 +431,7 @@ export function WeekView({
                 </div>
 
                 {/* Task Creation Modal */}
-                <TaskCreationModal
+                <TaskModal
                     isOpen={showTaskModal}
                     onClose={() => {
                         console.log('Closing task modal');
@@ -439,7 +439,6 @@ export function WeekView({
                     }}
                     onCreateTask={handleTaskCreate}
                     defaultDate={taskModalDate}
-                    defaultColumn={taskModalColumn}
                 />
 
                 {/* Drag Overlay */}
