@@ -312,13 +312,12 @@ function getMigrations(): Migration[] {
   ];
 }
 
-// Transaction management state
-let isTransactionActive = false;
-const transactionQueue: Array<() => Promise<unknown>> = [];
-let processingQueue = false;
+// Simplified transaction management with mutex-like behavior
+let transactionMutex: Promise<void> = Promise.resolve();
 
 /**
- * Execute a database transaction with proper concurrency handling
+ * Execute a database transaction with proper serialization
+ * This ensures only one transaction runs at a time by using a mutex pattern
  */
 export async function executeTransaction<T>(
   callback: (db: Database | MockDatabase) => Promise<T>
@@ -331,111 +330,63 @@ export async function executeTransaction<T>(
     return await callback(database);
   }
 
-  // If a transaction is already active, queue this operation
-  if (isTransactionActive) {
-    console.log('Transaction already active, queuing operation...');
-    return new Promise((resolve, reject) => {
-      transactionQueue.push(async () => {
-        try {
-          const result = await callback(database);
-          resolve(result);
-        } catch (error) {
-          reject(error);
-        }
-      });
+  // Wait for any previous transaction to complete, then run this one
+  const previousMutex = transactionMutex;
+  let resolveMutex: () => void;
 
-      // Process queue if not already processing
-      if (!processingQueue) {
-        processTransactionQueue();
-      }
-    });
-  }
-
-  // Mark transaction as active
-  isTransactionActive = true;
-  let transactionStarted = false;
+  // Create a new mutex for the next transaction
+  transactionMutex = new Promise<void>(resolve => {
+    resolveMutex = resolve;
+  });
 
   try {
-    // Try to start transaction
+    // Wait for the previous transaction to complete
+    await previousMutex;
+
+    console.debug('Starting transaction...');
+
+    // Now execute our transaction
+    let transactionStarted = false;
+
     try {
+      // Start transaction
       await database.execute('BEGIN TRANSACTION');
       transactionStarted = true;
       console.debug('Transaction started successfully');
-    } catch (beginError) {
-      console.warn(
-        'Failed to start transaction, executing without transaction:',
-        beginError
-      );
-      // If we can't start a transaction, just execute the callback
+
+      // Execute the callback
       const result = await callback(database);
-      isTransactionActive = false;
-      processTransactionQueue(); // Process any queued operations
+
+      // Commit transaction
+      await database.execute('COMMIT');
+      console.debug('Transaction committed successfully');
+
       return result;
-    }
-
-    const result = await callback(database);
-
-    // Try to commit if transaction was started
-    if (transactionStarted) {
-      try {
-        await database.execute('COMMIT');
-        console.debug('Transaction committed successfully');
-      } catch (commitError) {
-        console.warn('Failed to commit transaction:', commitError);
-        // Even if commit fails, we still return the result since the operations likely succeeded
-      }
-    }
-
-    isTransactionActive = false;
-    processTransactionQueue(); // Process any queued operations
-    return result;
-  } catch (error) {
-    // Try to rollback if transaction was started
-    if (transactionStarted) {
-      try {
-        await database.execute('ROLLBACK');
-        console.debug('Transaction rolled back successfully');
-      } catch (rollbackError) {
-        // Only log rollback errors that aren't "no transaction is active"
-        if (
-          !(rollbackError as Error)?.message?.includes(
-            'no transaction is active'
-          )
-        ) {
-          console.warn('Failed to rollback transaction:', rollbackError);
+    } catch (error) {
+      // Rollback on any error
+      if (transactionStarted) {
+        try {
+          await database.execute('ROLLBACK');
+          console.debug('Transaction rolled back successfully');
+        } catch (rollbackError) {
+          // Only log rollback errors that aren't "no transaction is active"
+          if (
+            !(rollbackError as Error)?.message?.includes(
+              'no transaction is active'
+            )
+          ) {
+            console.warn('Failed to rollback transaction:', rollbackError);
+          }
         }
-        // Don't throw rollback error, throw the original error
       }
+
+      console.warn('Transaction failed:', error);
+      throw error;
     }
-
-    isTransactionActive = false;
-    processTransactionQueue(); // Process any queued operations
-    throw error;
+  } finally {
+    // Always release the mutex to allow next transaction
+    resolveMutex!();
   }
-}
-
-/**
- * Process queued transaction operations
- */
-async function processTransactionQueue(): Promise<void> {
-  if (processingQueue || transactionQueue.length === 0 || isTransactionActive) {
-    return;
-  }
-
-  processingQueue = true;
-
-  while (transactionQueue.length > 0 && !isTransactionActive) {
-    const operation = transactionQueue.shift();
-    if (operation) {
-      try {
-        await operation();
-      } catch (error) {
-        console.error('Error processing queued transaction:', error);
-      }
-    }
-  }
-
-  processingQueue = false;
 }
 
 /**
