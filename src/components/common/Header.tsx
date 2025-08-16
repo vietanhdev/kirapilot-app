@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { BarChart3, Settings, CheckCircle, Clock, Pause, Play, Square, History, X } from 'lucide-react';
+import { BarChart3, Settings, CheckCircle, Clock, Pause, Play, Square, History, X, Trash2 } from 'lucide-react';
 import { useTimerContext } from '../../contexts/TimerContext';
-import { SessionHistory } from '../timer/SessionHistory';
+import { SessionHistoryModal } from '../timer/SessionHistory';
 
 interface HeaderProps {
   currentView: string;
@@ -43,6 +43,30 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onViewChange }) => 
       handleTimerStop(activeTask);
     } catch (error) {
       console.error('Timer stop error:', error);
+    }
+  };
+
+  const handleClearDatabase = async () => {
+    if (!import.meta.env.DEV) return;
+    
+    const confirmed = window.confirm(
+      'Are you sure you want to clear all database data? This action cannot be undone.\n\n' +
+      'This will clear:\n' +
+      '- All tasks and projects\n' +
+      '- Timer sessions and history\n' +
+      '- User preferences\n' +
+      '- All other application data'
+    );
+    
+    if (confirmed) {
+      try {
+        // Import the reset function dynamically
+        const { resetDatabase } = await import('../../utils/resetDatabase');
+        resetDatabase();
+      } catch (error) {
+        console.error('Failed to clear database:', error);
+        alert('Failed to clear database. Check console for details.');
+      }
     }
   };
 
@@ -141,6 +165,17 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onViewChange }) => 
           <History className="w-5 h-5" />
         </button>
 
+        {/* Development Clear Database Button */}
+        {import.meta.env.DEV && (
+          <button
+            onClick={handleClearDatabase}
+            className="p-2 rounded-lg transition-colors text-red-400 hover:text-red-300 hover:bg-red-500/20"
+            title="Clear Database (Dev Only)"
+          >
+            <Trash2 className="w-5 h-5" />
+          </button>
+        )}
+
         {/* Other Navigation Buttons */}
         {[
           { icon: BarChart3, label: 'Reports', id: 'reports' },
@@ -162,28 +197,12 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onViewChange }) => 
       </nav>
       
       {/* Session History Modal */}
-      {showSessionLogs && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowSessionLogs(false)}>
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl max-w-4xl max-h-[80vh] w-full mx-4 overflow-hidden" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-600">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Session History</h2>
-              <button
-                onClick={() => setShowSessionLogs(false)}
-                className="p-2 rounded-lg text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="overflow-y-auto max-h-[calc(80vh-80px)]">
-              <SessionHistory
-                limit={20}
-                showTaskInfo={true}
-                className="shadow-none border-0 rounded-none"
-              />
-            </div>
-          </div>
-        </div>
-      )}
+      <SessionHistoryModal
+        isOpen={showSessionLogs}
+        onClose={() => setShowSessionLogs(false)}
+        limit={20}
+        showTaskInfo={true}
+      />
     </header>
   );
 };

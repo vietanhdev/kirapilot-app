@@ -19,7 +19,7 @@ import {
   Trash2,
   History
 } from 'lucide-react';
-import { TaskEditModal } from './TaskEditModal';
+import { TaskModal } from './TaskModal';
 
 interface PlanningTaskCardProps {
   task: Task;
@@ -176,8 +176,8 @@ export function TaskCard({
       {...listeners}
       {...attributes}
       className={`
-        group relative bg-gray-50 dark:bg-gray-600/50 rounded-lg shadow-sm
-        border-l-3 transition-all duration-300 ease-out hover:shadow-md hover:-translate-y-0.5
+        group relative bg-gray-50 dark:bg-gray-600/50 rounded-md shadow-sm
+        border-l-1 transition-all duration-300 ease-out hover:shadow-md hover:-translate-y-0.5
         cursor-grab active:cursor-grabbing
         ${isOverdue ? 'border-l-rose-500' : ''}
         ${isDragging ? 'opacity-60 shadow-xl scale-105 z-50' : ''}
@@ -191,7 +191,7 @@ export function TaskCard({
     >
       {/* Notes Editing Modal */}
       {isEditingNotes && (
-        <div className="absolute inset-0 bg-gray-50 dark:bg-gray-800/90 rounded-lg border-l-3 border-l-indigo-500 shadow-lg ring-1 ring-indigo-200 dark:ring-indigo-800 z-10 p-3">
+        <div className="absolute inset-0 bg-gray-50 dark:bg-gray-800/90 rounded-md border-l-3 border-l-indigo-500 shadow-lg ring-1 ring-indigo-200 dark:ring-indigo-800 z-10 p-3">
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <h4 className="text-xs font-semibold text-slate-900 dark:text-slate-100">Notes</h4>
@@ -437,7 +437,7 @@ export function TaskCard({
       </div>
       
       {/* Task Edit Modal */}
-      <TaskEditModal
+      <TaskModal
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
         onUpdateTask={handleSave}

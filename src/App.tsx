@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { BarChart3, Settings } from "lucide-react";
+import { HeroUIProvider } from "@heroui/react";
 import { DatabaseProvider } from "./services/database/DatabaseProvider";
 import { TimerProvider } from "./contexts/TimerContext";
 import { Planner } from "./components/planning/Planner";
@@ -11,7 +12,7 @@ function AppContent() {
   const [currentView, setCurrentView] = useState('week');
 
   return (
-    <div className="dark text-foreground bg-background min-h-screen bg-linear-to-br from-gray-800 to-gray-750">
+    <div className="dark text-foreground bg-gray-800 min-h-screen">
       {/* Custom Title Bar */}
       <TitleBar />
 
@@ -50,11 +51,13 @@ function AppContent() {
 
 function App() {
   return (
-    <DatabaseProvider>
-      <TimerProvider>
-        <AppContent />
-      </TimerProvider>
-    </DatabaseProvider>
+    <HeroUIProvider>
+      <DatabaseProvider>
+        <TimerProvider>
+          <AppContent />
+        </TimerProvider>
+      </DatabaseProvider>
+    </HeroUIProvider>
   );
 }
 

@@ -1,8 +1,18 @@
 // Modal component for viewing task time history
 import React, { useState, useEffect } from 'react';
-import { X, Clock, Calendar, Coffee } from 'lucide-react';
+import { Clock, Calendar, Coffee, Play, Pause } from 'lucide-react';
 import { Task, TimerSession } from '../../types';
 import { TimeTrackingRepository } from '../../services/database/repositories/TimeTrackingRepository';
+import {
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  Card,
+  CardBody,
+  Chip,
+  Divider,
+} from "@heroui/react";
 
 interface TimeHistoryModalProps {
   task: Task;
@@ -47,158 +57,143 @@ export function TimeHistoryModal({ task, isOpen, onClose }: TimeHistoryModalProp
     return `${minutes}m`;
   };
 
+  const formatTime = (date: Date): string => {
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
   const formatDate = (date: Date): string => {
     const now = new Date();
     const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
     
-    if (diffDays === 0) {
-      return `Today ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
-    } else if (diffDays === 1) {
-      return `Yesterday ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
-    } else if (diffDays < 7) {
-      return `${diffDays} days ago`;
-    } else {
-      return date.toLocaleDateString();
-    }
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays < 7) return `${diffDays} days ago`;
+    return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
   };
 
   const getSessionDuration = (session: TimerSession): number => {
     if (!session.endTime) return 0;
-    return session.endTime.getTime() - session.startTime.getTime() - session.pausedTime;
+    const startTime = typeof session.startTime === 'string' ? new Date(session.startTime) : session.startTime;
+    const endTime = typeof session.endTime === 'string' ? new Date(session.endTime) : session.endTime;
+    return endTime.getTime() - startTime.getTime() - session.pausedTime;
   };
 
   const completedSessions = sessions.filter(s => s.endTime);
   const totalWorkTime = completedSessions.reduce((total, session) => total + getSessionDuration(session), 0);
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-slate-700">
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-slate-100">
-              Time History
-            </h2>
-            <p className="text-sm text-gray-600 dark:text-slate-400 mt-1">
-              {task.title}
-            </p>
+    <Modal 
+      isOpen={isOpen} 
+      onClose={onClose}
+      size="lg"
+      scrollBehavior="inside"
+      backdrop="blur"
+    >
+      <ModalContent>
+        <ModalHeader className="pb-2">
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-2">
+              <Clock className="w-4 h-4 text-primary" />
+              <span className="font-semibold">Time History</span>
+            </div>
+            <span className="text-sm text-default-500 font-normal">{task.title}</span>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-md transition-colors"
-          >
-            <X className="w-5 h-5 text-gray-500 dark:text-slate-400" />
-          </button>
-        </div>
-
-        {/* Summary */}
-        <div className="p-6 border-b border-gray-200 dark:border-slate-700">
-          <div className="grid grid-cols-3 gap-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                {completedSessions.length}
+        </ModalHeader>
+        
+        <ModalBody className="gap-4 py-0 pb-6">
+          {/* Compact Stats */}
+          <div className="flex items-center justify-between px-1">
+            <div className="flex items-center gap-4">
+              <div className="text-center">
+                <div className="text-lg font-bold text-primary">{completedSessions.length}</div>
+                <div className="text-xs text-default-400">Sessions</div>
               </div>
-              <div className="text-xs text-gray-600 dark:text-slate-400">Sessions</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-                {formatDuration(totalWorkTime)}
+              <div className="text-center">
+                <div className="text-lg font-bold text-success">{formatDuration(totalWorkTime)}</div>
+                <div className="text-xs text-default-400">Total Time</div>
               </div>
-              <div className="text-xs text-gray-600 dark:text-slate-400">Total Time</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                {task.actualTime}min
+              <div className="text-center">
+                <div className="text-lg font-bold text-warning">{task.actualTime}min</div>
+                <div className="text-xs text-default-400">Recorded</div>
               </div>
-              <div className="text-xs text-gray-600 dark:text-slate-400">Recorded</div>
             </div>
           </div>
-        </div>
 
-        {/* Content */}
-        <div className="p-6 overflow-y-auto max-h-96">
+          <Divider />
+
+          {/* Sessions List */}
           {isLoading ? (
             <div className="text-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-              <p className="text-gray-600 dark:text-slate-400 mt-2">Loading sessions...</p>
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary mx-auto"></div>
+              <p className="text-default-400 mt-2 text-sm">Loading...</p>
             </div>
           ) : error ? (
-            <div className="text-center py-8">
-              <p className="text-red-600 dark:text-red-400">{error}</p>
+            <div className="text-center py-4">
+              <p className="text-danger text-sm">{error}</p>
             </div>
           ) : sessions.length === 0 ? (
             <div className="text-center py-8">
-              <Clock className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600 dark:text-slate-400">No time sessions found</p>
-              <p className="text-sm text-gray-500 dark:text-slate-500 mt-1">
-                Start a timer to track your work on this task
-              </p>
+              <Clock className="w-8 h-8 text-default-300 mx-auto mb-2" />
+              <p className="text-default-400 text-sm">No sessions yet</p>
+              <p className="text-xs text-default-300 mt-1">Start a timer to track work on this task</p>
             </div>
           ) : (
-            <div className="space-y-4">
-              {sessions.map((session) => (
-                <div
-                  key={session.id}
-                  className="border border-gray-200 dark:border-slate-700 rounded-lg p-4"
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-3 mb-2">
-                        <div className="flex items-center space-x-2">
-                          <Calendar className="w-4 h-4 text-gray-500 dark:text-slate-400" />
-                          <span className="text-sm text-gray-600 dark:text-slate-400">
-                            {formatDate(session.startTime)}
-                          </span>
+            <div className="space-y-1">
+              {sessions.map((session, index) => {
+                const startTime = typeof session.startTime === 'string' ? new Date(session.startTime) : session.startTime;
+                const endTime = session.endTime ? (typeof session.endTime === 'string' ? new Date(session.endTime) : session.endTime) : null;
+                
+                return (
+                  <div key={session.id} className="group p-3 rounded-lg hover:bg-default-50 border border-transparent hover:border-default-200 transition-all">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <div className="flex items-center gap-2 text-xs text-default-400">
+                          <Calendar className="w-3 h-3" />
+                          <span>{formatDate(startTime)}</span>
                         </div>
                         
-                        {session.endTime && (
-                          <div className="text-lg font-semibold text-gray-900 dark:text-slate-100">
-                            {formatDuration(getSessionDuration(session))}
-                          </div>
-                        )}
-                        
-                        {!session.endTime && (
-                          <div className="text-sm text-yellow-600 dark:text-yellow-400 font-medium">
-                            In Progress
-                          </div>
-                        )}
+                        <div className="flex items-center gap-1 text-xs text-default-500">
+                          <span>{formatTime(startTime)}</span>
+                          {endTime && (
+                            <>
+                              <span>→</span>
+                              <span>{formatTime(endTime)}</span>
+                            </>
+                          )}
+                        </div>
                       </div>
                       
-                      {session.breaks.length > 0 && (
-                        <div className="flex items-center space-x-2 text-sm text-gray-600 dark:text-slate-400 mb-2">
-                          <Coffee className="w-4 h-4" />
-                          <span>
-                            {session.breaks.length} break{session.breaks.length !== 1 ? 's' : ''} 
-                            ({formatDuration(session.pausedTime)})
-                          </span>
-                        </div>
-                      )}
-                      
-                      {session.notes && (
-                        <div className="text-sm text-gray-700 dark:text-slate-300 mt-2">
-                          {session.notes}
-                        </div>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {session.breaks.length > 0 && (
+                          <Chip size="sm" variant="flat" startContent={<Coffee className="w-3 h-3" />} className="text-xs">
+                            {session.breaks.length}
+                          </Chip>
+                        )}
+                        
+                        {endTime ? (
+                          <Chip size="sm" color="success" variant="flat" className="font-medium">
+                            {formatDuration(getSessionDuration(session))}
+                          </Chip>
+                        ) : (
+                          <Chip size="sm" color="warning" variant="flat" startContent={<Play className="w-3 h-3" />}>
+                            Active
+                          </Chip>
+                        )}
+                      </div>
                     </div>
+                    
+                    {session.notes && (
+                      <div className="mt-2 text-xs text-default-600 pl-5">
+                        {session.notes}
+                      </div>
+                    )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
-        </div>
-
-        {/* Footer */}
-        <div className="p-6 border-t border-gray-200 dark:border-slate-700">
-          <button
-            onClick={onClose}
-            className="w-full px-4 py-2 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-300 rounded-md hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors"
-          >
-            Close
-          </button>
-        </div>
-      </div>
-    </div>
+        </ModalBody>
+      </ModalContent>
+    </Modal>
   );
 }

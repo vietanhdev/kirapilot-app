@@ -1,6 +1,6 @@
-// Task editing modal using HeroUI components
-import { useState, useEffect } from 'react';
-import { Task, Priority } from '../../types';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Task, Priority, TaskStatus, CreateTaskRequest } from '../../types';
+import { generateId } from '../../utils';
 import {
   Modal,
   ModalContent,
@@ -16,75 +16,143 @@ import {
 } from "@heroui/react";
 import { 
   Calendar, 
-  Clock, 
   Hash, 
   Plus,
-  Save
+  Save,
+  Target,
+  AlertCircle,
+  CheckCircle2,
+  Flame,
+  Timer,
+  Edit3,
+  PlusCircle
 } from 'lucide-react';
 
-interface TaskEditModalProps {
+interface TaskModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onUpdateTask: (updatedTask: Partial<Task>) => void;
-  task: Task | null;
+  onCreateTask?: (task: Task) => void;
+  onUpdateTask?: (updatedTask: Partial<Task>) => void;
+  task?: Task | null; // If provided, we're editing; if null/undefined, we're creating
+  defaultDate?: Date;
   className?: string;
 }
 
-export function TaskEditModal({
+interface FormData {
+  title: string;
+  description: string;
+  priority: Priority;
+  timeEstimate: number;
+  dueDate?: Date;
+  scheduledDate?: Date;
+  tags: string[];
+}
+
+export function TaskModal({
   isOpen,
   onClose,
+  onCreateTask,
   onUpdateTask,
-  task
-}: TaskEditModalProps) {
-  const [formData, setFormData] = useState({
+  task,
+  defaultDate,
+}: TaskModalProps) {
+  const isEditMode = !!task;
+  const [formData, setFormData] = useState<FormData>({
     title: '',
     description: '',
     priority: Priority.MEDIUM,
     timeEstimate: 60,
-    dueDate: undefined as Date | undefined,
-    scheduledDate: undefined as Date | undefined,
-    tags: [] as string[],
+    dueDate: defaultDate,
+    scheduledDate: defaultDate,
+    tags: [],
   });
-
   const [newTag, setNewTag] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Update form data when task changes or modal opens
+  // Initialize form data when modal opens or task changes
   useEffect(() => {
-    if (isOpen && task) {
-      setFormData({
-        title: task.title,
-        description: task.description || '',
-        priority: task.priority,
-        timeEstimate: task.timeEstimate || 60,
-        dueDate: task.dueDate,
-        scheduledDate: task.scheduledDate,
-        tags: task.tags || [],
-      });
+    if (isOpen) {
+      if (isEditMode && task) {
+        setFormData({
+          title: task.title,
+          description: task.description || '',
+          priority: task.priority,
+          timeEstimate: task.timeEstimate || 60,
+          dueDate: task.dueDate,
+          scheduledDate: task.scheduledDate,
+          tags: task.tags || [],
+        });
+      } else {
+        // Creating new task
+        setFormData({
+          title: '',
+          description: '',
+          priority: Priority.MEDIUM,
+          timeEstimate: 60,
+          dueDate: defaultDate,
+          scheduledDate: defaultDate,
+          tags: [],
+        });
+      }
       setNewTag('');
     }
-  }, [isOpen, task]);
+  }, [isOpen, task, isEditMode, defaultDate]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.title.trim()) return;
 
-    const updatedFields: Partial<Task> = {
-      title: formData.title.trim(),
-      description: formData.description || '',
-      priority: formData.priority,
-      timeEstimate: formData.timeEstimate,
-      dueDate: formData.dueDate,
-      scheduledDate: formData.scheduledDate,
-      tags: formData.tags,
-      updatedAt: new Date(),
-    };
+    setIsSubmitting(true);
 
-    onUpdateTask(updatedFields);
-    handleClose();
+    try {
+      if (isEditMode && onUpdateTask) {
+        // Edit existing task
+        const updatedFields: Partial<Task> = {
+          title: formData.title.trim(),
+          description: formData.description || '',
+          priority: formData.priority,
+          timeEstimate: formData.timeEstimate,
+          dueDate: formData.dueDate,
+          scheduledDate: formData.scheduledDate,
+          tags: formData.tags,
+          updatedAt: new Date(),
+        };
+        
+        onUpdateTask(updatedFields);
+      } else if (onCreateTask) {
+        // Create new task
+        const newTask: Task = {
+          id: generateId(),
+          title: formData.title.trim(),
+          description: formData.description || '',
+          status: TaskStatus.PENDING,
+          priority: formData.priority,
+          timeEstimate: formData.timeEstimate,
+          actualTime: 0,
+          dependencies: [],
+          subtasks: [],
+          dueDate: formData.dueDate,
+          scheduledDate: formData.scheduledDate,
+          tags: formData.tags,
+          completedAt: undefined,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+        
+        onCreateTask(newTask);
+      }
+
+      handleClose();
+    } catch (error) {
+      console.error('Failed to save task:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleClose = () => {
+    setIsSubmitting(false);
     onClose();
   };
 
@@ -106,19 +174,34 @@ export function TaskEditModal({
   };
 
   const priorityOptions = [
-    { key: Priority.LOW, label: 'Low' },
-    { key: Priority.MEDIUM, label: 'Medium' },
-    { key: Priority.HIGH, label: 'High' },
-    { key: Priority.URGENT, label: 'Urgent' },
+    { 
+      key: Priority.LOW, 
+      label: 'Low', 
+      icon: <CheckCircle2 className="w-3 h-3" />
+    },
+    { 
+      key: Priority.MEDIUM, 
+      label: 'Medium', 
+      icon: <Target className="w-3 h-3" />
+    },
+    { 
+      key: Priority.HIGH, 
+      label: 'High', 
+      icon: <AlertCircle className="w-3 h-3" />
+    },
+    { 
+      key: Priority.URGENT, 
+      label: 'Urgent', 
+      icon: <Flame className="w-3 h-3" />
+    },
   ];
 
-  if (!task) return null;
+  const selectedPriority = priorityOptions.find(p => p.key === formData.priority);
 
   return (
     <Modal 
       isOpen={isOpen} 
       onClose={handleClose}
-      placement="top-center"
       size="lg"
       scrollBehavior="inside"
       backdrop="blur"
@@ -126,7 +209,16 @@ export function TaskEditModal({
       <ModalContent>
         <form onSubmit={handleSubmit}>
           <ModalHeader className="flex flex-col gap-1">
-            <h3 className="text-lg font-semibold">Edit Task</h3>
+            <div className="flex items-center gap-2">
+              {isEditMode ? (
+                <Edit3 className="w-4 h-4" />
+              ) : (
+                <PlusCircle className="w-4 h-4" />
+              )}
+              <h2 className="text-lg font-semibold">
+                {isEditMode ? 'Edit Task' : 'Create New Task'}
+              </h2>
+            </div>
           </ModalHeader>
           
           <ModalBody className="gap-4">
@@ -134,28 +226,26 @@ export function TaskEditModal({
             <Input
               autoFocus
               label="Title"
-              placeholder="Enter task title..."
+              placeholder="What needs to be done?"
               value={formData.title}
               onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
               isRequired
-              variant="bordered"
               size="sm"
             />
 
             {/* Description */}
             <Textarea
               label="Description"
-              placeholder="Enter description..."
+              placeholder="Add details about this task..."
               value={formData.description}
               onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-              variant="bordered"
               size="sm"
               minRows={2}
               maxRows={4}
             />
 
-            {/* Priority & Time Estimate Row */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {/* Priority & Time Row */}
+            <div className="grid grid-cols-2 gap-3">
               {/* Priority */}
               <Select
                 label="Priority"
@@ -165,11 +255,19 @@ export function TaskEditModal({
                   const priority = Array.from(keys)[0] as string;
                   setFormData(prev => ({ ...prev, priority: parseInt(priority) as Priority }));
                 }}
-                variant="bordered"
                 size="sm"
+                renderValue={() => selectedPriority && (
+                  <div className="flex items-center gap-2">
+                    {selectedPriority.icon}
+                    <span>{selectedPriority.label}</span>
+                  </div>
+                )}
               >
                 {priorityOptions.map((priority) => (
-                  <SelectItem key={priority.key}>
+                  <SelectItem 
+                    key={priority.key}
+                    startContent={priority.icon}
+                  >
                     {priority.label}
                   </SelectItem>
                 ))}
@@ -181,17 +279,19 @@ export function TaskEditModal({
                 label="Time (min)"
                 placeholder="60"
                 value={formData.timeEstimate.toString()}
-                onChange={(e) => setFormData(prev => ({ ...prev, timeEstimate: parseInt(e.target.value) || 60 }))}
+                onChange={(e) => setFormData(prev => ({ 
+                  ...prev, 
+                  timeEstimate: parseInt(e.target.value) || 60 
+                }))}
                 min={15}
                 step={15}
-                variant="bordered"
                 size="sm"
-                startContent={<Clock className="w-3 h-3 opacity-50" />}
+                startContent={<Timer className="w-3 h-3" />}
               />
             </div>
 
             {/* Dates Row */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               {/* Due Date */}
               <Input
                 type="date"
@@ -201,9 +301,8 @@ export function TaskEditModal({
                   ...prev, 
                   dueDate: e.target.value ? new Date(e.target.value) : undefined 
                 }))}
-                variant="bordered"
                 size="sm"
-                startContent={<Calendar className="w-3 h-3 opacity-50" />}
+                startContent={<Calendar className="w-3 h-3" />}
               />
 
               {/* Scheduled Date */}
@@ -215,9 +314,8 @@ export function TaskEditModal({
                   ...prev, 
                   scheduledDate: e.target.value ? new Date(e.target.value) : undefined 
                 }))}
-                variant="bordered"
                 size="sm"
-                startContent={<Calendar className="w-3 h-3 opacity-50" />}
+                startContent={<Calendar className="w-3 h-3" />}
               />
             </div>
 
@@ -229,9 +327,9 @@ export function TaskEditModal({
                   value={newTag}
                   onChange={(e) => setNewTag(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
-                  variant="bordered"
                   size="sm"
-                  startContent={<Hash className="w-3 h-3 opacity-50" />}
+                  startContent={<Hash className="w-3 h-3" />}
+                  className="flex-1"
                 />
                 <Button
                   type="button"
@@ -240,6 +338,7 @@ export function TaskEditModal({
                   variant="flat"
                   size="sm"
                   isIconOnly
+                  isDisabled={!newTag.trim() || formData.tags.includes(newTag.trim())}
                 >
                   <Plus className="w-3 h-3" />
                 </Button>
@@ -269,17 +368,19 @@ export function TaskEditModal({
               variant="light" 
               onPress={handleClose}
               size="sm"
+              isDisabled={isSubmitting}
             >
               Cancel
             </Button>
             <Button 
               color="primary" 
               type="submit"
-              isDisabled={!formData.title.trim()}
+              isDisabled={!formData.title.trim() || isSubmitting}
+              isLoading={isSubmitting}
               size="sm"
-              startContent={<Save className="w-3 h-3" />}
+              startContent={!isSubmitting && (isEditMode ? <Save className="w-3 h-3" /> : <Plus className="w-3 h-3" />)}
             >
-              Save Changes
+              {isEditMode ? 'Save Changes' : 'Create Task'}
             </Button>
           </ModalFooter>
         </form>
