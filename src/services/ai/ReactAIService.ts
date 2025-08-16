@@ -370,6 +370,7 @@ export class ReactAIService {
               parameters: execution.args,
               context,
               confidence: formattedResult.success ? 100 : 0,
+              reasoning: `Selected ${execution.name} tool based on user request analysis and current context`,
             });
           }
         }
