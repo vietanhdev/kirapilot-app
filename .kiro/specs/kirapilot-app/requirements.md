@@ -8,15 +8,16 @@ KiraPilot is a cross-platform productivity application that combines task manage
 
 ### Requirement 1
 
-**User Story:** As a user, I want a centralized dashboard that shows my tasks, energy metrics, and weekly planning interface, so that I can quickly understand my current productivity state and upcoming commitments.
+**User Story:** As a user, I want a centralized dashboard that shows weekly/daily planning interface, and analytics/report so that I can quickly understand my current productivity state and upcoming commitments.
 
 #### Acceptance Criteria
 
-1. WHEN the user opens the application THEN the system SHALL display a command center dashboard with task overview, energy metrics, and weekly planning interface
-2. WHEN tasks have different statuses THEN the system SHALL display visual status indicators for each task
-3. WHEN the user views the dashboard THEN the system SHALL show real-time energy and focus metrics based on current patterns
-4. WHEN the user accesses weekly planning THEN the system SHALL provide a drag-and-drop interface for task scheduling
-5. WHEN the system detects patterns THEN the dashboard SHALL display context-aware suggestions based on time, location, and user behavior
+1. WHEN the user opens the application THEN the system SHALL display a planning interface with weekly/daily planner. Other tabs can be Calendar, Analytics, Settings.
+2. WHEN the user accesses planning THEN the system SHALL provide a drag-and-drop interface for task scheduling
+3. WHEN tasks are organized in planning views THEN the system SHALL categorize tasks as follows:
+   - **Backlog**: Tasks without a scheduled date (scheduledDate = null)
+   - **Day Columns**: Tasks scheduled for specific dates (scheduledDate = specific date)
+   - **Upcoming**: Tasks scheduled beyond the current view period
 
 ### Requirement 2
 

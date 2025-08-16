@@ -27,6 +27,7 @@ export function createTaskRequestToTask(request: CreateTaskRequest): Task {
     timeEstimate: request.timeEstimate || 0,
     actualTime: 0,
     dueDate: request.dueDate,
+    scheduledDate: request.scheduledDate,
     tags: request.tags || [],
     projectId: request.projectId,
     parentTaskId: request.parentTaskId,
@@ -62,6 +63,7 @@ export function applyTaskUpdate(task: Task, update: UpdateTaskRequest): Task {
   }
   if (update.timeEstimate !== undefined) updatedTask.timeEstimate = update.timeEstimate;
   if (update.dueDate !== undefined) updatedTask.dueDate = update.dueDate;
+  if (update.scheduledDate !== undefined) updatedTask.scheduledDate = update.scheduledDate;
   if (update.tags !== undefined) updatedTask.tags = update.tags;
   if (update.dependencies !== undefined) updatedTask.dependencies = update.dependencies;
 
@@ -82,6 +84,7 @@ export function taskToDbRow(task: Task): Record<string, any> {
     time_estimate: task.timeEstimate,
     actual_time: task.actualTime,
     due_date: task.dueDate?.toISOString(),
+    scheduled_date: task.scheduledDate?.toISOString(),
     tags: JSON.stringify(task.tags),
     project_id: task.projectId,
     parent_task_id: task.parentTaskId,
@@ -122,6 +125,7 @@ export function dbRowToTask(row: Record<string, any>): Task {
     timeEstimate: row.time_estimate || 0,
     actualTime: row.actual_time || 0,
     dueDate: row.due_date ? new Date(row.due_date) : undefined,
+    scheduledDate: row.scheduled_date ? new Date(row.scheduled_date) : undefined,
     tags: safeJsonParse(row.tags, []),
     projectId: row.project_id,
     parentTaskId: row.parent_task_id,
@@ -142,7 +146,7 @@ export function timerSessionToDbRow(session: TimerSession): Record<string, any> 
     start_time: session.startTime.toISOString(),
     end_time: session.endTime?.toISOString(),
     paused_time: session.pausedTime,
-    is_active: session.isActive,
+    is_active: session.isActive ? 1 : 0, // Convert boolean to integer for SQLite
     notes: session.notes,
     breaks: JSON.stringify(session.breaks),
     created_at: session.createdAt.toISOString(),

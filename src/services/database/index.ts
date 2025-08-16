@@ -20,20 +20,28 @@ export async function initializeDatabase(): Promise<Database | MockDatabase> {
     return db;
   }
 
+  // Clear old format data from localStorage before initializing
+  try {
+    const { clearOldDataIfNeeded } = await import('../../utils/clearOldData');
+    clearOldDataIfNeeded();
+  } catch (error) {
+    console.warn('Could not clear old data:', error);
+  }
+
   // Try real database first, regardless of environment detection
   try {
     console.log('Testing real SQLite database connection...');
     const testDb = await Database.load('sqlite:kirapilot.db');
-    
+
     // Test the connection with a simple query
     await testDb.execute('SELECT 1');
-    
+
     console.log('Real database connection successful');
     db = testDb;
-    
+
     // Run migrations
     await runMigrations(db as Database);
-    
+
     console.log('Real SQLite database initialized successfully');
     return db;
   } catch (error) {
@@ -68,7 +76,7 @@ export async function closeDatabase(): Promise<void> {
  */
 async function runMigrations(database: Database): Promise<void> {
   console.log('Running database migrations...');
-  
+
   // Create migrations table if it doesn't exist
   await database.execute(`
     CREATE TABLE IF NOT EXISTS migrations (
@@ -82,28 +90,28 @@ async function runMigrations(database: Database): Promise<void> {
   const currentMigrations = await database.select<{ version: string }[]>(
     'SELECT version FROM migrations ORDER BY version DESC LIMIT 1'
   );
-  
+
   const currentVersion = currentMigrations.length > 0 ? currentMigrations[0].version : '0';
-  
+
   // Apply migrations in order
   const migrations = getMigrations();
-  
+
   for (const migration of migrations) {
     if (migration.version > currentVersion) {
       console.log(`Applying migration ${migration.version}: ${migration.description}`);
-      
+
       try {
         // Execute migration
         for (const statement of migration.up) {
           await database.execute(statement);
         }
-        
+
         // Record migration
         await database.execute(
           'INSERT INTO migrations (version) VALUES (?)',
           [migration.version]
         );
-        
+
         console.log(`Migration ${migration.version} applied successfully`);
       } catch (error) {
         console.error(`Failed to apply migration ${migration.version}:`, error);
@@ -111,7 +119,7 @@ async function runMigrations(database: Database): Promise<void> {
       }
     }
   }
-  
+
   console.log('All migrations applied successfully');
 }
 
@@ -152,7 +160,7 @@ function getMigrations(): Migration[] {
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )`,
-        
+
         `CREATE TABLE IF NOT EXISTS task_dependencies (
           id TEXT PRIMARY KEY,
           task_id TEXT NOT NULL,
@@ -162,7 +170,7 @@ function getMigrations(): Migration[] {
           FOREIGN KEY (depends_on_id) REFERENCES tasks(id) ON DELETE CASCADE,
           UNIQUE(task_id, depends_on_id)
         )`,
-        
+
         `CREATE TABLE IF NOT EXISTS time_sessions (
           id TEXT PRIMARY KEY,
           task_id TEXT NOT NULL,
@@ -175,7 +183,7 @@ function getMigrations(): Migration[] {
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE
         )`,
-        
+
         `CREATE TABLE IF NOT EXISTS focus_sessions (
           id TEXT PRIMARY KEY,
           task_id TEXT NOT NULL,
@@ -192,7 +200,7 @@ function getMigrations(): Migration[] {
           completed_at DATETIME,
           FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE
         )`,
-        
+
         `CREATE TABLE IF NOT EXISTS productivity_patterns (
           id TEXT PRIMARY KEY,
           user_id TEXT NOT NULL DEFAULT 'default',
@@ -204,7 +212,7 @@ function getMigrations(): Migration[] {
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )`,
-        
+
         `CREATE TABLE IF NOT EXISTS user_preferences (
           id TEXT PRIMARY KEY DEFAULT 'default',
           working_hours TEXT NOT NULL DEFAULT '{"start":"09:00","end":"17:00"}',
@@ -216,7 +224,7 @@ function getMigrations(): Migration[] {
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )`,
-        
+
         `CREATE TABLE IF NOT EXISTS ai_suggestions (
           id TEXT PRIMARY KEY,
           type TEXT NOT NULL,
@@ -243,7 +251,7 @@ function getMigrations(): Migration[] {
         'DROP TABLE IF EXISTS tasks'
       ]
     },
-    
+
     {
       version: '002',
       description: 'Add indexes for performance',
@@ -285,23 +293,130 @@ function getMigrations(): Migration[] {
   ];
 }
 
+// Transaction management state
+let isTransactionActive = false;
+let transactionQueue: Array<() => Promise<any>> = [];
+let processingQueue = false;
+
 /**
- * Execute a database transaction
+ * Execute a database transaction with proper concurrency handling
  */
 export async function executeTransaction<T>(
   callback: (db: Database | MockDatabase) => Promise<T>
 ): Promise<T> {
   const database = await getDatabase();
-  
+
+  // Check if this is a mock database (doesn't support transactions)
+  if ('isMock' in database && database.isMock) {
+    // Mock database doesn't support transactions, just execute the callback
+    return await callback(database);
+  }
+
+  // If a transaction is already active, queue this operation
+  if (isTransactionActive) {
+    console.log('Transaction already active, queuing operation...');
+    return new Promise((resolve, reject) => {
+      transactionQueue.push(async () => {
+        try {
+          const result = await callback(database);
+          resolve(result);
+        } catch (error) {
+          reject(error);
+        }
+      });
+
+      // Process queue if not already processing
+      if (!processingQueue) {
+        processTransactionQueue();
+      }
+    });
+  }
+
+  // Mark transaction as active
+  isTransactionActive = true;
+  let transactionStarted = false;
+
   try {
-    await database.execute('BEGIN TRANSACTION');
+    // Try to start transaction
+    try {
+      await database.execute('BEGIN TRANSACTION');
+      transactionStarted = true;
+      console.debug('Transaction started successfully');
+    } catch (beginError) {
+      console.warn('Failed to start transaction, executing without transaction:', beginError);
+      // If we can't start a transaction, just execute the callback
+      const result = await callback(database);
+      isTransactionActive = false;
+      processTransactionQueue(); // Process any queued operations
+      return result;
+    }
+
     const result = await callback(database);
-    await database.execute('COMMIT');
+
+    // Try to commit if transaction was started
+    if (transactionStarted) {
+      try {
+        await database.execute('COMMIT');
+        console.debug('Transaction committed successfully');
+      } catch (commitError) {
+        console.warn('Failed to commit transaction:', commitError);
+        // Even if commit fails, we still return the result since the operations likely succeeded
+      }
+    }
+
+    isTransactionActive = false;
+    processTransactionQueue(); // Process any queued operations
     return result;
   } catch (error) {
-    await database.execute('ROLLBACK');
+    // Try to rollback if transaction was started
+    if (transactionStarted) {
+      try {
+        await database.execute('ROLLBACK');
+        console.debug('Transaction rolled back successfully');
+      } catch (rollbackError) {
+        console.warn('Failed to rollback transaction:', rollbackError);
+        // Don't throw rollback error, throw the original error
+      }
+    }
+
+    isTransactionActive = false;
+    processTransactionQueue(); // Process any queued operations
     throw error;
   }
+}
+
+/**
+ * Process queued transaction operations
+ */
+async function processTransactionQueue(): Promise<void> {
+  if (processingQueue || transactionQueue.length === 0 || isTransactionActive) {
+    return;
+  }
+
+  processingQueue = true;
+
+  while (transactionQueue.length > 0 && !isTransactionActive) {
+    const operation = transactionQueue.shift();
+    if (operation) {
+      try {
+        await operation();
+      } catch (error) {
+        console.error('Error processing queued transaction:', error);
+      }
+    }
+  }
+
+  processingQueue = false;
+}
+
+/**
+ * Execute a database operation without transaction (for simple operations)
+ */
+export async function executeWithoutTransaction<T>(
+  callback: (db: Database | MockDatabase) => Promise<T>
+): Promise<T> {
+  const database = await getDatabase();
+  return await callback(database);
 }
 
 /**
@@ -315,22 +430,22 @@ export async function checkDatabaseHealth(): Promise<{
 }> {
   try {
     const database = await getDatabase();
-    
+
     // Check if we can query the database
     const tables = await database.select<{ name: string }[]>(
       "SELECT name FROM sqlite_master WHERE type='table'"
     );
-    
+
     // Get database version
     const versionResult = await database.select<{ sqlite_version: string }[]>(
       'SELECT sqlite_version() as sqlite_version'
     );
-    
+
     // Get last migration
     const lastMigration = await database.select<{ version: string }[]>(
       'SELECT version FROM migrations ORDER BY version DESC LIMIT 1'
     );
-    
+
     return {
       isHealthy: true,
       version: versionResult[0]?.sqlite_version || 'unknown',

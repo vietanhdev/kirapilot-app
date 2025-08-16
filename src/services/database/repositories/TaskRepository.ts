@@ -44,13 +44,13 @@ export class TaskRepository {
       await db.execute(`
         INSERT INTO tasks (
           id, title, description, priority, status, dependencies,
-          time_estimate, actual_time, due_date, tags, project_id,
+          time_estimate, actual_time, due_date, scheduled_date, tags, project_id,
           parent_task_id, subtasks, completed_at, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
         dbRow.id, dbRow.title, dbRow.description, dbRow.priority, dbRow.status,
         dbRow.dependencies, dbRow.time_estimate, dbRow.actual_time, dbRow.due_date,
-        dbRow.tags, dbRow.project_id, dbRow.parent_task_id, dbRow.subtasks,
+        dbRow.scheduled_date, dbRow.tags, dbRow.project_id, dbRow.parent_task_id, dbRow.subtasks,
         dbRow.completed_at, dbRow.created_at, dbRow.updated_at
       ]);
 
@@ -64,8 +64,12 @@ export class TaskRepository {
 
       // Update parent task's subtasks if this is a subtask
       if (task.parentTaskId) {
-        const parent = await this.findById(task.parentTaskId);
-        if (parent) {
+        const parentResult = await db.select<any[]>(
+          'SELECT * FROM tasks WHERE id = ?',
+          [task.parentTaskId]
+        );
+        if (parentResult.length > 0) {
+          const parent = dbRowToTask(parentResult[0]);
           const updatedSubtasks = [...parent.subtasks, task.id];
           await db.execute(
             'UPDATE tasks SET subtasks = ?, updated_at = ? WHERE id = ?',
@@ -218,12 +222,12 @@ export class TaskRepository {
         UPDATE tasks SET
           title = ?, description = ?, priority = ?, status = ?,
           dependencies = ?, time_estimate = ?, actual_time = ?,
-          due_date = ?, tags = ?, completed_at = ?, updated_at = ?
+          due_date = ?, scheduled_date = ?, tags = ?, completed_at = ?, updated_at = ?
         WHERE id = ?
       `, [
         dbRow.title, dbRow.description, dbRow.priority, dbRow.status,
         dbRow.dependencies, dbRow.time_estimate, dbRow.actual_time,
-        dbRow.due_date, dbRow.tags, dbRow.completed_at, dbRow.updated_at, id
+        dbRow.due_date, dbRow.scheduled_date, dbRow.tags, dbRow.completed_at, dbRow.updated_at, id
       ]);
 
       // Update dependencies if changed
@@ -249,15 +253,25 @@ export class TaskRepository {
    */
   async delete(id: string): Promise<void> {
     return await executeTransaction(async (db) => {
-      const task = await this.findById(id);
-      if (!task) {
+      // Get task using transaction db
+      const taskResult = await db.select<any[]>(
+        'SELECT * FROM tasks WHERE id = ?',
+        [id]
+      );
+      if (taskResult.length === 0) {
         throw new Error(`Task with id ${id} not found`);
       }
+      
+      const task = dbRowToTask(taskResult[0]);
 
       // Remove from parent's subtasks if this is a subtask
       if (task.parentTaskId) {
-        const parent = await this.findById(task.parentTaskId);
-        if (parent) {
+        const parentResult = await db.select<any[]>(
+          'SELECT * FROM tasks WHERE id = ?',
+          [task.parentTaskId]
+        );
+        if (parentResult.length > 0) {
+          const parent = dbRowToTask(parentResult[0]);
           const updatedSubtasks = parent.subtasks.filter(subId => subId !== id);
           await db.execute(
             'UPDATE tasks SET subtasks = ?, updated_at = ? WHERE id = ?',
@@ -266,10 +280,8 @@ export class TaskRepository {
         }
       }
 
-      // Delete subtasks recursively
-      for (const subtaskId of task.subtasks) {
-        await this.delete(subtaskId);
-      }
+      // Delete all subtasks in a single operation (CASCADE will handle dependencies)
+      await db.execute('DELETE FROM tasks WHERE parent_task_id = ?', [id]);
 
       // Dependencies and time sessions will be deleted by CASCADE
       await db.execute('DELETE FROM tasks WHERE id = ?', [id]);

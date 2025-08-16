@@ -1,7 +1,9 @@
 import { useState } from "react";
-import { BarChart3, Settings, CheckCircle } from "lucide-react";
+import { BarChart3, Settings } from "lucide-react";
 import { DatabaseProvider } from "./services/database/DatabaseProvider";
-import { PlanningScreen } from "./components/planning/PlanningScreen";
+import { TimerProvider } from "./contexts/TimerContext";
+import { Planner } from "./components/planning/Planner";
+import { Header } from "./components/common/Header";
 import TitleBar from "./components/TitleBar";
 import "./App.css";
 
@@ -9,71 +11,19 @@ function AppContent() {
   const [currentView, setCurrentView] = useState('week');
 
   return (
-    <div className="dark min-h-screen bg-dark-gradient">
+    <div className="dark min-h-screen bg-gradient-to-br from-gray-800 to-gray-750">
       {/* Custom Title Bar */}
       <TitleBar />
-      
-      {/* Header */}
-      <header className="flex items-center justify-between px-6 py-4 border-b border-gray-700/30 glass-effect">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-accent-emerald rounded-lg flex items-center justify-center">
-            <CheckCircle className="w-5 h-5 text-white" />
-          </div>
-          <h1 className="text-xl font-bold text-gray-100">KiraPilot</h1>
-        </div>
-        
-        <nav className="flex items-center gap-3">
-          {/* Week/Day Toggle */}
-          <div className="flex rounded-md border border-gray-600 overflow-hidden">
-            <button
-              onClick={() => setCurrentView('week')}
-              className={`px-2 py-1 text-xs font-medium transition-colors duration-200 ${
-                currentView === 'week'
-                  ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
-                  : 'text-gray-400 hover:text-gray-300 hover:bg-gray-700/30'
-              }`}
-            >
-              Week
-            </button>
-            <button
-              onClick={() => setCurrentView('day')}
-              className={`px-2 py-1 text-xs font-medium transition-colors duration-200 ${
-                currentView === 'day'
-                  ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
-                  : 'text-gray-400 hover:text-gray-300 hover:bg-gray-700/30'
-              }`}
-            >
-              Day
-            </button>
-          </div>
 
-          {/* Other Navigation Buttons */}
-          {[
-            { icon: BarChart3, label: 'Reports', id: 'reports' },
-            { icon: Settings, label: 'Settings', id: 'settings' },
-          ].map(({ icon: Icon, label, id }) => (
-            <button
-              key={id}
-              onClick={() => setCurrentView(id)}
-              className={`p-2 rounded-lg transition-colors ${
-                currentView === id 
-                  ? 'bg-primary-500/20 text-primary-400' 
-                  : 'text-gray-400 hover:text-gray-300 hover:bg-gray-700/30'
-              }`}
-              title={label}
-            >
-              <Icon className="w-5 h-5" />
-            </button>
-          ))}
-        </nav>
-      </header>
+      {/* Header with Timer Integration */}
+      <Header currentView={currentView} onViewChange={setCurrentView} />
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col">
         {(currentView === 'week' || currentView === 'day') && (
-          <PlanningScreen viewMode={currentView as 'week' | 'day'} />
+          <Planner viewMode={currentView as 'week' | 'day'} />
         )}
-        
+
         {currentView === 'reports' && (
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center">
@@ -83,7 +33,7 @@ function AppContent() {
             </div>
           </div>
         )}
-        
+
         {currentView === 'settings' && (
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center">
@@ -101,7 +51,9 @@ function AppContent() {
 function App() {
   return (
     <DatabaseProvider>
-      <AppContent />
+      <TimerProvider>
+        <AppContent />
+      </TimerProvider>
     </DatabaseProvider>
   );
 }

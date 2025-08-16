@@ -5,6 +5,7 @@ import { Task, TaskStatus, Priority } from '../../types';
  * Mock database that stores data in localStorage for development
  */
 export class MockDatabase {
+  public readonly isMock = true;
   private storageKey = 'kirapilot-mock-db';
   private transactionActive = false;
   private transactionData: any = null;
@@ -115,15 +116,65 @@ export class MockDatabase {
 }
 
 /**
+ * Clear old localStorage data and reinitialize
+ */
+export function clearMockDatabase(): void {
+  localStorage.removeItem('kirapilot-mock-db');
+  console.log('Cleared old mock database data');
+}
+
+/**
  * Initialize mock database with sample data
  */
 export async function initializeMockDatabase(): Promise<MockDatabase> {
   const mockDb = new MockDatabase();
   
+  // Check if we have old format data and migrate it
+  const existingData = localStorage.getItem('kirapilot-mock-db');
+  if (existingData) {
+    try {
+      const parsed = JSON.parse(existingData);
+      if (parsed.tasks && parsed.tasks.length > 0) {
+        // Check if any task has old format ID or is missing scheduledDate field
+        const hasOldFormatIds = parsed.tasks.some((task: any) => 
+          !task.id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i)
+        );
+        const missingScheduledDate = parsed.tasks.some((task: any) => 
+          task.scheduledDate === undefined && task.hasOwnProperty('scheduledDate') === false
+        );
+        
+        if (hasOldFormatIds) {
+          console.log('Found old format task IDs, migrating to UUID format...');
+          // Import migration utilities
+          const { migrateTaskData } = await import('../../utils/migration');
+          const migratedTasks = migrateTaskData(parsed.tasks);
+          
+          const newData = {
+            ...parsed,
+            tasks: migratedTasks
+          };
+          
+          localStorage.setItem('kirapilot-mock-db', JSON.stringify(newData));
+          console.log('Migration completed successfully');
+          return mockDb;
+        } else if (missingScheduledDate) {
+          console.log('Found tasks missing scheduledDate field, clearing database to reinitialize...');
+          clearMockDatabase();
+        } else {
+          // Data looks good, no need to reinitialize
+          return mockDb;
+        }
+      }
+    } catch (error) {
+      console.log('Error parsing existing data, clearing database...');
+      clearMockDatabase();
+    }
+  }
+  
   // Initialize with some sample data
   const sampleTasks: Task[] = [
     {
-      id: '1',
+      id: '550e8400-e29b-41d4-a716-446655440001',
       title: 'Complete project documentation',
       description: 'Write comprehensive documentation for the KiraPilot project',
       priority: Priority.HIGH,
@@ -132,13 +183,14 @@ export async function initializeMockDatabase(): Promise<MockDatabase> {
       timeEstimate: 120,
       actualTime: 45,
       dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
+      scheduledDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000), // 2 days from now
       tags: ['documentation', 'project'],
       subtasks: [],
       createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
       updatedAt: new Date(),
     },
     {
-      id: '2',
+      id: '550e8400-e29b-41d4-a716-446655440002',
       title: 'Review code changes',
       description: 'Review the latest pull requests and provide feedback',
       priority: Priority.MEDIUM,
@@ -147,13 +199,14 @@ export async function initializeMockDatabase(): Promise<MockDatabase> {
       timeEstimate: 60,
       actualTime: 0,
       dueDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000), // 2 days from now
+      scheduledDate: new Date(), // TODAY - scheduled for today
       tags: ['code-review', 'development'],
       subtasks: [],
       createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // 1 day ago
       updatedAt: new Date(),
     },
     {
-      id: '3',
+      id: '550e8400-e29b-41d4-a716-446655440003',
       title: 'Update dependencies',
       description: 'Update all npm dependencies to latest versions',
       priority: Priority.LOW,
@@ -161,6 +214,7 @@ export async function initializeMockDatabase(): Promise<MockDatabase> {
       dependencies: [],
       timeEstimate: 30,
       actualTime: 25,
+      scheduledDate: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // YESTERDAY - was scheduled yesterday
       tags: ['maintenance', 'dependencies'],
       subtasks: [],
       completedAt: new Date(Date.now() - 3 * 60 * 60 * 1000), // 3 hours ago
@@ -168,16 +222,82 @@ export async function initializeMockDatabase(): Promise<MockDatabase> {
       updatedAt: new Date(Date.now() - 3 * 60 * 60 * 1000),
     },
     {
-      id: '4',
+      id: '550e8400-e29b-41d4-a716-446655440004',
       title: 'Design new UI components',
       description: 'Create mockups and designs for the new dashboard components',
       priority: Priority.HIGH,
       status: TaskStatus.PENDING,
-      dependencies: ['1'], // Depends on documentation
+      dependencies: ['550e8400-e29b-41d4-a716-446655440001'], // Depends on documentation
       timeEstimate: 180,
       actualTime: 0,
       dueDate: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000), // 10 days from now
+      scheduledDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // 3 days from now
       tags: ['design', 'ui', 'dashboard'],
+      subtasks: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
+    // TEST TASKS FOR DEBUGGING
+    {
+      id: '550e8400-e29b-41d4-a716-446655440005',
+      title: 'TASK SCHEDULED FOR TODAY',
+      description: 'This task should appear in Today column when viewing today',
+      priority: Priority.HIGH,
+      status: TaskStatus.PENDING,
+      dependencies: [],
+      timeEstimate: 60,
+      actualTime: 0,
+      dueDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // Due in 3 days
+      scheduledDate: new Date(), // SCHEDULED FOR TODAY
+      tags: ['test', 'today'],
+      subtasks: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
+    {
+      id: '550e8400-e29b-41d4-a716-446655440006',
+      title: 'TASK SCHEDULED FOR YESTERDAY',
+      description: 'This task should appear in Today column when viewing today (overdue schedule)',
+      priority: Priority.MEDIUM,
+      status: TaskStatus.PENDING,
+      dependencies: [],
+      timeEstimate: 30,
+      actualTime: 0,
+      dueDate: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000), // Due tomorrow
+      scheduledDate: new Date(Date.now() - 24 * 60 * 60 * 1000), // SCHEDULED FOR YESTERDAY
+      tags: ['test', 'yesterday'],
+      subtasks: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
+    {
+      id: '550e8400-e29b-41d4-a716-446655440007',
+      title: 'TASK SCHEDULED FOR TOMORROW',
+      description: 'This task should appear in Next column when viewing today',
+      priority: Priority.LOW,
+      status: TaskStatus.PENDING,
+      dependencies: [],
+      timeEstimate: 45,
+      actualTime: 0,
+      dueDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000), // Due in 5 days
+      scheduledDate: new Date(Date.now() + 24 * 60 * 60 * 1000), // SCHEDULED FOR TOMORROW
+      tags: ['test', 'tomorrow'],
+      subtasks: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
+    {
+      id: '550e8400-e29b-41d4-a716-446655440008',
+      title: 'TASK NO SCHEDULED DATE',
+      description: 'This task should appear in Backlog',
+      priority: Priority.LOW,
+      status: TaskStatus.PENDING,
+      dependencies: [],
+      timeEstimate: 15,
+      actualTime: 0,
+      dueDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000), // Due in 2 days
+      scheduledDate: undefined, // NO SCHEDULED DATE - should go to backlog
+      tags: ['test', 'backlog'],
       subtasks: [],
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -213,6 +333,7 @@ export function getSampleTasks(): Task[] {
     createdAt: new Date(task.createdAt),
     updatedAt: new Date(task.updatedAt),
     dueDate: task.dueDate ? new Date(task.dueDate) : undefined,
+    scheduledDate: task.scheduledDate ? new Date(task.scheduledDate) : undefined,
     completedAt: task.completedAt ? new Date(task.completedAt) : undefined,
   }));
 }

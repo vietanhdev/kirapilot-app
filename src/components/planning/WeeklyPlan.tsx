@@ -1,8 +1,11 @@
 // Weekly planning interface with day and week views
-import { useState, useEffect } from 'react';
-import { Task, TaskStatus } from '../../types';
+import React, { useState, useEffect } from 'react';
+import { Task, TaskStatus, CompletedSession } from '../../types';
 import { WeekView } from './WeekView';
 import { DayView } from './DayView';
+
+import { TimeHistoryModal } from './TimeHistoryModal';
+import { useTimerContext } from '../../contexts/TimerContext';
 
 
 interface WeeklyPlanProps {
@@ -13,6 +16,7 @@ interface WeeklyPlanProps {
   onTaskCreate: (task: Task) => void;
   onTaskEdit: (taskId: string, updates: Partial<Task>) => void;
   onTaskStatusChange: (task: Task, status: TaskStatus) => void;
+  onTaskDelete?: (task: Task) => void;
   viewMode?: 'week' | 'day';
   className?: string;
 }
@@ -25,12 +29,21 @@ export function WeeklyPlan({
   onTaskCreate,
   onTaskEdit,
   onTaskStatusChange,
+  onTaskDelete,
   viewMode: initialViewMode = 'week',
   className = ''
 }: WeeklyPlanProps) {
   
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<'week' | 'day'>(initialViewMode);
+
+  const [timeHistoryTask, setTimeHistoryTask] = useState<Task | undefined>();
+  const [showTimeHistory, setShowTimeHistory] = useState(false);
+
+  // Get timer functionality from context
+  const {
+    getTaskTimerProps,
+  } = useTimerContext();
 
   // Sync viewMode state when prop changes
   useEffect(() => {
@@ -81,6 +94,26 @@ export function WeeklyPlan({
 
 
 
+  const handleTaskDelete = (task: Task) => {
+    console.log('Delete task:', task.title);
+    if (onTaskDelete) {
+      onTaskDelete(task);
+    }
+  };
+
+  const handleViewTimeHistory = (task: Task) => {
+    console.log('View time history for:', task.title);
+    setTimeHistoryTask(task);
+    setShowTimeHistory(true);
+  };
+
+  const handleCloseTimeHistory = () => {
+    setShowTimeHistory(false);
+    setTimeHistoryTask(undefined);
+  };
+
+
+
       return (
     <div className={className}>
       {/* Main View */}
@@ -94,6 +127,9 @@ export function WeeklyPlan({
           onTaskStatusChange={handleTaskStatusChange}
           onTaskCreate={handleTaskCreate}
           onInlineEdit={handleInlineEdit}
+          onTaskDelete={handleTaskDelete}
+          onViewTimeHistory={handleViewTimeHistory}
+          getTaskTimerProps={getTaskTimerProps}
         />
       ) : (
         <DayView
@@ -105,6 +141,20 @@ export function WeeklyPlan({
           onTaskStatusChange={handleTaskStatusChange}
           onTaskCreate={handleTaskCreate}
           onInlineEdit={handleInlineEdit}
+          onTaskDelete={handleTaskDelete}
+          onViewTimeHistory={handleViewTimeHistory}
+          getTaskTimerProps={getTaskTimerProps}
+        />
+      )}
+
+
+
+      {/* Time History Modal */}
+      {timeHistoryTask && (
+        <TimeHistoryModal
+          task={timeHistoryTask}
+          isOpen={showTimeHistory}
+          onClose={handleCloseTimeHistory}
         />
       )}
     </div>

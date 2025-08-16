@@ -1,8 +1,21 @@
 // Daily kanban view for focused day planning
 import { useState, useMemo } from 'react';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+  DragOverlay,
+} from '@dnd-kit/core';
+import {
+  sortableKeyboardCoordinates,
+} from '@dnd-kit/sortable';
 import { Task, TaskStatus } from '../../types';
-import { PlanningColumn } from './PlanningColumn';
-import { PlanningTaskCard } from './PlanningTaskCard';
+import { TaskColumn } from './TaskColumn';
+import { TaskCard } from './TaskCard';
 import { TaskCreationModal } from './TaskCreationModal';
 import {
   ChevronLeft,
@@ -22,6 +35,9 @@ interface DayViewProps {
   onTaskStatusChange: (task: Task, status: TaskStatus) => void;
   onTaskCreate: (task: Task) => void;
   onInlineEdit?: (taskId: string, updates: Partial<Task>) => void;
+  onTaskDelete?: (task: Task) => void;
+  onViewTimeHistory?: (task: Task) => void;
+  getTaskTimerProps?: (task: Task) => any;
   className?: string;
 }
 
@@ -34,12 +50,24 @@ export function DayView({
   onTaskStatusChange,
   onTaskCreate,
   onInlineEdit,
+  onTaskDelete,
+  onViewTimeHistory,
+  getTaskTimerProps,
   className = ''
 }: DayViewProps) {
   
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [taskModalColumn, setTaskModalColumn] = useState<string>('');
   const [taskModalDate, setTaskModalDate] = useState<Date | undefined>();
+  const [draggedTask, setDraggedTask] = useState<Task | null>(null);
+
+  // Drag and drop sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   const isToday = useMemo(() => {
     const today = new Date();
@@ -50,46 +78,84 @@ export function DayView({
     );
   }, [selectedDate]);
 
-  // Categorize tasks based on due dates and status
+  // Categorize tasks based on scheduled dates and status
   const taskCategories = useMemo(() => {
-    const today = new Date(selectedDate);
-    today.setHours(0, 0, 0, 0);
+    const selectedDay = new Date(selectedDate);
+    selectedDay.setHours(0, 0, 0, 0);
     
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
+    const actualToday = new Date();
+    actualToday.setHours(0, 0, 0, 0);
+
+    console.log('DayView filtering:', {
+      selectedDate: selectedDate.toISOString(),
+      selectedDay: selectedDay.toISOString(),
+      actualToday: actualToday.toISOString(),
+      isViewingToday: selectedDay.getTime() === actualToday.getTime(),
+      totalTasks: tasks.length
+    });
 
     const backlog: Task[] = [];
     const todayTasks: Task[] = [];
     const next: Task[] = [];
 
     tasks.forEach(task => {
-      if (!task.dueDate) {
+      // Tasks without scheduled date go to backlog
+      if (!task.scheduledDate) {
+        console.log(`Task "${task.title}" -> backlog (no scheduled date)`);
         backlog.push(task);
         return;
       }
 
-      const dueDate = new Date(task.dueDate);
-      dueDate.setHours(0, 0, 0, 0);
+      const scheduledDate = new Date(task.scheduledDate);
+      scheduledDate.setHours(0, 0, 0, 0);
 
-      if (dueDate < today && task.status !== TaskStatus.COMPLETED) {
-        backlog.push(task);
-      } else if (dueDate.getTime() === today.getTime()) {
+      console.log(`Processing task "${task.title}":`, {
+        scheduledDate: scheduledDate.toISOString(),
+        selectedDay: selectedDay.toISOString(),
+        actualToday: actualToday.toISOString(),
+        isExactMatch: scheduledDate.getTime() === selectedDay.getTime(),
+        isOverdueSchedule: selectedDay.getTime() === actualToday.getTime() && scheduledDate < actualToday,
+        isFuture: scheduledDate > selectedDay,
+        status: task.status
+      });
+
+      // Tasks scheduled exactly on the selected day go to "today" column
+      if (scheduledDate.getTime() === selectedDay.getTime()) {
+        console.log(`Task "${task.title}" -> today (exact schedule match)`);
         todayTasks.push(task);
-      } else if (dueDate > today) {
+      }
+      // Future scheduled tasks (relative to selected day) go to "next" column
+      else if (scheduledDate > selectedDay) {
+        console.log(`Task "${task.title}" -> next (future schedule)`);
         next.push(task);
+      }
+      // Past scheduled tasks are ignored in day view (they belong to their specific dates)
+      else {
+        console.log(`Task "${task.title}" -> ignored (past scheduled date: ${scheduledDate.toISOString()})`);
       }
     });
 
-    return {
+    const result = {
       backlog: backlog.sort((a, b) => (a.priority || 0) - (b.priority || 0)),
       today: todayTasks.sort((a, b) => (a.priority || 0) - (b.priority || 0)),
       next: next.sort((a, b) => {
-        if (a.dueDate && b.dueDate) {
-          return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+        if (a.scheduledDate && b.scheduledDate) {
+          return new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime();
         }
         return 0;
       })
     };
+
+    console.log('DayView categorization result:', {
+      backlog: result.backlog.length,
+      today: result.today.length,
+      next: result.next.length,
+      backlogTasks: result.backlog.map(t => t.title),
+      todayTasks: result.today.map(t => t.title),
+      nextTasks: result.next.map(t => t.title)
+    });
+
+    return result;
   }, [tasks, selectedDate]);
 
   const formatDate = () => {
@@ -121,6 +187,49 @@ export function DayView({
     setShowTaskModal(false);
   };
 
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    if (!over || !draggedTask) {
+      setDraggedTask(null);
+      return;
+    }
+
+    const taskId = active.id as string;
+    const droppedColumnData = over.data.current;
+    
+    if (droppedColumnData?.type === 'column') {
+      const toColumn = droppedColumnData.title;
+      
+      // Determine the new scheduled date based on the column
+      let newDate: Date | undefined;
+      
+      if (toColumn === 'backlog') {
+        // Moving to backlog - remove scheduled date (backlog = no scheduled date)
+        newDate = undefined;
+      } else if (toColumn === 'today') {
+        // Moving to today - set to selected date
+        newDate = new Date(selectedDate);
+      } else if (toColumn === 'next tasks') {
+        // Moving to next tasks - set to tomorrow
+        newDate = new Date(selectedDate);
+        newDate.setDate(newDate.getDate() + 1);
+      }
+      
+      console.log('DayView drag end:', {
+        taskId,
+        toColumn,
+        newDate,
+        taskTitle: draggedTask.title
+      });
+      
+      // Call the move handler with the new date
+      onTaskMove(taskId, 'drag', toColumn, newDate);
+    }
+    
+    setDraggedTask(null);
+  };
+
   // Calculate day statistics
   const dayStats = useMemo(() => {
     const total = Object.values(taskCategories).reduce((sum, categoryTasks) => sum + categoryTasks.length, 0);
@@ -135,7 +244,16 @@ export function DayView({
   }, [taskCategories]);
 
   return (
-    <div className={`bg-gray-100 dark:bg-gray-800/50 backdrop-blur-sm rounded-lg ${className}`}>
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragStart={(event) => {
+        const task = tasks.find(t => t.id === event.active.id);
+        setDraggedTask(task || null);
+      }}
+      onDragEnd={handleDragEnd}
+    >
+      <div className={`bg-gray-100 dark:bg-gray-800/50 backdrop-blur-sm rounded-lg ${className}`}>
       {/* Header */}
       <div className="p-2 bg-gray-200 dark:bg-gray-700/50 backdrop-blur-sm rounded-t-lg border-b border-gray-300 dark:border-gray-700/30">
         <div className="flex items-center justify-between mb-1">
@@ -205,44 +323,50 @@ export function DayView({
       <div className="p-3">
         <div className="flex gap-3 overflow-x-auto pb-4">
           {/* Backlog Column */}
-          <PlanningColumn
+          <TaskColumn
             title="Backlog"
             icon={Archive}
             count={taskCategories.backlog.length}
-            color="slate"
+            color="blue"
             onAddTask={() => handleAddTask('Backlog')}
           >
             {taskCategories.backlog.map(task => (
-              <PlanningTaskCard
+              <TaskCard
                 key={task.id}
                 task={task}
                 onEdit={(updates) => onInlineEdit?.(task.id, updates)}
                 onStatusChange={(status) => onTaskStatusChange(task, status)}
+                onDelete={onTaskDelete}
+                onViewTimeHistory={onViewTimeHistory}
+                {...(getTaskTimerProps?.(task) || {})}
               />
             ))}
-          </PlanningColumn>
+          </TaskColumn>
 
           {/* Today Column */}
-          <PlanningColumn
+          <TaskColumn
             title="Today"
             icon={Sun}
             count={taskCategories.today.length}
-            color="blue"
+            color="gray"
             isToday={true}
             onAddTask={() => handleAddTask('Today', selectedDate)}
           >
             {taskCategories.today.map(task => (
-              <PlanningTaskCard
+              <TaskCard
                 key={task.id}
                 task={task}
                 onEdit={(updates) => onInlineEdit?.(task.id, updates)}
                 onStatusChange={(status) => onTaskStatusChange(task, status)}
+                onDelete={onTaskDelete}
+                onViewTimeHistory={onViewTimeHistory}
+                {...(getTaskTimerProps?.(task) || {})}
               />
             ))}
-          </PlanningColumn>
+          </TaskColumn>
 
           {/* Next Tasks Column */}
-          <PlanningColumn
+          <TaskColumn
             title="Next Tasks"
             icon={ArrowRight}
             count={taskCategories.next.length}
@@ -250,14 +374,17 @@ export function DayView({
             onAddTask={() => handleAddTask('Next Tasks')}
           >
             {taskCategories.next.map(task => (
-              <PlanningTaskCard
+              <TaskCard
                 key={task.id}
                 task={task}
                 onEdit={(updates) => onInlineEdit?.(task.id, updates)}
                 onStatusChange={(status) => onTaskStatusChange(task, status)}
+                onDelete={onTaskDelete}
+                onViewTimeHistory={onViewTimeHistory}
+                {...(getTaskTimerProps?.(task) || {})}
               />
             ))}
-          </PlanningColumn>
+          </TaskColumn>
         </div>
       </div>
 
@@ -272,6 +399,20 @@ export function DayView({
         defaultDate={taskModalDate}
         defaultColumn={taskModalColumn}
       />
+
+      {/* Drag Overlay */}
+      <DragOverlay>
+        {draggedTask ? (
+          <TaskCard
+            task={draggedTask}
+            onEdit={() => {}}
+            onStatusChange={() => {}}
+            onDelete={() => {}}
+            {...(getTaskTimerProps?.(draggedTask) || {})}
+          />
+        ) : null}
+      </DragOverlay>
     </div>
+    </DndContext>
   );
 }

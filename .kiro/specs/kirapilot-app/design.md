@@ -82,7 +82,8 @@ interface Task {
   dependencies: string[];
   timeEstimate: number;
   actualTime: number;
-  dueDate?: Date;
+  dueDate?: Date;           // When the task is due (deadline)
+  scheduledDate?: Date;     // When the task is planned to be worked on
   tags: string[];
 }
 
@@ -94,6 +95,15 @@ interface TaskManager {
   validateDependencies(taskId: string): ValidationResult;
 }
 ```
+
+#### Planning System Logic
+The planning interface uses `scheduledDate` for organizing tasks into columns:
+
+- **Backlog Column**: Tasks with `scheduledDate = null` (no scheduled work date)
+- **Day/Date Columns**: Tasks with `scheduledDate = specific date` (planned work date)
+- **Upcoming Column**: Tasks with `scheduledDate` beyond current view period
+
+Note: `dueDate` represents when a task must be completed (deadline), while `scheduledDate` represents when you plan to work on it. A task can have a due date but no scheduled date (appears in backlog until scheduled).
 
 #### 3. Time Tracking Engine
 ```typescript

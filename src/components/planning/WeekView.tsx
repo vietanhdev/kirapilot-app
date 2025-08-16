@@ -14,8 +14,8 @@ import {
     sortableKeyboardCoordinates,
 } from '@dnd-kit/sortable';
 import { Task, TaskStatus } from '../../types';
-import { PlanningColumn } from './PlanningColumn';
-import { PlanningTaskCard } from './PlanningTaskCard';
+import { TaskColumn } from './TaskColumn';
+import { TaskCard } from './TaskCard';
 import { TaskCreationModal } from './TaskCreationModal';
 import {
     ChevronLeft,
@@ -34,6 +34,9 @@ interface WeekViewProps {
   onTaskStatusChange: (task: Task, status: TaskStatus) => void;
   onTaskCreate: (task: Task) => void;
   onInlineEdit?: (taskId: string, updates: Partial<Task>) => void;
+  onTaskDelete?: (task: Task) => void;
+  onViewTimeHistory?: (task: Task) => void;
+  getTaskTimerProps?: (task: Task) => any;
 }
 
 export function WeekView({
@@ -44,7 +47,10 @@ export function WeekView({
     onTaskEdit,
     onTaskStatusChange,
     onTaskCreate,
-    onInlineEdit
+    onInlineEdit,
+    onTaskDelete,
+    onViewTimeHistory,
+    getTaskTimerProps
 }: WeekViewProps) {
     const [showTaskModal, setShowTaskModal] = useState(false);
     const [taskModalColumn, setTaskModalColumn] = useState<string>('');
@@ -122,42 +128,44 @@ export function WeekView({
         return days;
     }, [weekStart]);
 
-    // Get tasks for specific day (EXACTLY that day, no overlap)
+    // Get tasks for specific day (that day + overdue scheduled tasks if it's today)
     const getTasksForDay = (date: Date) => {
         const dayStart = new Date(date);
         dayStart.setHours(0, 0, 0, 0);
         const dayEnd = new Date(date);
         dayEnd.setHours(23, 59, 59, 999);
+        
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
 
         return tasks.filter(task => {
-            if (!task.dueDate) return false;
-            const dueDate = new Date(task.dueDate);
-            return dueDate >= dayStart && dueDate <= dayEnd;
+            if (!task.scheduledDate) return false;
+            const scheduledDate = new Date(task.scheduledDate);
+            scheduledDate.setHours(0, 0, 0, 0);
+            
+            // Tasks scheduled exactly on this day
+            if (scheduledDate.getTime() === dayStart.getTime()) {
+                return true;
+            }
+            
+            return false;
         });
     };
 
-    // Get backlog tasks (STRICTLY no due date OR overdue and not completed)
+    // Get backlog tasks (tasks without scheduled date)
     const backlogTasks = useMemo(() => {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        
         return tasks.filter(task => {
-            // Tasks with no due date go to backlog
-            if (!task.dueDate) return true;
-            
-            // Overdue tasks (before today) that aren't completed go to backlog
-            const dueDate = new Date(task.dueDate);
-            dueDate.setHours(0, 0, 0, 0);
-            return dueDate < today && task.status !== TaskStatus.COMPLETED;
+            // Only tasks with no scheduled date go to backlog
+            return !task.scheduledDate;
         });
     }, [tasks]);
 
     // Get upcoming tasks (STRICTLY after this week)
     const upcomingTasks = useMemo(() => {
         return tasks.filter(task => {
-            if (!task.dueDate) return false;
-            const dueDate = new Date(task.dueDate);
-            return dueDate > weekEnd;
+            if (!task.scheduledDate) return false;
+            const scheduledDate = new Date(task.scheduledDate);
+            return scheduledDate > weekEnd;
         });
     }, [tasks, weekEnd]);
 
@@ -191,10 +199,10 @@ export function WeekView({
     const handleTaskCreate = (task: Task) => {
         console.log('Creating task:', {
             title: task.title,
-            dueDate: task.dueDate,
+            scheduledDate: task.scheduledDate,
             column: taskModalColumn,
-            willAppearIn: !task.dueDate ? 'Backlog' : 
-                         task.dueDate.toDateString() === new Date().toDateString() ? 'Today' :
+            willAppearIn: !task.scheduledDate ? 'Backlog' : 
+                         task.scheduledDate.toDateString() === new Date().toDateString() ? 'Today' :
                          'Date-specific column'
         });
         onTaskCreate(task);
@@ -216,11 +224,11 @@ export function WeekView({
         if (droppedColumnData?.type === 'column') {
             const toColumn = droppedColumnData.title;
             
-            // Determine the new due date based on the column
+            // Determine the new scheduled date based on the column
             let newDate: Date | undefined;
             
             if (toColumn === 'backlog') {
-                // Moving to backlog - remove due date
+                // Moving to backlog - remove scheduled date
                 newDate = undefined;
             } else if (toColumn === 'upcoming') {
                 // Moving to upcoming - set to next week
@@ -302,7 +310,7 @@ export function WeekView({
                                     className="px-2 py-1 text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-900/50 rounded transition-colors duration-200"
                                     title="Go to current week"
                                 >
-                                    Today
+                                    This Week
                                 </button>
                                 
                                 <button
@@ -350,51 +358,57 @@ export function WeekView({
                         className="flex gap-2 overflow-x-auto pb-4 scroll-smooth week-scroller"
                     >
                         {/* Backlog Column */}
-                        <PlanningColumn
+                        <TaskColumn
                             title="Backlog"
                             icon={Archive}
                             count={backlogTasks.length}
-                            color="slate"
+                            color="blue"
                             onAddTask={() => handleAddTask('Backlog')}
                         >
                             {backlogTasks.map(task => (
-                                <PlanningTaskCard
+                                <TaskCard
                                     key={task.id}
                                     task={task}
                                     onEdit={(updates) => onInlineEdit?.(task.id, updates)}
                                     onStatusChange={(status) => onTaskStatusChange(task, status)}
+                                    onDelete={onTaskDelete}
+                                    onViewTimeHistory={onViewTimeHistory}
+                                    {...(getTaskTimerProps?.(task) || {})}
                                 />
                             ))}
-                        </PlanningColumn>
+                        </TaskColumn>
 
                         {/* Daily Columns */}
                         {weekDays.map((day) => {
                             const dayTasks = getTasksForDay(day.date);
                             return (
-                                <PlanningColumn
+                                <TaskColumn
                                     key={day.date.toISOString()}
                                     title={day.shortName}
                                     subtitle={`${day.dayNumber}`}
                                     count={dayTasks.length}
-                                    color={day.isToday ? "blue" : "slate"}
+                                    color={day.isToday ? "blue" : "gray"}
                                     isToday={day.isToday}
                                     onAddTask={() => handleAddTask(day.shortName, day.date)}
                                     className={day.isToday ? 'today-column' : ''}
                                 >
                                     {dayTasks.map(task => (
-                                        <PlanningTaskCard
+                                        <TaskCard
                                             key={task.id}
                                             task={task}
                                             onEdit={(updates) => onInlineEdit?.(task.id, updates)}
                                             onStatusChange={(status) => onTaskStatusChange(task, status)}
+                                            onDelete={onTaskDelete}
+                                            onViewTimeHistory={onViewTimeHistory}
+                                            {...(getTaskTimerProps?.(task) || {})}
                                         />
                                     ))}
-                                </PlanningColumn>
+                                </TaskColumn>
                             );
                         })}
 
                         {/* Upcoming Tasks Column */}
-                        <PlanningColumn
+                        <TaskColumn
                             title="Upcoming"
                             icon={Clock}
                             count={upcomingTasks.length}
@@ -402,14 +416,17 @@ export function WeekView({
                             onAddTask={() => handleAddTask('Upcoming')}
                         >
                             {upcomingTasks.map(task => (
-                                <PlanningTaskCard
+                                <TaskCard
                                     key={task.id}
                                     task={task}
                                     onEdit={(updates) => onInlineEdit?.(task.id, updates)}
                                     onStatusChange={(status) => onTaskStatusChange(task, status)}
+                                    onDelete={onTaskDelete}
+                                    onViewTimeHistory={onViewTimeHistory}
+                                    {...(getTaskTimerProps?.(task) || {})}
                                 />
                             ))}
-                        </PlanningColumn>
+                        </TaskColumn>
                     </div>
                 </div>
 
@@ -429,7 +446,7 @@ export function WeekView({
                 <DragOverlay>
                     {draggedTask ? (
                         <div className="opacity-75">
-                            <PlanningTaskCard
+                            <TaskCard
                                 task={draggedTask}
                                 className="shadow-lg border-primary-500 bg-primary-50 dark:bg-primary-900/20"
                             />
