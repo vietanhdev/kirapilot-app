@@ -1,16 +1,88 @@
 import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
-import { Priority, TaskStatus } from '../../types';
+import { Priority, TaskStatus, UpdateTaskRequest } from '../../types';
 import {
   getTaskRepository,
   getTimeTrackingRepository,
 } from '../database/repositories';
 
+// Tool response interfaces for better type safety
+interface TaskResponse {
+  id: string;
+  title: string;
+  priority: Priority;
+  status: TaskStatus;
+}
+
+interface SessionResponse {
+  id: string;
+  taskId: string;
+  startTime: Date;
+  isActive: boolean;
+}
+
+interface StoppedSessionResponse {
+  id: string;
+  duration: number;
+  notes?: string;
+}
+
+interface TaskListResponse {
+  id: string;
+  title: string;
+  status: TaskStatus;
+  priority: Priority;
+  dueDate?: Date;
+  scheduledDate?: Date;
+  timeEstimate: number;
+  actualTime: number;
+  tags: string[];
+  description: string;
+}
+
+interface TimeDataSession {
+  id: string;
+  taskId: string;
+  duration: number;
+  startTime: Date;
+  endTime?: Date;
+  notes?: string;
+}
+
+interface TimeDataResponse {
+  totalSessions: number;
+  totalTime: number;
+  averageSession: number;
+  sessions: TimeDataSession[];
+}
+
+interface ProductivityInsights {
+  mostProductiveTime: { start: string; end: string; dayOfWeek: number };
+  leastProductiveTime: { start: string; end: string; dayOfWeek: number };
+  averageTaskDuration: number;
+  completionRate: number;
+  focusEfficiency: number;
+}
+
+interface ProductivityAnalysis {
+  insights: ProductivityInsights;
+  recommendations: string[];
+}
+
 /**
  * Create a new task in the system
  */
+interface CreateTaskInput {
+  title: string;
+  description?: string;
+  priority?: number;
+  timeEstimate?: number;
+  dueDate?: string;
+  tags?: string[];
+}
+
 const createTaskTool = tool(
-  async (input: any) => {
+  async (input: CreateTaskInput) => {
     const { title, description, priority, timeEstimate, dueDate, tags } = input;
     try {
       const taskRepo = getTaskRepository();
@@ -22,7 +94,7 @@ const createTaskTool = tool(
         dueDate: dueDate ? new Date(dueDate) : undefined,
         tags: tags ?? [],
       });
-      return JSON.stringify({
+      const response: { success: true; task: TaskResponse } = {
         success: true,
         task: {
           id: task.id,
@@ -30,12 +102,14 @@ const createTaskTool = tool(
           priority: task.priority,
           status: task.status,
         },
-      });
+      };
+      return JSON.stringify(response);
     } catch (error) {
-      return JSON.stringify({
+      const errorResponse: { success: false; error: string } = {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to create task',
-      });
+      };
+      return JSON.stringify(errorResponse);
     }
   },
   {
@@ -68,17 +142,33 @@ const createTaskTool = tool(
 /**
  * Update an existing task
  */
+interface UpdateTaskInput {
+  taskId: string;
+  updates: {
+    title?: string;
+    description?: string;
+    priority?: number;
+    status?: string;
+    scheduledDate?: string;
+  };
+}
+
 const updateTaskTool = tool(
-  async (input: any) => {
+  async (input: UpdateTaskInput) => {
     const { taskId, updates } = input;
     try {
       const taskRepo = getTaskRepository();
-      const processedUpdates: any = { ...updates };
-      if (updates.status) {
-        processedUpdates.status = updates.status as TaskStatus;
-      }
+      const processedUpdates: UpdateTaskRequest = {
+        title: updates.title,
+        description: updates.description,
+        priority: updates.priority,
+        status: updates.status ? (updates.status as TaskStatus) : undefined,
+        scheduledDate: updates.scheduledDate
+          ? new Date(updates.scheduledDate)
+          : undefined,
+      };
       const task = await taskRepo.update(taskId, processedUpdates);
-      return JSON.stringify({
+      const response: { success: true; task: TaskResponse } = {
         success: true,
         task: {
           id: task.id,
@@ -86,12 +176,14 @@ const updateTaskTool = tool(
           status: task.status,
           priority: task.priority,
         },
-      });
+      };
+      return JSON.stringify(response);
     } catch (error) {
-      return JSON.stringify({
+      const errorResponse: { success: false; error: string } = {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to update task',
-      });
+      };
+      return JSON.stringify(errorResponse);
     }
   },
   {
@@ -121,8 +213,17 @@ const updateTaskTool = tool(
 /**
  * Get tasks based on filters
  */
+interface GetTasksInput {
+  filters?: {
+    status?: string[];
+    priority?: number[];
+    tags?: string[];
+    search?: string;
+  };
+}
+
 const getTasksTool = tool(
-  async (input: any) => {
+  async (input: GetTasksInput) => {
     const { filters } = input;
     try {
       const taskRepo = getTaskRepository();
@@ -137,27 +238,35 @@ const getTasksTool = tool(
         : undefined;
 
       const tasks = await taskRepo.findAll(processedFilters, undefined);
-      return JSON.stringify({
+      const response: {
+        success: true;
+        tasks: TaskListResponse[];
+        count: number;
+      } = {
         success: true,
-        tasks: tasks.map(task => ({
-          id: task.id,
-          title: task.title,
-          status: task.status,
-          priority: task.priority,
-          dueDate: task.dueDate,
-          scheduledDate: task.scheduledDate,
-          timeEstimate: task.timeEstimate,
-          actualTime: task.actualTime,
-          tags: task.tags,
-          description: task.description,
-        })),
+        tasks: tasks.map(
+          (task): TaskListResponse => ({
+            id: task.id,
+            title: task.title,
+            status: task.status,
+            priority: task.priority,
+            dueDate: task.dueDate,
+            scheduledDate: task.scheduledDate,
+            timeEstimate: task.timeEstimate,
+            actualTime: task.actualTime,
+            tags: task.tags,
+            description: task.description,
+          })
+        ),
         count: tasks.length,
-      });
+      };
+      return JSON.stringify(response);
     } catch (error) {
-      return JSON.stringify({
+      const errorResponse: { success: false; error: string } = {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to get tasks',
-      });
+      };
+      return JSON.stringify(errorResponse);
     }
   },
   {
@@ -195,13 +304,17 @@ const getTasksTool = tool(
 /**
  * Start a timer for a task
  */
+interface StartTimerInput {
+  taskId: string;
+}
+
 const startTimerTool = tool(
-  async (input: any) => {
+  async (input: StartTimerInput) => {
     const { taskId } = input;
     try {
       const timeRepo = getTimeTrackingRepository();
       const session = await timeRepo.startSession(taskId);
-      return JSON.stringify({
+      const response: { success: true; session: SessionResponse } = {
         success: true,
         session: {
           id: session.id,
@@ -209,12 +322,14 @@ const startTimerTool = tool(
           startTime: session.startTime,
           isActive: session.isActive,
         },
-      });
+      };
+      return JSON.stringify(response);
     } catch (error) {
-      return JSON.stringify({
+      const errorResponse: { success: false; error: string } = {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to start timer',
-      });
+      };
+      return JSON.stringify(errorResponse);
     }
   },
   {
@@ -230,25 +345,32 @@ const startTimerTool = tool(
 /**
  * Stop the current timer
  */
+interface StopTimerInput {
+  sessionId: string;
+  notes?: string;
+}
+
 const stopTimerTool = tool(
-  async (input: any) => {
+  async (input: StopTimerInput) => {
     const { sessionId, notes } = input;
     try {
       const timeRepo = getTimeTrackingRepository();
       const session = await timeRepo.stopSession(sessionId, notes);
-      return JSON.stringify({
+      const response: { success: true; session: StoppedSessionResponse } = {
         success: true,
         session: {
           id: session.id,
           duration: session.duration,
           notes: session.notes,
         },
-      });
+      };
+      return JSON.stringify(response);
     } catch (error) {
-      return JSON.stringify({
+      const errorResponse: { success: false; error: string } = {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to stop timer',
-      });
+      };
+      return JSON.stringify(errorResponse);
     }
   },
   {
@@ -267,8 +389,13 @@ const stopTimerTool = tool(
 /**
  * Get time tracking data for analysis
  */
+interface GetTimeDataInput {
+  startDate: string;
+  endDate: string;
+}
+
 const getTimeDataTool = tool(
-  async (input: any) => {
+  async (input: GetTimeDataInput) => {
     const { startDate, endDate } = input;
     try {
       const timeRepo = getTimeTrackingRepository();
@@ -277,7 +404,15 @@ const getTimeDataTool = tool(
         new Date(endDate)
       );
 
-      const totalTime = sessions.reduce((sum: number, session: any) => {
+      interface SessionData {
+        id: string;
+        taskId: string;
+        startTime: Date;
+        endTime?: Date;
+        notes?: string;
+      }
+
+      const totalTime = sessions.reduce((sum: number, session: SessionData) => {
         if (session.endTime) {
           return (
             sum + (session.endTime.getTime() - session.startTime.getTime())
@@ -288,30 +423,34 @@ const getTimeDataTool = tool(
 
       const avgSession = sessions.length > 0 ? totalTime / sessions.length : 0;
 
-      return JSON.stringify({
+      const response: { success: true; timeData: TimeDataResponse } = {
         success: true,
         timeData: {
           totalSessions: sessions.length,
           totalTime: totalTime,
           averageSession: avgSession,
-          sessions: sessions.map((s: any) => ({
-            id: s.id,
-            taskId: s.taskId,
-            duration: s.endTime
-              ? s.endTime.getTime() - s.startTime.getTime()
-              : 0,
-            startTime: s.startTime,
-            endTime: s.endTime,
-            notes: s.notes,
-          })),
+          sessions: sessions.map(
+            (s: SessionData): TimeDataSession => ({
+              id: s.id,
+              taskId: s.taskId,
+              duration: s.endTime
+                ? s.endTime.getTime() - s.startTime.getTime()
+                : 0,
+              startTime: s.startTime,
+              endTime: s.endTime,
+              notes: s.notes,
+            })
+          ),
         },
-      });
+      };
+      return JSON.stringify(response);
     } catch (error) {
-      return JSON.stringify({
+      const errorResponse: { success: false; error: string } = {
         success: false,
         error:
           error instanceof Error ? error.message : 'Failed to get time data',
-      });
+      };
+      return JSON.stringify(errorResponse);
     }
   },
   {
@@ -336,7 +475,7 @@ const analyzeProductivityTool = tool(
   async () => {
     try {
       // Generate mock productivity analysis
-      const analysis = {
+      const analysis: ProductivityAnalysis = {
         insights: {
           mostProductiveTime: { start: '09:00', end: '11:00', dayOfWeek: 1 },
           leastProductiveTime: { start: '14:00', end: '16:00', dayOfWeek: 5 },
@@ -351,18 +490,20 @@ const analyzeProductivityTool = tool(
         ],
       };
 
-      return JSON.stringify({
+      const response: { success: true; analysis: ProductivityAnalysis } = {
         success: true,
         analysis,
-      });
+      };
+      return JSON.stringify(response);
     } catch (error) {
-      return JSON.stringify({
+      const errorResponse: { success: false; error: string } = {
         success: false,
         error:
           error instanceof Error
             ? error.message
             : 'Failed to analyze productivity',
-      });
+      };
+      return JSON.stringify(errorResponse);
     }
   },
   {

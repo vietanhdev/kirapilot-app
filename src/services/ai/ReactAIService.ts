@@ -13,6 +13,28 @@ import {
   Priority,
   DistractionLevel,
 } from '../../types';
+
+// Internal types for AI service
+interface ToolCall {
+  name: string;
+  args: Record<string, unknown>;
+  id: string;
+}
+
+interface ToolExecution {
+  name: string;
+  args: Record<string, unknown>;
+  id: string;
+}
+
+interface TaskSummary {
+  id: string;
+  title: string;
+  priority: number;
+  status: string;
+  dueDate?: string;
+  timeEstimate?: number;
+}
 import { getKiraPilotTools } from './tools';
 
 // Configuration schema for the ReAct agent
@@ -207,7 +229,26 @@ export class ReactAIService {
   private apiKey: string | null = null;
 
   constructor(apiKey?: string) {
-    this.apiKey = apiKey || import.meta.env.VITE_GOOGLE_API_KEY || null;
+    this.apiKey = apiKey || this.getEnvironmentApiKey() || null;
+  }
+
+  private getEnvironmentApiKey(): string | null {
+    try {
+      // Handle both browser and test environments
+      if (typeof window !== 'undefined' && (window as any).import?.meta?.env) {
+        return (window as any).import.meta.env.VITE_GOOGLE_API_KEY || null;
+      }
+      // In browser environment with Vite
+      if (
+        typeof globalThis !== 'undefined' &&
+        (globalThis as any).import?.meta?.env
+      ) {
+        return (globalThis as any).import.meta.env.VITE_GOOGLE_API_KEY || null;
+      }
+      return null;
+    } catch {
+      return null;
+    }
   }
 
   /**
@@ -258,8 +299,8 @@ export class ReactAIService {
       if (lastMessage.content) {
         if (Array.isArray(lastMessage.content)) {
           responseMessage = lastMessage.content
-            .filter((item: any) => item.type === 'text')
-            .map((item: any) => item.text)
+            .filter(item => 'type' in item && item.type === 'text')
+            .map(item => ('text' in item ? item.text : ''))
             .join('');
         } else if (typeof lastMessage.content === 'string') {
           responseMessage = lastMessage.content;
@@ -274,7 +315,7 @@ export class ReactAIService {
         // Create action records for executed tools
         toolExecutions.forEach(execution => {
           actions.push({
-            type: execution.name.toUpperCase() as any,
+            type: execution.name.toUpperCase() as AIAction['type'],
             parameters: execution.args,
             context,
             confidence: 100,
@@ -316,12 +357,18 @@ export class ReactAIService {
   /**
    * Extract tool executions from message history
    */
-  private extractToolExecutions(messages: any[]): any[] {
-    const executions: any[] = [];
+  private extractToolExecutions(messages: unknown[]): ToolExecution[] {
+    const executions: ToolExecution[] = [];
 
     for (const message of messages) {
-      if (message.tool_calls && message.tool_calls.length > 0) {
-        for (const toolCall of message.tool_calls) {
+      if (
+        message &&
+        typeof message === 'object' &&
+        'tool_calls' in message &&
+        Array.isArray((message as { tool_calls: unknown[] }).tool_calls)
+      ) {
+        const toolCalls = (message as { tool_calls: ToolCall[] }).tool_calls;
+        for (const toolCall of toolCalls) {
           executions.push({
             name: toolCall.name,
             args: toolCall.args,
@@ -338,13 +385,19 @@ export class ReactAIService {
    * Generate a response summary based on tool executions and tool messages
    */
   private generateToolResponseSummary(
-    executions: any[],
-    messages: any[]
+    executions: ToolExecution[],
+    messages: unknown[]
   ): string {
     // Look for tool messages (responses from tool executions)
     const toolMessages = messages.filter(
       msg =>
-        msg.constructor.name === 'ToolMessage' || msg._getType?.() === 'tool'
+        msg &&
+        typeof msg === 'object' &&
+        ((msg.constructor && msg.constructor.name === 'ToolMessage') ||
+          ('_getType' in msg &&
+            typeof (msg as { _getType: () => string })._getType ===
+              'function' &&
+            (msg as { _getType: () => string })._getType() === 'tool'))
     );
 
     let summary = '';
@@ -355,27 +408,35 @@ export class ReactAIService {
 
       try {
         // Try to parse the tool result
-        const result = toolMessage ? JSON.parse(toolMessage.content) : null;
+        const result =
+          toolMessage &&
+          typeof toolMessage === 'object' &&
+          'content' in toolMessage &&
+          typeof (toolMessage as { content: string }).content === 'string'
+            ? JSON.parse((toolMessage as { content: string }).content)
+            : null;
 
         switch (execution.name) {
           case 'get_tasks':
             if (result?.success && result?.tasks) {
               summary += `I found ${result.tasks.length} tasks:\n\n`;
-              result.tasks.slice(0, 5).forEach((task: any, index: number) => {
-                const priority =
-                  ['Low', 'Medium', 'High', 'Urgent'][task.priority] ||
-                  'Medium';
-                const status = task.status
-                  .replace('_', ' ')
-                  .replace(/\b\w/g, (l: string) => l.toUpperCase());
-                summary += `${index + 1}. **${task.title}** (${priority} priority, ${status})\n`;
-                if (task.dueDate) {
-                  summary += `   Due: ${new Date(task.dueDate).toLocaleDateString()}\n`;
-                }
-                if (task.timeEstimate) {
-                  summary += `   Estimated: ${task.timeEstimate} minutes\n`;
-                }
-              });
+              result.tasks
+                .slice(0, 5)
+                .forEach((task: TaskSummary, index: number) => {
+                  const priority =
+                    ['Low', 'Medium', 'High', 'Urgent'][task.priority] ||
+                    'Medium';
+                  const status = task.status
+                    .replace('_', ' ')
+                    .replace(/\b\w/g, (l: string) => l.toUpperCase());
+                  summary += `${index + 1}. **${task.title}** (${priority} priority, ${status})\n`;
+                  if (task.dueDate) {
+                    summary += `   Due: ${new Date(task.dueDate).toLocaleDateString()}\n`;
+                  }
+                  if (task.timeEstimate) {
+                    summary += `   Estimated: ${task.timeEstimate} minutes\n`;
+                  }
+                });
               if (result.tasks.length > 5) {
                 summary += `\n...and ${result.tasks.length - 5} more tasks.\n`;
               }
