@@ -54,6 +54,7 @@ export function TaskCard({
   const [isEditingNotes, setIsEditingNotes] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [isTimerOperationPending, setIsTimerOperationPending] = useState(false);
+  const [isStatusChangePending, setIsStatusChangePending] = useState(false);
   const [notesText, setNotesText] = useState(task.description || '');
 
   const { attributes, listeners, setNodeRef, transform, isDragging } =
@@ -67,16 +68,22 @@ export function TaskCard({
       }
     : undefined;
 
-  const handleStatusToggle = (e: React.MouseEvent) => {
+  const handleStatusToggle = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!onStatusChange) {
+    if (!onStatusChange || isStatusChangePending) {
       return;
     }
 
-    if (task.status === TaskStatus.COMPLETED) {
-      onStatusChange(TaskStatus.PENDING);
-    } else {
-      onStatusChange(TaskStatus.COMPLETED);
+    setIsStatusChangePending(true);
+    try {
+      if (task.status === TaskStatus.COMPLETED) {
+        onStatusChange(TaskStatus.PENDING);
+      } else {
+        onStatusChange(TaskStatus.COMPLETED);
+      }
+    } finally {
+      // Reset the pending state after a short delay to prevent rapid clicks
+      setTimeout(() => setIsStatusChangePending(false), 300);
     }
   };
 
@@ -249,11 +256,18 @@ export function TaskCard({
                 onClick={handleStatusToggle}
                 onMouseDown={e => e.stopPropagation()}
                 onPointerDown={e => e.stopPropagation()}
-                className='shrink-0 mt-0.5 hover:scale-110 transition-all duration-200 p-0.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700'
+                disabled={isStatusChangePending}
+                className={`shrink-0 mt-0.5 transition-all duration-200 p-0.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 ${
+                  isStatusChangePending
+                    ? 'opacity-50 cursor-not-allowed'
+                    : 'hover:scale-110'
+                }`}
                 title={
-                  isCompleted
-                    ? 'Click to mark incomplete'
-                    : 'Click to mark complete'
+                  isStatusChangePending
+                    ? 'Updating status...'
+                    : isCompleted
+                      ? 'Click to mark incomplete'
+                      : 'Click to mark complete'
                 }
               >
                 {isCompleted ? (

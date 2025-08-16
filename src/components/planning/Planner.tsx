@@ -171,16 +171,28 @@ export function Planner({ viewMode = 'week' }: PlanningScreenProps) {
   };
 
   const handleTaskStatusChange = async (task: Task, status: TaskStatus) => {
-    try {
-      const updatedTask = {
-        ...task,
-        status,
-        updatedAt: new Date(),
-        completedAt: status === TaskStatus.COMPLETED ? new Date() : undefined,
-      };
+    console.debug(
+      'Starting task status change:',
+      task.title,
+      'from',
+      task.status,
+      'to',
+      status
+    );
 
-      // Update in database
-      if (isInitialized) {
+    // Optimistically update local state first for immediate UI feedback
+    const updatedTask = {
+      ...task,
+      status,
+      updatedAt: new Date(),
+      completedAt: status === TaskStatus.COMPLETED ? new Date() : undefined,
+    };
+    setTasks(prev => prev.map(t => (t.id === task.id ? updatedTask : t)));
+
+    // Then update database
+    if (isInitialized) {
+      try {
+        console.debug('Updating task in database:', task.id);
         const taskRepo = getTaskRepository();
         await taskRepo.update(task.id, {
           status,
@@ -191,26 +203,14 @@ export function Planner({ viewMode = 'week' }: PlanningScreenProps) {
           'to',
           status
         );
+      } catch (error) {
+        console.error('Failed to update task status in database:', error);
+        console.error('Error details:', error);
+        // Revert local state if database update failed
+        setTasks(prev => prev.map(t => (t.id === task.id ? task : t)));
+        // Show user-friendly error message if needed
+        // You could add a toast notification here
       }
-
-      // Update local state
-      setTasks(prev => prev.map(t => (t.id === task.id ? updatedTask : t)));
-    } catch (error) {
-      console.error('Failed to update task status in database:', error);
-      // Fallback: still update local state
-      setTasks(prev =>
-        prev.map(t =>
-          t.id === task.id
-            ? {
-                ...t,
-                status,
-                updatedAt: new Date(),
-                completedAt:
-                  status === TaskStatus.COMPLETED ? new Date() : undefined,
-              }
-            : t
-        )
-      );
     }
   };
 
