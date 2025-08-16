@@ -67,7 +67,7 @@
   - Write unit tests for timer functionality
   - _Requirements: 3.1, 3.2_
 
-- [ ] 4.2 Build time visualization and analytics
+- [x] 4.2 Build time visualization and analytics
   - Create time tracking charts using a charting library
   - Implement daily, weekly, and monthly time views
   - Build time allocation breakdown by task and project
@@ -75,6 +75,12 @@
   - Add time-boxing suggestion algorithm
   - Write tests for time analytics calculations
   - _Requirements: 3.3, 3.4_
+
+- [ ] 4.3 Refactor code base
+  - Scan for "any" type in all code base (.ts, .tsx)
+  - Fix them. Replace with proper types.
+  - Run linting and code formatting to ensure all passed.
+  - Run build and fix issues at the final.
 
 - [ ] 5. Develop focus environment system
 - [ ] 5.1 Implement focus session management
