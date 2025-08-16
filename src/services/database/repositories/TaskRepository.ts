@@ -1,21 +1,24 @@
 // Task repository for database operations
 import { getDatabase, executeTransaction } from '../index';
-import { 
-  Task, 
-  CreateTaskRequest, 
-  UpdateTaskRequest, 
-  TaskFilters, 
+import {
+  Task,
+  CreateTaskRequest,
+  UpdateTaskRequest,
+  TaskFilters,
   TaskSortOptions,
-  ValidationResult 
+  ValidationResult,
 } from '../../../types';
-import { 
-  createTaskRequestToTask, 
-  applyTaskUpdate, 
-  taskToDbRow, 
+import {
+  createTaskRequestToTask,
+  applyTaskUpdate,
+  taskToDbRow,
   dbRowToTask,
-  hasCircularDependency 
+  hasCircularDependency,
 } from '../../../utils/transformations';
-import { validateCreateTaskRequest, validateUpdateTaskRequest } from '../../../types/validation';
+import {
+  validateCreateTaskRequest,
+  validateUpdateTaskRequest,
+} from '../../../types/validation';
 
 export class TaskRepository {
   /**
@@ -25,12 +28,14 @@ export class TaskRepository {
     // Validate input
     const validation = validateCreateTaskRequest(request);
     if (!validation.success) {
-      throw new Error(`Invalid task data: ${validation.error.issues.map(i => i.message).join(', ')}`);
+      throw new Error(
+        `Invalid task data: ${validation.error.issues.map(i => i.message).join(', ')}`
+      );
     }
 
     const task = createTaskRequestToTask(validation.data);
-    
-    return await executeTransaction(async (db) => {
+
+    return await executeTransaction(async db => {
       // Check for circular dependencies
       if (task.dependencies.length > 0) {
         const allTasks = await this.findAll();
@@ -41,26 +46,45 @@ export class TaskRepository {
 
       // Insert task
       const dbRow = taskToDbRow(task);
-      
-      await db.execute(`
+
+      await db.execute(
+        `
         INSERT INTO tasks (
           id, title, description, priority, status, dependencies,
           time_estimate, actual_time, due_date, scheduled_date, tags, project_id,
           parent_task_id, subtasks, completed_at, created_at, updated_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `, [
-        dbRow.id, dbRow.title, dbRow.description, dbRow.priority, dbRow.status,
-        dbRow.dependencies, dbRow.time_estimate, dbRow.actual_time, dbRow.due_date,
-        dbRow.scheduled_date, dbRow.tags, dbRow.project_id, dbRow.parent_task_id, dbRow.subtasks,
-        dbRow.completed_at, dbRow.created_at, dbRow.updated_at
-      ]);
+      `,
+        [
+          dbRow.id,
+          dbRow.title,
+          dbRow.description,
+          dbRow.priority,
+          dbRow.status,
+          dbRow.dependencies,
+          dbRow.time_estimate,
+          dbRow.actual_time,
+          dbRow.due_date,
+          dbRow.scheduled_date,
+          dbRow.tags,
+          dbRow.project_id,
+          dbRow.parent_task_id,
+          dbRow.subtasks,
+          dbRow.completed_at,
+          dbRow.created_at,
+          dbRow.updated_at,
+        ]
+      );
 
       // Create dependency relationships
       for (const depId of task.dependencies) {
-        await db.execute(`
+        await db.execute(
+          `
           INSERT INTO task_dependencies (id, task_id, depends_on_id)
           VALUES (?, ?, ?)
-        `, [`${task.id}-${depId}`, task.id, depId]);
+        `,
+          [`${task.id}-${depId}`, task.id, depId]
+        );
       }
 
       // Update parent task's subtasks if this is a subtask
@@ -74,7 +98,11 @@ export class TaskRepository {
           const updatedSubtasks = [...parent.subtasks, task.id];
           await db.execute(
             'UPDATE tasks SET subtasks = ?, updated_at = ? WHERE id = ?',
-            [JSON.stringify(updatedSubtasks), new Date().toISOString(), parent.id]
+            [
+              JSON.stringify(updatedSubtasks),
+              new Date().toISOString(),
+              parent.id,
+            ]
           );
         }
       }
@@ -84,13 +112,13 @@ export class TaskRepository {
         'SELECT * FROM tasks WHERE id = ?',
         [task.id]
       );
-      
+
       if (createdTaskResult.length === 0) {
         throw new Error('Failed to retrieve created task from database');
       }
-      
+
       const createdTask = dbRowToTask(createdTaskResult[0]);
-      
+
       return createdTask;
     });
   }
@@ -100,11 +128,10 @@ export class TaskRepository {
    */
   async findById(id: string): Promise<Task | null> {
     const db = await getDatabase();
-    
-    const result = await db.select<any[]>(
-      'SELECT * FROM tasks WHERE id = ?',
-      [id]
-    );
+
+    const result = await db.select<any[]>('SELECT * FROM tasks WHERE id = ?', [
+      id,
+    ]);
 
     return result.length > 0 ? dbRowToTask(result[0]) : null;
   }
@@ -112,9 +139,12 @@ export class TaskRepository {
   /**
    * Find all tasks with optional filtering and sorting
    */
-  async findAll(filters?: TaskFilters, sort?: TaskSortOptions): Promise<Task[]> {
+  async findAll(
+    filters?: TaskFilters,
+    sort?: TaskSortOptions
+  ): Promise<Task[]> {
     const db = await getDatabase();
-    
+
     let query = 'SELECT * FROM tasks';
     const params: any[] = [];
     const conditions: string[] = [];
@@ -122,18 +152,24 @@ export class TaskRepository {
     // Apply filters
     if (filters) {
       if (filters.status && filters.status.length > 0) {
-        conditions.push(`status IN (${filters.status.map(() => '?').join(', ')})`);
+        conditions.push(
+          `status IN (${filters.status.map(() => '?').join(', ')})`
+        );
         params.push(...filters.status);
       }
 
       if (filters.priority && filters.priority.length > 0) {
-        conditions.push(`priority IN (${filters.priority.map(() => '?').join(', ')})`);
+        conditions.push(
+          `priority IN (${filters.priority.map(() => '?').join(', ')})`
+        );
         params.push(...filters.priority);
       }
 
       if (filters.tags && filters.tags.length > 0) {
         // Search for tasks that have any of the specified tags
-        const tagConditions = filters.tags.map(() => 'tags LIKE ?').join(' OR ');
+        const tagConditions = filters.tags
+          .map(() => 'tags LIKE ?')
+          .join(' OR ');
         conditions.push(`(${tagConditions})`);
         params.push(...filters.tags.map(tag => `%"${tag}"%`));
       }
@@ -201,20 +237,22 @@ export class TaskRepository {
     // Validate input
     const validation = validateUpdateTaskRequest(request);
     if (!validation.success) {
-      throw new Error(`Invalid update data: ${validation.error.issues.map(i => i.message).join(', ')}`);
+      throw new Error(
+        `Invalid update data: ${validation.error.issues.map(i => i.message).join(', ')}`
+      );
     }
 
-    return await executeTransaction(async (db) => {
+    return await executeTransaction(async db => {
       // Find existing task using transaction db
       const existingResult = await db.select<any[]>(
         'SELECT * FROM tasks WHERE id = ?',
         [id]
       );
-      
+
       if (existingResult.length === 0) {
         throw new Error(`Task with id ${id} not found`);
       }
-      
+
       const existingTask = dbRowToTask(existingResult[0]);
       const updatedTask = applyTaskUpdate(existingTask, validation.data);
 
@@ -223,7 +261,7 @@ export class TaskRepository {
         // Get all tasks using transaction db
         const allTasksResult = await db.select<any[]>('SELECT * FROM tasks');
         const allTasks = allTasksResult.map(row => dbRowToTask(row));
-        
+
         if (hasCircularDependency(id, request.dependencies, allTasks)) {
           throw new Error('Circular dependency detected');
         }
@@ -231,29 +269,47 @@ export class TaskRepository {
 
       // Update task
       const dbRow = taskToDbRow(updatedTask);
-      await db.execute(`
+      await db.execute(
+        `
         UPDATE tasks SET
           title = ?, description = ?, priority = ?, status = ?,
           dependencies = ?, time_estimate = ?, actual_time = ?,
           due_date = ?, scheduled_date = ?, tags = ?, completed_at = ?, updated_at = ?
         WHERE id = ?
-      `, [
-        dbRow.title, dbRow.description, dbRow.priority, dbRow.status,
-        dbRow.dependencies, dbRow.time_estimate, dbRow.actual_time,
-        dbRow.due_date, dbRow.scheduled_date, dbRow.tags, dbRow.completed_at, dbRow.updated_at, id
-      ]);
+      `,
+        [
+          dbRow.title,
+          dbRow.description,
+          dbRow.priority,
+          dbRow.status,
+          dbRow.dependencies,
+          dbRow.time_estimate,
+          dbRow.actual_time,
+          dbRow.due_date,
+          dbRow.scheduled_date,
+          dbRow.tags,
+          dbRow.completed_at,
+          dbRow.updated_at,
+          id,
+        ]
+      );
 
       // Update dependencies if changed
       if (request.dependencies !== undefined) {
         // Remove existing dependencies
-        await db.execute('DELETE FROM task_dependencies WHERE task_id = ?', [id]);
-        
+        await db.execute('DELETE FROM task_dependencies WHERE task_id = ?', [
+          id,
+        ]);
+
         // Add new dependencies
         for (const depId of updatedTask.dependencies) {
-          await db.execute(`
+          await db.execute(
+            `
             INSERT INTO task_dependencies (id, task_id, depends_on_id)
             VALUES (?, ?, ?)
-          `, [`${id}-${depId}`, id, depId]);
+          `,
+            [`${id}-${depId}`, id, depId]
+          );
         }
       }
 
@@ -265,7 +321,7 @@ export class TaskRepository {
    * Delete task
    */
   async delete(id: string): Promise<void> {
-    return await executeTransaction(async (db) => {
+    return await executeTransaction(async db => {
       // Get task using transaction db
       const taskResult = await db.select<any[]>(
         'SELECT * FROM tasks WHERE id = ?',
@@ -274,7 +330,7 @@ export class TaskRepository {
       if (taskResult.length === 0) {
         throw new Error(`Task with id ${id} not found`);
       }
-      
+
       const task = dbRowToTask(taskResult[0]);
 
       // Remove from parent's subtasks if this is a subtask
@@ -288,7 +344,11 @@ export class TaskRepository {
           const updatedSubtasks = parent.subtasks.filter(subId => subId !== id);
           await db.execute(
             'UPDATE tasks SET subtasks = ?, updated_at = ? WHERE id = ?',
-            [JSON.stringify(updatedSubtasks), new Date().toISOString(), parent.id]
+            [
+              JSON.stringify(updatedSubtasks),
+              new Date().toISOString(),
+              parent.id,
+            ]
           );
         }
       }
@@ -306,13 +366,16 @@ export class TaskRepository {
    */
   async getDependencies(taskId: string): Promise<Task[]> {
     const db = await getDatabase();
-    
-    const result = await db.select<any[]>(`
+
+    const result = await db.select<any[]>(
+      `
       SELECT t.* FROM tasks t
       INNER JOIN task_dependencies td ON t.id = td.depends_on_id
       WHERE td.task_id = ?
       ORDER BY t.priority DESC, t.created_at ASC
-    `, [taskId]);
+    `,
+      [taskId]
+    );
 
     return result.map(row => dbRowToTask(row));
   }
@@ -322,13 +385,16 @@ export class TaskRepository {
    */
   async getDependents(taskId: string): Promise<Task[]> {
     const db = await getDatabase();
-    
-    const result = await db.select<any[]>(`
+
+    const result = await db.select<any[]>(
+      `
       SELECT t.* FROM tasks t
       INNER JOIN task_dependencies td ON t.id = td.task_id
       WHERE td.depends_on_id = ?
       ORDER BY t.priority DESC, t.created_at ASC
-    `, [taskId]);
+    `,
+      [taskId]
+    );
 
     return result.map(row => dbRowToTask(row));
   }
@@ -338,7 +404,7 @@ export class TaskRepository {
    */
   async getSubtasks(parentId: string): Promise<Task[]> {
     const db = await getDatabase();
-    
+
     const result = await db.select<any[]>(
       'SELECT * FROM tasks WHERE parent_task_id = ? ORDER BY created_at ASC',
       [parentId]
@@ -352,7 +418,7 @@ export class TaskRepository {
    */
   async getByProject(projectId: string): Promise<Task[]> {
     const db = await getDatabase();
-    
+
     const result = await db.select<any[]>(
       'SELECT * FROM tasks WHERE project_id = ? ORDER BY priority DESC, created_at DESC',
       [projectId]
@@ -367,7 +433,7 @@ export class TaskRepository {
   async getOverdue(): Promise<Task[]> {
     const db = await getDatabase();
     const now = new Date().toISOString();
-    
+
     const result = await db.select<any[]>(
       'SELECT * FROM tasks WHERE due_date < ? AND status != ? ORDER BY due_date ASC',
       [now, 'completed']
@@ -381,7 +447,7 @@ export class TaskRepository {
    */
   async getByTag(tag: string): Promise<Task[]> {
     const db = await getDatabase();
-    
+
     const result = await db.select<any[]>(
       'SELECT * FROM tasks WHERE tags LIKE ? ORDER BY created_at DESC',
       [`%"${tag}"%`]
@@ -395,8 +461,9 @@ export class TaskRepository {
    */
   async search(query: string): Promise<Task[]> {
     const db = await getDatabase();
-    
-    const result = await db.select<any[]>(`
+
+    const result = await db.select<any[]>(
+      `
       SELECT * FROM tasks 
       WHERE title LIKE ? OR description LIKE ? OR tags LIKE ?
       ORDER BY 
@@ -407,10 +474,9 @@ export class TaskRepository {
         END,
         priority DESC,
         created_at DESC
-    `, [
-      `%${query}%`, `%${query}%`, `%${query}%`,
-      `%${query}%`, `%${query}%`
-    ]);
+    `,
+      [`%${query}%`, `%${query}%`, `%${query}%`, `%${query}%`, `%${query}%`]
+    );
 
     return result.map(row => dbRowToTask(row));
   }
@@ -427,28 +493,36 @@ export class TaskRepository {
     averageCompletionTime: number;
   }> {
     const db = await getDatabase();
-    
+
     // Total tasks
-    const totalResult = await db.select<{ count: number }[]>('SELECT COUNT(*) as count FROM tasks');
+    const totalResult = await db.select<{ count: number }[]>(
+      'SELECT COUNT(*) as count FROM tasks'
+    );
     const total = totalResult[0]?.count || 0;
 
     // By status
     const statusResult = await db.select<{ status: string; count: number }[]>(
       'SELECT status, COUNT(*) as count FROM tasks GROUP BY status'
     );
-    const byStatus = statusResult.reduce((acc, row) => {
-      acc[row.status] = row.count;
-      return acc;
-    }, {} as Record<string, number>);
+    const byStatus = statusResult.reduce(
+      (acc, row) => {
+        acc[row.status] = row.count;
+        return acc;
+      },
+      {} as Record<string, number>
+    );
 
     // By priority
-    const priorityResult = await db.select<{ priority: number; count: number }[]>(
-      'SELECT priority, COUNT(*) as count FROM tasks GROUP BY priority'
+    const priorityResult = await db.select<
+      { priority: number; count: number }[]
+    >('SELECT priority, COUNT(*) as count FROM tasks GROUP BY priority');
+    const byPriority = priorityResult.reduce(
+      (acc, row) => {
+        acc[row.priority.toString()] = row.count;
+        return acc;
+      },
+      {} as Record<string, number>
     );
-    const byPriority = priorityResult.reduce((acc, row) => {
-      acc[row.priority.toString()] = row.count;
-      return acc;
-    }, {} as Record<string, number>);
 
     // Overdue tasks
     const now = new Date().toISOString();
@@ -479,7 +553,7 @@ export class TaskRepository {
       byPriority,
       overdue,
       completedToday,
-      averageCompletionTime
+      averageCompletionTime,
     };
   }
 
@@ -492,7 +566,7 @@ export class TaskRepository {
       return {
         isValid: false,
         errors: [`Task with id ${taskId} not found`],
-        warnings: []
+        warnings: [],
       };
     }
 
@@ -518,7 +592,7 @@ export class TaskRepository {
     return {
       isValid: errors.length === 0,
       errors,
-      warnings
+      warnings,
     };
   }
 }

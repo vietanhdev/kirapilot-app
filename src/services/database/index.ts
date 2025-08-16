@@ -105,14 +105,17 @@ async function runMigrations(database: Database): Promise<void> {
     'SELECT version FROM migrations ORDER BY version DESC LIMIT 1'
   );
 
-  const currentVersion = currentMigrations.length > 0 ? currentMigrations[0].version : '0';
+  const currentVersion =
+    currentMigrations.length > 0 ? currentMigrations[0].version : '0';
 
   // Apply migrations in order
   const migrations = getMigrations();
 
   for (const migration of migrations) {
     if (migration.version > currentVersion) {
-      console.log(`Applying migration ${migration.version}: ${migration.description}`);
+      console.log(
+        `Applying migration ${migration.version}: ${migration.description}`
+      );
 
       try {
         // Execute migration
@@ -121,10 +124,9 @@ async function runMigrations(database: Database): Promise<void> {
         }
 
         // Record migration
-        await database.execute(
-          'INSERT INTO migrations (version) VALUES (?)',
-          [migration.version]
-        );
+        await database.execute('INSERT INTO migrations (version) VALUES (?)', [
+          migration.version,
+        ]);
 
         console.log(`Migration ${migration.version} applied successfully`);
       } catch (error) {
@@ -254,7 +256,7 @@ function getMigrations(): Migration[] {
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           dismissed_at DATETIME,
           applied_at DATETIME
-        )`
+        )`,
       ],
       down: [
         'DROP TABLE IF EXISTS ai_suggestions',
@@ -263,8 +265,8 @@ function getMigrations(): Migration[] {
         'DROP TABLE IF EXISTS focus_sessions',
         'DROP TABLE IF EXISTS time_sessions',
         'DROP TABLE IF EXISTS task_dependencies',
-        'DROP TABLE IF EXISTS tasks'
-      ]
+        'DROP TABLE IF EXISTS tasks',
+      ],
     },
 
     {
@@ -286,7 +288,7 @@ function getMigrations(): Migration[] {
         'CREATE INDEX IF NOT EXISTS idx_productivity_patterns_user_id ON productivity_patterns(user_id)',
         'CREATE INDEX IF NOT EXISTS idx_productivity_patterns_pattern_type ON productivity_patterns(pattern_type)',
         'CREATE INDEX IF NOT EXISTS idx_ai_suggestions_type ON ai_suggestions(type)',
-        'CREATE INDEX IF NOT EXISTS idx_ai_suggestions_created_at ON ai_suggestions(created_at)'
+        'CREATE INDEX IF NOT EXISTS idx_ai_suggestions_created_at ON ai_suggestions(created_at)',
       ],
       down: [
         'DROP INDEX IF EXISTS idx_ai_suggestions_created_at',
@@ -304,15 +306,15 @@ function getMigrations(): Migration[] {
         'DROP INDEX IF EXISTS idx_tasks_scheduled_date',
         'DROP INDEX IF EXISTS idx_tasks_due_date',
         'DROP INDEX IF EXISTS idx_tasks_priority',
-        'DROP INDEX IF EXISTS idx_tasks_status'
-      ]
-    }
+        'DROP INDEX IF EXISTS idx_tasks_status',
+      ],
+    },
   ];
 }
 
 // Transaction management state
 let isTransactionActive = false;
-let transactionQueue: Array<() => Promise<any>> = [];
+const transactionQueue: Array<() => Promise<any>> = [];
 let processingQueue = false;
 
 /**
@@ -360,7 +362,10 @@ export async function executeTransaction<T>(
       transactionStarted = true;
       console.debug('Transaction started successfully');
     } catch (beginError) {
-      console.warn('Failed to start transaction, executing without transaction:', beginError);
+      console.warn(
+        'Failed to start transaction, executing without transaction:',
+        beginError
+      );
       // If we can't start a transaction, just execute the callback
       const result = await callback(database);
       isTransactionActive = false;
@@ -467,14 +472,14 @@ export async function checkDatabaseHealth(): Promise<{
       isHealthy: true,
       version: versionResult[0]?.sqlite_version || 'unknown',
       tableCount: tables.length,
-      lastMigration: lastMigration[0]?.version
+      lastMigration: lastMigration[0]?.version,
     };
   } catch (error) {
     console.error('Database health check failed:', error);
     return {
       isHealthy: false,
       version: 'unknown',
-      tableCount: 0
+      tableCount: 0,
     };
   }
 }

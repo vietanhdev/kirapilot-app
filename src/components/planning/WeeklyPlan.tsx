@@ -7,12 +7,16 @@ import { DayView } from './DayView';
 import { TimeHistoryModal } from './TimeHistoryModal';
 import { useTimerContext } from '../../contexts/TimerContext';
 
-
 interface WeeklyPlanProps {
   tasks: Task[];
   currentWeek: Date;
   onWeekChange: (date: Date) => void;
-  onTaskMove: (taskId: string, fromColumn: string, toColumn: string, date?: Date) => void;
+  onTaskMove: (
+    taskId: string,
+    fromColumn: string,
+    toColumn: string,
+    date?: Date
+  ) => void;
   onTaskCreate: (task: Task) => void;
   onTaskEdit: (taskId: string, updates: Partial<Task>) => void;
   onTaskStatusChange: (task: Task, status: TaskStatus) => void;
@@ -31,9 +35,8 @@ export function WeeklyPlan({
   onTaskStatusChange,
   onTaskDelete,
   viewMode: initialViewMode = 'week',
-  className = ''
+  className = '',
 }: WeeklyPlanProps) {
-  
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<'week' | 'day'>(initialViewMode);
 
@@ -41,18 +44,19 @@ export function WeeklyPlan({
   const [showTimeHistory, setShowTimeHistory] = useState(false);
 
   // Get timer functionality from context
-  const {
-    getTaskTimerProps,
-  } = useTimerContext();
+  const { getTaskTimerProps } = useTimerContext();
 
   // Sync viewMode state when prop changes
   useEffect(() => {
     setViewMode(initialViewMode);
   }, [initialViewMode]);
 
-
-
-  const handleTaskMove = (taskId: string, fromColumn: string, toColumn: string, date?: Date) => {
+  const handleTaskMove = (
+    taskId: string,
+    fromColumn: string,
+    toColumn: string,
+    date?: Date
+  ) => {
     // Handle task movement between columns
     console.log('Move task:', taskId, 'from', fromColumn, 'to', toColumn, date);
     onTaskMove(taskId, fromColumn, toColumn, date);
@@ -92,8 +96,6 @@ export function WeeklyPlan({
     }
   };
 
-
-
   const handleTaskDelete = (task: Task) => {
     console.log('Delete task:', task.title);
     if (onTaskDelete) {
@@ -112,9 +114,7 @@ export function WeeklyPlan({
     setTimeHistoryTask(undefined);
   };
 
-
-
-      return (
+  return (
     <div className={className}>
       {/* Main View */}
       {viewMode === 'week' ? (
@@ -146,8 +146,6 @@ export function WeeklyPlan({
           getTaskTimerProps={getTaskTimerProps}
         />
       )}
-
-
 
       {/* Time History Modal */}
       {timeHistoryTask && (

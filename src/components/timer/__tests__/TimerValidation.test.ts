@@ -5,7 +5,9 @@ import { TimerSession } from '../../../types';
 describe('Timer Validation', () => {
   it('should generate valid UUIDs', () => {
     const id = generateId();
-    expect(id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
+    expect(id).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+    );
   });
 
   it('should validate timer session with proper UUIDs', () => {
@@ -17,7 +19,7 @@ describe('Timer Validation', () => {
       isActive: true,
       notes: 'Test session',
       breaks: [],
-      createdAt: new Date()
+      createdAt: new Date(),
     };
 
     const validation = validateTimerSession(session);
@@ -33,7 +35,7 @@ describe('Timer Validation', () => {
       isActive: true,
       notes: 'Test session',
       breaks: [],
-      createdAt: new Date()
+      createdAt: new Date(),
     };
 
     const validation = validateTimerSession(session);
@@ -42,7 +44,7 @@ describe('Timer Validation', () => {
       expect(validation.error.issues).toEqual(
         expect.arrayContaining([
           expect.objectContaining({ message: 'Invalid session ID' }),
-          expect.objectContaining({ message: 'Invalid task ID' })
+          expect.objectContaining({ message: 'Invalid task ID' }),
         ])
       );
     }

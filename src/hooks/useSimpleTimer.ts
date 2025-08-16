@@ -16,17 +16,13 @@ interface UseSimpleTimerOptions {
 }
 
 export function useSimpleTimer(options: UseSimpleTimerOptions = {}) {
-  const {
-    onTimerStart,
-    onTimerStop,
-    enableNotifications = false
-  } = options;
+  const { onTimerStart, onTimerStop, enableNotifications = false } = options;
 
   const [state, setState] = useState<TimerState>({
     isRunning: false,
     elapsedTime: 0,
     activeTaskId: null,
-    startTime: null
+    startTime: null,
   });
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -40,7 +36,7 @@ export function useSimpleTimer(options: UseSimpleTimerOptions = {}) {
         const currentSessionTime = now - state.startTime!;
         setState(prev => ({
           ...prev,
-          elapsedTime: pausedTimeRef.current + currentSessionTime
+          elapsedTime: pausedTimeRef.current + currentSessionTime,
         }));
       }, 1000);
     } else {
@@ -58,72 +54,80 @@ export function useSimpleTimer(options: UseSimpleTimerOptions = {}) {
     };
   }, [state.isRunning, state.startTime]);
 
-  const startTimer = useCallback((task: Task) => {
-    console.log('Starting timer for:', task.title);
-    
-    // If switching tasks, stop current timer first
-    if (state.activeTaskId && state.activeTaskId !== task.id) {
-      // Save current task's time before switching
-      if (state.isRunning && onTimerStop) {
-        onTimerStop({ id: state.activeTaskId } as Task, state.elapsedTime);
-      }
-    }
+  const startTimer = useCallback(
+    (task: Task) => {
+      console.log('Starting timer for:', task.title);
 
-    const now = Date.now();
-    
-    if (state.activeTaskId === task.id) {
-      // Resuming same task
-      console.log('Resuming timer for same task');
-      setState(prev => ({
-        ...prev,
-        isRunning: true,
-        startTime: now
-      }));
-    } else {
-      // Starting new task
-      console.log('Starting timer for new task');
-      pausedTimeRef.current = 0;
-      setState({
-        isRunning: true,
-        elapsedTime: 0,
-        activeTaskId: task.id,
-        startTime: now
-      });
-    }
-
-    onTimerStart?.(task);
-
-    // Show notification if enabled
-    if (enableNotifications) {
-      try {
-        if ('__TAURI__' in window) {
-          // Tauri notification
-          import('@tauri-apps/plugin-notification').then(({ sendNotification }) => {
-            sendNotification({
-              title: 'Timer Started',
-              body: `Working on: ${task.title}`
-            });
-          });
-        } else {
-          // Web notification
-          if ('Notification' in window && Notification.permission === 'granted') {
-            new Notification('Timer Started', {
-              body: `Working on: ${task.title}`,
-              icon: '/tauri.svg'
-            });
-          }
+      // If switching tasks, stop current timer first
+      if (state.activeTaskId && state.activeTaskId !== task.id) {
+        // Save current task's time before switching
+        if (state.isRunning && onTimerStop) {
+          onTimerStop({ id: state.activeTaskId } as Task, state.elapsedTime);
         }
-      } catch (error) {
-        console.log('Notification failed:', error);
       }
-    }
-  }, [state, onTimerStart, onTimerStop, enableNotifications]);
+
+      const now = Date.now();
+
+      if (state.activeTaskId === task.id) {
+        // Resuming same task
+        console.log('Resuming timer for same task');
+        setState(prev => ({
+          ...prev,
+          isRunning: true,
+          startTime: now,
+        }));
+      } else {
+        // Starting new task
+        console.log('Starting timer for new task');
+        pausedTimeRef.current = 0;
+        setState({
+          isRunning: true,
+          elapsedTime: 0,
+          activeTaskId: task.id,
+          startTime: now,
+        });
+      }
+
+      onTimerStart?.(task);
+
+      // Show notification if enabled
+      if (enableNotifications) {
+        try {
+          if ('__TAURI__' in window) {
+            // Tauri notification
+            import('@tauri-apps/plugin-notification').then(
+              ({ sendNotification }) => {
+                sendNotification({
+                  title: 'Timer Started',
+                  body: `Working on: ${task.title}`,
+                });
+              }
+            );
+          } else {
+            // Web notification
+            if (
+              'Notification' in window &&
+              Notification.permission === 'granted'
+            ) {
+              new Notification('Timer Started', {
+                body: `Working on: ${task.title}`,
+                icon: '/tauri.svg',
+              });
+            }
+          }
+        } catch (error) {
+          console.log('Notification failed:', error);
+        }
+      }
+    },
+    [state, onTimerStart, onTimerStop, enableNotifications]
+  );
 
   const pauseTimer = useCallback(() => {
     if (!state.isRunning) return;
 
     console.log('Pausing timer');
-    
+
     // Save current elapsed time to pausedTimeRef
     if (state.startTime) {
       const now = Date.now();
@@ -135,24 +139,29 @@ export function useSimpleTimer(options: UseSimpleTimerOptions = {}) {
       ...prev,
       isRunning: false,
       startTime: null,
-      elapsedTime: pausedTimeRef.current
+      elapsedTime: pausedTimeRef.current,
     }));
 
     // Show notification if enabled
     if (enableNotifications) {
       try {
         if ('__TAURI__' in window) {
-          import('@tauri-apps/plugin-notification').then(({ sendNotification }) => {
-            sendNotification({
-              title: 'Timer Paused',
-              body: 'Timer has been paused'
-            });
-          });
+          import('@tauri-apps/plugin-notification').then(
+            ({ sendNotification }) => {
+              sendNotification({
+                title: 'Timer Paused',
+                body: 'Timer has been paused',
+              });
+            }
+          );
         } else {
-          if ('Notification' in window && Notification.permission === 'granted') {
+          if (
+            'Notification' in window &&
+            Notification.permission === 'granted'
+          ) {
             new Notification('Timer Paused', {
               body: 'Timer has been paused',
-              icon: '/tauri.svg'
+              icon: '/tauri.svg',
             });
           }
         }
@@ -166,7 +175,7 @@ export function useSimpleTimer(options: UseSimpleTimerOptions = {}) {
     if (!state.activeTaskId) return;
 
     console.log('Stopping timer');
-    
+
     const finalElapsedTime = state.elapsedTime;
     const task = { id: state.activeTaskId } as Task;
 
@@ -176,7 +185,7 @@ export function useSimpleTimer(options: UseSimpleTimerOptions = {}) {
       isRunning: false,
       elapsedTime: 0,
       activeTaskId: null,
-      startTime: null
+      startTime: null,
     });
 
     onTimerStop?.(task, finalElapsedTime);
@@ -189,17 +198,22 @@ export function useSimpleTimer(options: UseSimpleTimerOptions = {}) {
         const timeText = `${minutes}m ${seconds}s`;
 
         if ('__TAURI__' in window) {
-          import('@tauri-apps/plugin-notification').then(({ sendNotification }) => {
-            sendNotification({
-              title: 'Timer Stopped',
-              body: `Session completed: ${timeText}`
-            });
-          });
+          import('@tauri-apps/plugin-notification').then(
+            ({ sendNotification }) => {
+              sendNotification({
+                title: 'Timer Stopped',
+                body: `Session completed: ${timeText}`,
+              });
+            }
+          );
         } else {
-          if ('Notification' in window && Notification.permission === 'granted') {
+          if (
+            'Notification' in window &&
+            Notification.permission === 'granted'
+          ) {
             new Notification('Timer Stopped', {
               body: `Session completed: ${timeText}`,
-              icon: '/tauri.svg'
+              icon: '/tauri.svg',
             });
           }
         }
@@ -210,26 +224,32 @@ export function useSimpleTimer(options: UseSimpleTimerOptions = {}) {
   }, [state, onTimerStop, enableNotifications]);
 
   // Get timer props for a specific task
-  const getTaskTimerProps = useCallback((task: Task) => {
-    const isActiveTask = state.activeTaskId === task.id;
-    
-    return {
-      onTimerStart: () => startTimer(task),
-      onTimerPause: pauseTimer,
-      onTimerStop: stopTimer,
-      activeTimerTaskId: state.activeTaskId,
-      isTimerRunning: isActiveTask && state.isRunning,
-      elapsedTime: isActiveTask ? state.elapsedTime : 0
-    };
-  }, [state, startTimer, pauseTimer, stopTimer]);
+  const getTaskTimerProps = useCallback(
+    (task: Task) => {
+      const isActiveTask = state.activeTaskId === task.id;
 
-  const formatElapsedTime = useCallback((milliseconds?: number): string => {
-    const ms = milliseconds ?? state.elapsedTime;
-    const totalSeconds = Math.floor(ms / 1000);
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
-    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-  }, [state.elapsedTime]);
+      return {
+        onTimerStart: () => startTimer(task),
+        onTimerPause: pauseTimer,
+        onTimerStop: stopTimer,
+        activeTimerTaskId: state.activeTaskId,
+        isTimerRunning: isActiveTask && state.isRunning,
+        elapsedTime: isActiveTask ? state.elapsedTime : 0,
+      };
+    },
+    [state, startTimer, pauseTimer, stopTimer]
+  );
+
+  const formatElapsedTime = useCallback(
+    (milliseconds?: number): string => {
+      const ms = milliseconds ?? state.elapsedTime;
+      const totalSeconds = Math.floor(ms / 1000);
+      const minutes = Math.floor(totalSeconds / 60);
+      const seconds = totalSeconds % 60;
+      return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    },
+    [state.elapsedTime]
+  );
 
   return {
     // State
@@ -243,6 +263,6 @@ export function useSimpleTimer(options: UseSimpleTimerOptions = {}) {
     pauseTimer,
     stopTimer,
     getTaskTimerProps,
-    formatElapsedTime
+    formatElapsedTime,
   };
-} 
+}

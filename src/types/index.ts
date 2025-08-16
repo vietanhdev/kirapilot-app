@@ -175,7 +175,7 @@ export interface TrendData {
 
 export interface TimeSlot {
   start: string; // HH:MM format
-  end: string;   // HH:MM format
+  end: string; // HH:MM format
   dayOfWeek: number; // 0-6, Sunday = 0
 }
 
@@ -252,7 +252,13 @@ export interface AppContext {
 
 export interface ActivityEvent {
   id: string;
-  type: 'task_created' | 'task_completed' | 'timer_started' | 'timer_stopped' | 'focus_started' | 'focus_ended';
+  type:
+    | 'task_created'
+    | 'task_completed'
+    | 'timer_started'
+    | 'timer_stopped'
+    | 'focus_started'
+    | 'focus_ended';
   timestamp: Date;
   data: Record<string, any>;
 }
@@ -260,15 +266,15 @@ export interface ActivityEvent {
 export interface UserPreferences {
   workingHours: {
     start: string; // HH:MM
-    end: string;   // HH:MM
+    end: string; // HH:MM
   };
   breakPreferences: {
     shortBreakDuration: number; // minutes
-    longBreakDuration: number;  // minutes
-    breakInterval: number;      // minutes
+    longBreakDuration: number; // minutes
+    breakInterval: number; // minutes
   };
   focusPreferences: {
-    defaultDuration: number;    // minutes
+    defaultDuration: number; // minutes
     distractionLevel: DistractionLevel;
     backgroundAudio: AudioConfig;
   };
@@ -283,7 +289,15 @@ export interface UserPreferences {
 }
 
 export interface AIAction {
-  type: 'CREATE_TASK' | 'UPDATE_TASK' | 'START_TIMER' | 'STOP_TIMER' | 'SCHEDULE_FOCUS' | 'TAKE_BREAK' | 'ANALYZE_PRODUCTIVITY' | 'SUGGEST_SCHEDULE';
+  type:
+    | 'CREATE_TASK'
+    | 'UPDATE_TASK'
+    | 'START_TIMER'
+    | 'STOP_TIMER'
+    | 'SCHEDULE_FOCUS'
+    | 'TAKE_BREAK'
+    | 'ANALYZE_PRODUCTIVITY'
+    | 'SUGGEST_SCHEDULE';
   parameters: Record<string, any>;
   context: AppContext;
   confidence: number;

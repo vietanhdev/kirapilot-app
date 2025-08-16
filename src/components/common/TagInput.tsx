@@ -11,13 +11,13 @@ interface TagInputProps {
   maxTags?: number;
 }
 
-export function TagInput({ 
-  tags, 
-  onChange, 
-  placeholder = 'Add tags...', 
-  disabled = false, 
+export function TagInput({
+  tags,
+  onChange,
+  placeholder = 'Add tags...',
+  disabled = false,
   className = '',
-  maxTags = 10
+  maxTags = 10,
 }: TagInputProps) {
   const [inputValue, setInputValue] = useState('');
   const [isInputFocused, setIsInputFocused] = useState(false);
@@ -52,21 +52,22 @@ export function TagInput({
 
   return (
     <div className={className}>
-      <div 
+      <div
         className={`
           flex flex-wrap items-center gap-2 p-3 min-h-[42px]
           border border-slate-300 dark:border-slate-600 rounded-lg
           bg-white dark:bg-slate-800
           transition-all duration-200
-          ${isInputFocused 
-            ? 'ring-2 ring-primary-500 border-transparent' 
-            : 'hover:border-slate-400 dark:hover:border-slate-500'
+          ${
+            isInputFocused
+              ? 'ring-2 ring-primary-500 border-transparent'
+              : 'hover:border-slate-400 dark:hover:border-slate-500'
           }
           ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
         `}
       >
         {/* Existing Tags */}
-        {tags.map((tag) => (
+        {tags.map(tag => (
           <TagChip
             key={tag}
             tag={tag}
@@ -78,33 +79,33 @@ export function TagInput({
         {/* Input Field */}
         {!disabled && tags.length < maxTags && (
           <input
-            type="text"
+            type='text'
             value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
+            onChange={e => setInputValue(e.target.value)}
             onKeyDown={handleKeyDown}
             onFocus={() => setIsInputFocused(true)}
             onBlur={handleInputBlur}
             placeholder={tags.length === 0 ? placeholder : ''}
-            className="flex-1 min-w-[120px] bg-transparent border-none outline-none text-slate-900 dark:text-slate-100 placeholder-slate-500 dark:placeholder-slate-400"
+            className='flex-1 min-w-[120px] bg-transparent border-none outline-none text-slate-900 dark:text-slate-100 placeholder-slate-500 dark:placeholder-slate-400'
           />
         )}
 
         {/* Add Button (when input is not empty) */}
         {inputValue.trim() && !disabled && (
           <button
-            type="button"
+            type='button'
             onClick={() => addTag(inputValue)}
-            className="p-1 text-primary-500 hover:text-primary-600 transition-colors duration-200"
-            title="Add tag"
+            className='p-1 text-primary-500 hover:text-primary-600 transition-colors duration-200'
+            title='Add tag'
           >
-            <Plus className="w-4 h-4" />
+            <Plus className='w-4 h-4' />
           </button>
         )}
       </div>
 
       {/* Tag Count Indicator */}
       {tags.length > 0 && (
-        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+        <div className='mt-1 text-xs text-slate-500 dark:text-slate-400'>
           {tags.length} / {maxTags} tags
         </div>
       )}
@@ -120,16 +121,16 @@ interface TagChipProps {
 
 function TagChip({ tag, onRemove, disabled = false }: TagChipProps) {
   return (
-    <span className="inline-flex items-center gap-1 px-2 py-1 bg-primary-100 dark:bg-primary-900 text-primary-800 dark:text-primary-200 text-sm rounded-full">
-      <span className="font-medium">{tag}</span>
+    <span className='inline-flex items-center gap-1 px-2 py-1 bg-primary-100 dark:bg-primary-900 text-primary-800 dark:text-primary-200 text-sm rounded-full'>
+      <span className='font-medium'>{tag}</span>
       {!disabled && (
         <button
-          type="button"
+          type='button'
           onClick={onRemove}
-          className="p-0.5 hover:bg-primary-200 dark:hover:bg-primary-800 rounded-full transition-colors duration-200"
+          className='p-0.5 hover:bg-primary-200 dark:hover:bg-primary-800 rounded-full transition-colors duration-200'
           title={`Remove ${tag} tag`}
         >
-          <X className="w-3 h-3" />
+          <X className='w-3 h-3' />
         </button>
       )}
     </span>

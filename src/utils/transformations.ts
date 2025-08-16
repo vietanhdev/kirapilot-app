@@ -1,13 +1,13 @@
 // Data transformation utilities for KiraPilot
-import { 
-  Task, 
-  CreateTaskRequest, 
-  UpdateTaskRequest, 
-  TimerSession, 
+import {
+  Task,
+  CreateTaskRequest,
+  UpdateTaskRequest,
+  TimerSession,
   FocusSession,
   Priority,
   TaskStatus,
-  DistractionLevel
+  DistractionLevel,
 } from '../types';
 import { generateId } from './index';
 
@@ -16,7 +16,7 @@ import { generateId } from './index';
  */
 export function createTaskRequestToTask(request: CreateTaskRequest): Task {
   const now = new Date();
-  
+
   return {
     id: generateId(),
     title: request.title,
@@ -48,7 +48,8 @@ export function applyTaskUpdate(task: Task, update: UpdateTaskRequest): Task {
 
   // Apply updates only for defined fields
   if (update.title !== undefined) updatedTask.title = update.title;
-  if (update.description !== undefined) updatedTask.description = update.description;
+  if (update.description !== undefined)
+    updatedTask.description = update.description;
   if (update.priority !== undefined) updatedTask.priority = update.priority;
   if (update.status !== undefined) {
     updatedTask.status = update.status;
@@ -61,11 +62,14 @@ export function applyTaskUpdate(task: Task, update: UpdateTaskRequest): Task {
       updatedTask.completedAt = undefined;
     }
   }
-  if (update.timeEstimate !== undefined) updatedTask.timeEstimate = update.timeEstimate;
+  if (update.timeEstimate !== undefined)
+    updatedTask.timeEstimate = update.timeEstimate;
   if (update.dueDate !== undefined) updatedTask.dueDate = update.dueDate;
-  if (update.scheduledDate !== undefined) updatedTask.scheduledDate = update.scheduledDate;
+  if (update.scheduledDate !== undefined)
+    updatedTask.scheduledDate = update.scheduledDate;
   if (update.tags !== undefined) updatedTask.tags = update.tags;
-  if (update.dependencies !== undefined) updatedTask.dependencies = update.dependencies;
+  if (update.dependencies !== undefined)
+    updatedTask.dependencies = update.dependencies;
 
   return updatedTask;
 }
@@ -98,11 +102,14 @@ export function taskToDbRow(task: Task): Record<string, any> {
 /**
  * Safely parse JSON string with fallback
  */
-function safeJsonParse(jsonString: string | null | undefined, fallback: any = []): any {
+function safeJsonParse(
+  jsonString: string | null | undefined,
+  fallback: any = []
+): any {
   if (!jsonString || jsonString.trim() === '') {
     return fallback;
   }
-  
+
   try {
     return JSON.parse(jsonString);
   } catch (error) {
@@ -125,7 +132,9 @@ export function dbRowToTask(row: Record<string, any>): Task {
     timeEstimate: row.time_estimate || 0,
     actualTime: row.actual_time || 0,
     dueDate: row.due_date ? new Date(row.due_date) : undefined,
-    scheduledDate: row.scheduled_date ? new Date(row.scheduled_date) : undefined,
+    scheduledDate: row.scheduled_date
+      ? new Date(row.scheduled_date)
+      : undefined,
     tags: safeJsonParse(row.tags, []),
     projectId: row.project_id,
     parentTaskId: row.parent_task_id,
@@ -139,7 +148,9 @@ export function dbRowToTask(row: Record<string, any>): Task {
 /**
  * Convert TimerSession to database row format
  */
-export function timerSessionToDbRow(session: TimerSession): Record<string, any> {
+export function timerSessionToDbRow(
+  session: TimerSession
+): Record<string, any> {
   return {
     id: session.id,
     task_id: session.taskId,
@@ -173,7 +184,9 @@ export function dbRowToTimerSession(row: Record<string, any>): TimerSession {
 /**
  * Convert FocusSession to database row format
  */
-export function focusSessionToDbRow(session: FocusSession): Record<string, any> {
+export function focusSessionToDbRow(
+  session: FocusSession
+): Record<string, any> {
   return {
     id: session.id,
     task_id: session.taskId,
@@ -182,7 +195,9 @@ export function focusSessionToDbRow(session: FocusSession): Record<string, any> 
     focus_score: session.focusScore,
     distraction_count: session.distractionCount,
     distraction_level: session.distractionLevel,
-    background_audio: session.backgroundAudio ? JSON.stringify(session.backgroundAudio) : null,
+    background_audio: session.backgroundAudio
+      ? JSON.stringify(session.backgroundAudio)
+      : null,
     notes: session.notes,
     breaks: JSON.stringify(session.breaks),
     metrics: JSON.stringify(session.metrics),
@@ -203,7 +218,9 @@ export function dbRowToFocusSession(row: Record<string, any>): FocusSession {
     focusScore: row.focus_score,
     distractionCount: row.distraction_count || 0,
     distractionLevel: row.distraction_level || DistractionLevel.MODERATE,
-    backgroundAudio: row.background_audio ? JSON.parse(row.background_audio) : undefined,
+    backgroundAudio: row.background_audio
+      ? JSON.parse(row.background_audio)
+      : undefined,
     notes: row.notes || '',
     breaks: JSON.parse(row.breaks || '[]'),
     metrics: JSON.parse(row.metrics || '{}'),
@@ -221,15 +238,23 @@ export function calculateTaskCompletion(task: Task, allTasks: Task[]): number {
   }
 
   const subtasks = allTasks.filter(t => task.subtasks.includes(t.id));
-  const completedSubtasks = subtasks.filter(t => t.status === TaskStatus.COMPLETED);
-  
-  return subtasks.length > 0 ? (completedSubtasks.length / subtasks.length) * 100 : 0;
+  const completedSubtasks = subtasks.filter(
+    t => t.status === TaskStatus.COMPLETED
+  );
+
+  return subtasks.length > 0
+    ? (completedSubtasks.length / subtasks.length) * 100
+    : 0;
 }
 
 /**
  * Check if task has circular dependencies
  */
-export function hasCircularDependency(taskId: string, dependencies: string[], allTasks: Task[]): boolean {
+export function hasCircularDependency(
+  taskId: string,
+  dependencies: string[],
+  allTasks: Task[]
+): boolean {
   const visited = new Set<string>();
   const recursionStack = new Set<string>();
 
@@ -267,7 +292,7 @@ export function hasCircularDependency(taskId: string, dependencies: string[], al
   // Create temporary task list with updated dependencies
   const updatedTasks = allTasks.filter(t => t.id !== taskId);
   updatedTasks.push(tempTask);
-  
+
   return dfs(taskId);
 }
 
@@ -276,20 +301,28 @@ export function hasCircularDependency(taskId: string, dependencies: string[], al
  */
 export function getPriorityWeight(priority: Priority): number {
   switch (priority) {
-    case Priority.LOW: return 1;
-    case Priority.MEDIUM: return 2;
-    case Priority.HIGH: return 3;
-    case Priority.URGENT: return 4;
-    default: return 0;
+    case Priority.LOW:
+      return 1;
+    case Priority.MEDIUM:
+      return 2;
+    case Priority.HIGH:
+      return 3;
+    case Priority.URGENT:
+      return 4;
+    default:
+      return 0;
   }
 }
 
 /**
  * Calculate estimated completion time based on dependencies
  */
-export function calculateEstimatedCompletionTime(task: Task, allTasks: Task[]): number {
+export function calculateEstimatedCompletionTime(
+  task: Task,
+  allTasks: Task[]
+): number {
   const visited = new Set<string>();
-  
+
   function calculateTime(taskId: string): number {
     if (visited.has(taskId)) {
       return 0; // Avoid infinite loops
@@ -319,8 +352,11 @@ export function calculateEstimatedCompletionTime(task: Task, allTasks: Task[]): 
 export function formatTaskForDisplay(task: Task, allTasks: Task[]) {
   const completion = calculateTaskCompletion(task, allTasks);
   const estimatedTime = calculateEstimatedCompletionTime(task, allTasks);
-  const isOverdue = task.dueDate && task.dueDate < new Date() && task.status !== TaskStatus.COMPLETED;
-  
+  const isOverdue =
+    task.dueDate &&
+    task.dueDate < new Date() &&
+    task.status !== TaskStatus.COMPLETED;
+
   return {
     ...task,
     completion,

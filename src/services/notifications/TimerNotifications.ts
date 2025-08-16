@@ -56,21 +56,27 @@ export class TimerNotifications {
   /**
    * Show a notification
    */
-  async showNotification(options: NotificationOptions): Promise<Notification | null> {
+  async showNotification(
+    options: NotificationOptions
+  ): Promise<Notification | null> {
     // Try Tauri notifications first
     try {
       // Check if we're in Tauri environment
       if ('__TAURI__' in window) {
-        const { sendNotification } = await import('@tauri-apps/plugin-notification');
+        const { sendNotification } = await import(
+          '@tauri-apps/plugin-notification'
+        );
         await sendNotification({
           title: options.title,
           body: options.body,
-          icon: options.icon || '/tauri.svg'
+          icon: options.icon || '/tauri.svg',
         });
         return null; // Tauri notifications don't return Notification objects
       }
     } catch (error) {
-      console.log('Tauri notifications not available, falling back to web notifications');
+      console.log(
+        'Tauri notifications not available, falling back to web notifications'
+      );
     }
 
     // Fallback to web notifications
@@ -122,33 +128,42 @@ export class TimerNotifications {
   /**
    * Show notification when session starts
    */
-  async notifySessionStart(_session: TimerSession, taskTitle: string): Promise<void> {
+  async notifySessionStart(
+    _session: TimerSession,
+    taskTitle: string
+  ): Promise<void> {
     await this.showNotification({
       title: 'Timer Started',
       body: `Working on: ${taskTitle}`,
-      tag: 'session-start'
+      tag: 'session-start',
     });
   }
 
   /**
    * Show notification when session is paused
    */
-  async notifySessionPause(_session: TimerSession, taskTitle: string): Promise<void> {
+  async notifySessionPause(
+    _session: TimerSession,
+    taskTitle: string
+  ): Promise<void> {
     await this.showNotification({
       title: 'Timer Paused',
       body: `Paused work on: ${taskTitle}`,
-      tag: 'session-pause'
+      tag: 'session-pause',
     });
   }
 
   /**
    * Show notification when session is resumed
    */
-  async notifySessionResume(_session: TimerSession, taskTitle: string): Promise<void> {
+  async notifySessionResume(
+    _session: TimerSession,
+    taskTitle: string
+  ): Promise<void> {
     await this.showNotification({
       title: 'Timer Resumed',
       body: `Resumed work on: ${taskTitle}`,
-      tag: 'session-resume'
+      tag: 'session-resume',
     });
   }
 
@@ -156,18 +171,18 @@ export class TimerNotifications {
    * Notify when session stops
    */
   async notifySessionStop(
-    sessionId: string, 
-    taskTitle: string, 
+    sessionId: string,
+    taskTitle: string,
     duration: number
   ): Promise<void> {
     const formattedDuration = this.formatDuration(duration);
-    
+
     await this.showNotification({
       title: 'Session Completed',
       body: `Completed ${taskTitle} in ${formattedDuration}`,
       tag: 'session-complete',
       requireInteraction: true,
-      icon: '/tauri.svg'
+      icon: '/tauri.svg',
     });
 
     // Clear any break reminders for this session
@@ -178,7 +193,7 @@ export class TimerNotifications {
    * Set up break reminders for a session
    */
   setupBreakReminders(
-    sessionId: string, 
+    sessionId: string,
     intervalMinutes: number = 25,
     taskTitle: string
   ): void {
@@ -186,14 +201,14 @@ export class TimerNotifications {
     this.clearBreakReminders(sessionId);
 
     const intervalMs = intervalMinutes * 60 * 1000;
-    
+
     const reminderInterval = setInterval(async () => {
       await this.showNotification({
         title: 'Break Reminder',
         body: `You've been working on "${taskTitle}" for ${intervalMinutes} minutes. Consider taking a break!`,
         tag: `break-reminder-${sessionId}`,
         requireInteraction: true,
-        icon: '/tauri.svg'
+        icon: '/tauri.svg',
       });
     }, intervalMs);
 
@@ -211,7 +226,9 @@ export class TimerNotifications {
     }
 
     // Close any active break reminder notification
-    const notification = this.activeNotifications.get(`break-reminder-${sessionId}`);
+    const notification = this.activeNotifications.get(
+      `break-reminder-${sessionId}`
+    );
     if (notification) {
       notification.close();
       this.activeNotifications.delete(`break-reminder-${sessionId}`);
@@ -227,7 +244,7 @@ export class TimerNotifications {
       body: `Take a ${duration} minute break to recharge`,
       tag: 'break-time',
       requireInteraction: true,
-      icon: '/tauri.svg'
+      icon: '/tauri.svg',
     });
   }
 
@@ -239,7 +256,7 @@ export class TimerNotifications {
       title: 'Break Over',
       body: 'Ready to get back to work?',
       tag: 'break-end',
-      icon: '/tauri.svg'
+      icon: '/tauri.svg',
     });
   }
 
@@ -252,13 +269,13 @@ export class TimerNotifications {
     tasksCompleted: number
   ): Promise<void> {
     const formattedTime = this.formatDuration(totalTime);
-    
+
     await this.showNotification({
       title: 'Daily Summary',
       body: `Today: ${formattedTime} across ${sessionsCount} sessions, ${tasksCompleted} tasks completed`,
       tag: 'daily-summary',
       requireInteraction: true,
-      icon: '/tauri.svg'
+      icon: '/tauri.svg',
     });
   }
 
@@ -274,7 +291,7 @@ export class TimerNotifications {
       body: achievement,
       tag: 'productivity-milestone',
       requireInteraction: true,
-      icon: '/tauri.svg'
+      icon: '/tauri.svg',
     });
   }
 

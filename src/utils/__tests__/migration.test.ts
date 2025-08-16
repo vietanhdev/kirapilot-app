@@ -1,4 +1,9 @@
-import { isOldFormatId, isValidUUID, migrateId, migrateTaskData } from '../migration';
+import {
+  isOldFormatId,
+  isValidUUID,
+  migrateId,
+  migrateTaskData,
+} from '../migration';
 
 describe('Migration Utilities', () => {
   describe('isOldFormatId', () => {
@@ -59,15 +64,15 @@ describe('Migration Utilities', () => {
           title: 'Task 1',
           dependencies: ['1755312393494-abc123'],
           parentTaskId: undefined,
-          subtasks: []
+          subtasks: [],
         },
         {
           id: '1755312393494-abc123',
           title: 'Task 2',
           dependencies: [],
           parentTaskId: '1755312393493-5widbnepc',
-          subtasks: []
-        }
+          subtasks: [],
+        },
       ];
 
       const migratedTasks = migrateTaskData(oldTasks);
@@ -88,8 +93,8 @@ describe('Migration Utilities', () => {
           title: 'Task 1',
           dependencies: [],
           parentTaskId: undefined,
-          subtasks: []
-        }
+          subtasks: [],
+        },
       ];
 
       const migratedTasks = migrateTaskData(validTasks);

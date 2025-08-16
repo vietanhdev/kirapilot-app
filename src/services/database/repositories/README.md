@@ -5,6 +5,7 @@ This directory contains the repository layer that provides a clean abstraction o
 ## Overview
 
 The repository pattern provides:
+
 - **Data Access Abstraction**: Clean interface between business logic and database
 - **CRUD Operations**: Complete Create, Read, Update, Delete functionality
 - **Query Optimization**: Efficient database queries with proper indexing
@@ -33,6 +34,7 @@ src/services/database/repositories/
 Manages tasks, dependencies, and task relationships.
 
 #### Key Features
+
 - **CRUD Operations**: Create, read, update, delete tasks
 - **Dependency Management**: Handle task dependencies with circular dependency detection
 - **Filtering & Sorting**: Advanced filtering by status, priority, tags, dates
@@ -54,22 +56,25 @@ const task = await taskRepo.create({
   priority: Priority.HIGH,
   timeEstimate: 120,
   tags: ['work', 'proposal'],
-  dueDate: new Date('2024-02-15')
+  dueDate: new Date('2024-02-15'),
 });
 
 // Find tasks with filters
-const pendingTasks = await taskRepo.findAll({
-  status: [TaskStatus.PENDING],
-  priority: [Priority.HIGH, Priority.URGENT]
-}, {
-  field: 'dueDate',
-  direction: 'asc'
-});
+const pendingTasks = await taskRepo.findAll(
+  {
+    status: [TaskStatus.PENDING],
+    priority: [Priority.HIGH, Priority.URGENT],
+  },
+  {
+    field: 'dueDate',
+    direction: 'asc',
+  }
+);
 
 // Update task
 const updatedTask = await taskRepo.update(task.id, {
   status: TaskStatus.IN_PROGRESS,
-  actualTime: 30
+  actualTime: 30,
 });
 
 // Get task dependencies
@@ -82,6 +87,7 @@ const stats = await taskRepo.getStatistics();
 #### Advanced Features
 
 **Dependency Validation**
+
 ```typescript
 // Validate task dependencies
 const validation = await taskRepo.validateDependencies(taskId);
@@ -91,6 +97,7 @@ if (!validation.isValid) {
 ```
 
 **Search and Filtering**
+
 ```typescript
 // Complex filtering
 const filteredTasks = await taskRepo.findAll({
@@ -98,9 +105,9 @@ const filteredTasks = await taskRepo.findAll({
   tags: ['urgent', 'important'],
   dueDate: {
     from: new Date(),
-    to: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // Next 7 days
+    to: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // Next 7 days
   },
-  search: 'project'
+  search: 'project',
 });
 
 // Get overdue tasks
@@ -115,6 +122,7 @@ const workTasks = await taskRepo.getByTag('work');
 Manages timer sessions, breaks, and time tracking analytics.
 
 #### Key Features
+
 - **Session Management**: Start, pause, resume, stop timer sessions
 - **Break Tracking**: Record breaks and interruptions
 - **Time Analytics**: Comprehensive time tracking statistics
@@ -129,13 +137,23 @@ import { getTimeTrackingRepository } from './repositories';
 const timeRepo = getTimeTrackingRepository();
 
 // Start a timer session
-const session = await timeRepo.startSession(taskId, 'Working on feature implementation');
+const session = await timeRepo.startSession(
+  taskId,
+  'Working on feature implementation'
+);
 
 // Add a break
-const updatedSession = await timeRepo.addBreak(session.id, 'Coffee break', 5 * 60 * 1000);
+const updatedSession = await timeRepo.addBreak(
+  session.id,
+  'Coffee break',
+  5 * 60 * 1000
+);
 
 // Stop session
-const completedSession = await timeRepo.stopSession(session.id, 'Completed initial implementation');
+const completedSession = await timeRepo.stopSession(
+  session.id,
+  'Completed initial implementation'
+);
 
 // Get time statistics
 const stats = await timeRepo.getStatistics(startDate, endDate);
@@ -151,6 +169,7 @@ const summary = await timeRepo.getTimeSummary(startDate, endDate);
 #### Session Management
 
 **Active Session Control**
+
 ```typescript
 // Get current active session
 const activeSession = await timeRepo.getActiveSession();
@@ -165,13 +184,14 @@ await timeRepo.resumeSession(sessionId);
 ```
 
 **Analytics and Reporting**
+
 ```typescript
 // Get comprehensive statistics
 const stats = await timeRepo.getStatistics();
 console.log({
   totalSessions: stats.totalSessions,
   averageProductivity: stats.averageProductivity,
-  mostProductiveHour: stats.mostProductiveHour
+  mostProductiveHour: stats.mostProductiveHour,
 });
 
 // Get sessions by date range
@@ -183,6 +203,7 @@ const sessions = await timeRepo.getByDateRange(startDate, endDate);
 Manages focus sessions, distractions, and focus analytics.
 
 #### Key Features
+
 - **Focus Session Management**: Start, complete, and track focus sessions
 - **Distraction Tracking**: Record and analyze distractions
 - **Focus Scoring**: Calculate focus scores based on session quality
@@ -204,8 +225,8 @@ const session = await focusRepo.startSession({
   breakReminders: true,
   backgroundAudio: {
     type: 'white_noise',
-    volume: 30
-  }
+    volume: 30,
+  },
 });
 
 // Record distraction
@@ -215,7 +236,10 @@ await focusRepo.addDistraction(session.id, 'Phone notification');
 await focusRepo.updateEnergyLevel(session.id, 75);
 
 // Complete session
-const completedSession = await focusRepo.completeSession(session.id, 'Good focus session');
+const completedSession = await focusRepo.completeSession(
+  session.id,
+  'Good focus session'
+);
 
 // Get focus statistics
 const stats = await focusRepo.getStatistics(startDate, endDate);
@@ -224,13 +248,14 @@ const stats = await focusRepo.getStatistics(startDate, endDate);
 #### Focus Analytics
 
 **Session Analysis**
+
 ```typescript
 // Get focus summary
 const summary = await focusRepo.getFocusSummary(startDate, endDate);
 console.log({
   averageFocusScore: summary.averageFocusScore,
   totalDistractions: summary.totalDistractions,
-  focusEfficiency: summary.focusEfficiency
+  focusEfficiency: summary.focusEfficiency,
 });
 
 // Get sessions by task
@@ -242,6 +267,7 @@ const taskSessions = await focusRepo.getByTask(taskId);
 Manages productivity patterns, analytics, and AI insights.
 
 #### Key Features
+
 - **Pattern Learning**: Record and analyze productivity patterns
 - **Trend Analysis**: Track productivity trends over time
 - **Optimal Time Detection**: Identify best times for different activities
@@ -277,15 +303,25 @@ await patternRepo.recordFocusSession(
 const optimalTimes = await patternRepo.getOptimalWorkTimes(userId, 5);
 
 // Analyze productivity trends
-const analysis = await patternRepo.analyzeProductivityTrends(userId, startDate, endDate);
+const analysis = await patternRepo.analyzeProductivityTrends(
+  userId,
+  startDate,
+  endDate
+);
 
 // Get productivity trend data
-const trendData = await patternRepo.getProductivityTrend(userId, startDate, endDate, 'day');
+const trendData = await patternRepo.getProductivityTrend(
+  userId,
+  startDate,
+  endDate,
+  'day'
+);
 ```
 
 #### Pattern Analysis
 
 **Daily Patterns**
+
 ```typescript
 // Get daily productivity patterns
 const dailyPatterns = await patternRepo.getDailyPatterns(userId);
@@ -295,28 +331,32 @@ const stats = await patternRepo.getPatternStatistics(userId);
 console.log({
   totalPatterns: stats.totalPatterns,
   averageConfidence: stats.averageConfidence,
-  mostReliableTimeSlot: stats.mostReliableTimeSlot
+  mostReliableTimeSlot: stats.mostReliableTimeSlot,
 });
 ```
 
 ## Repository Pattern Benefits
 
 ### 1. Separation of Concerns
+
 - Business logic separated from data access
 - Clean interfaces for different data entities
 - Testable code with mockable repositories
 
 ### 2. Data Consistency
+
 - Transaction management ensures ACID properties
 - Validation at the repository level
 - Referential integrity maintenance
 
 ### 3. Performance Optimization
+
 - Efficient queries with proper indexing
 - Batch operations where appropriate
 - Connection pooling and resource management
 
 ### 4. Error Handling
+
 - Consistent error handling across all repositories
 - Meaningful error messages for debugging
 - Graceful degradation for non-critical failures
@@ -326,6 +366,7 @@ console.log({
 ### Unit Testing Strategy
 
 Each repository has comprehensive unit tests covering:
+
 - **CRUD Operations**: All create, read, update, delete operations
 - **Edge Cases**: Invalid data, missing records, constraint violations
 - **Business Logic**: Dependency validation, circular dependency detection
@@ -339,12 +380,12 @@ describe('TaskRepository', () => {
   test('should create task with dependencies', async () => {
     const depTask = await repository.create({
       title: 'Dependency Task',
-      description: 'A dependency task'
+      description: 'A dependency task',
     });
 
     const mainTask = await repository.create({
       title: 'Main Task',
-      dependencies: [depTask.id]
+      dependencies: [depTask.id],
     });
 
     expect(mainTask.dependencies).toContain(depTask.id);
@@ -352,9 +393,11 @@ describe('TaskRepository', () => {
 
   test('should reject circular dependencies', async () => {
     // Test circular dependency detection
-    await expect(repository.update(task1.id, {
-      dependencies: [task2.id]
-    })).rejects.toThrow('Circular dependency detected');
+    await expect(
+      repository.update(task1.id, {
+        dependencies: [task2.id],
+      })
+    ).rejects.toThrow('Circular dependency detected');
   });
 });
 ```
@@ -375,17 +418,20 @@ npm run test:coverage
 ## Performance Considerations
 
 ### Query Optimization
+
 - **Indexes**: All frequently queried columns have appropriate indexes
 - **Query Planning**: Complex queries are optimized for performance
 - **Batch Operations**: Multiple operations are batched when possible
 - **Connection Management**: Efficient database connection usage
 
 ### Memory Management
+
 - **Result Streaming**: Large result sets are streamed when possible
 - **Connection Pooling**: Database connections are properly pooled
 - **Resource Cleanup**: All resources are properly cleaned up
 
 ### Caching Strategy
+
 - **Query Caching**: Frequently accessed data is cached
 - **Invalidation**: Cache is properly invalidated on updates
 - **Memory Limits**: Cache size is limited to prevent memory issues
@@ -393,6 +439,7 @@ npm run test:coverage
 ## Error Handling Patterns
 
 ### Repository-Level Errors
+
 ```typescript
 try {
   const task = await taskRepo.create(taskData);
@@ -408,9 +455,10 @@ try {
 ```
 
 ### Transaction Errors
+
 ```typescript
 try {
-  await executeTransaction(async (db) => {
+  await executeTransaction(async db => {
     // Multiple operations
     await taskRepo.create(task1);
     await taskRepo.create(task2);
@@ -424,24 +472,28 @@ try {
 ## Best Practices
 
 ### 1. Repository Usage
+
 - Always use repository methods instead of direct database access
 - Handle errors appropriately at the service layer
 - Use transactions for multi-step operations
 - Validate data before repository calls
 
 ### 2. Performance
+
 - Use appropriate filters to limit result sets
 - Implement pagination for large datasets
 - Monitor query performance and optimize as needed
 - Use batch operations for multiple related changes
 
 ### 3. Testing
+
 - Write comprehensive unit tests for all repository methods
 - Test error scenarios and edge cases
 - Use in-memory database for testing
 - Mock external dependencies
 
 ### 4. Maintenance
+
 - Keep repository interfaces stable
 - Document breaking changes
 - Monitor repository performance

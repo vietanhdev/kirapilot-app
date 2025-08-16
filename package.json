@@ -10,7 +10,13 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "prepare": "husky",
+    "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 200",
+    "lint:fix": "eslint src --ext ts,tsx --fix",
+    "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -35,6 +41,7 @@
     "zod": "^4.0.15"
   },
   "devDependencies": {
+    "@eslint/js": "^9.33.0",
     "@tailwindcss/typography": "^0.5.0-alpha.3",
     "@tauri-apps/cli": "^2",
     "@testing-library/jest-dom": "^6.7.0",
@@ -43,13 +50,34 @@
     "@types/jest": "^30.0.0",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
+    "@typescript-eslint/eslint-plugin": "^8.39.1",
+    "@typescript-eslint/parser": "^8.39.1",
     "@vitejs/plugin-react": "^4.6.0",
     "drizzle-kit": "^0.31.4",
+    "eslint": "^9.33.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.4",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-refresh": "^0.4.20",
+    "globals": "^16.3.0",
+    "husky": "^9.1.7",
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^29.7.0",
+    "lint-staged": "^16.1.5",
+    "prettier": "^3.6.2",
     "tailwindcss": "^4.1.12",
     "ts-jest": "^29.4.1",
     "typescript": "~5.8.3",
     "vite": "^7.0.4"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix --max-warnings 200",
+      "prettier --write"
+    ],
+    "*.{js,jsx,json,css,md}": [
+      "prettier --write"
+    ]
   }
 }
