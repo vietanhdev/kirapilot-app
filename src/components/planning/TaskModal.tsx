@@ -140,6 +140,8 @@ export function TaskModal({
           updatedAt: new Date(),
         };
         
+
+        
         onCreateTask(newTask);
       }
 
@@ -285,7 +287,6 @@ export function TaskModal({
                 }))}
                 min={15}
                 step={15}
-                size="sm"
                 startContent={<Timer className="w-3 h-3" />}
               />
             </div>

@@ -41,6 +41,7 @@ export class TaskRepository {
 
       // Insert task
       const dbRow = taskToDbRow(task);
+      
       await db.execute(`
         INSERT INTO tasks (
           id, title, description, priority, status, dependencies,
@@ -78,7 +79,19 @@ export class TaskRepository {
         }
       }
 
-      return task;
+      // Retrieve the task from database to ensure proper data conversion
+      const createdTaskResult = await db.select<any[]>(
+        'SELECT * FROM tasks WHERE id = ?',
+        [task.id]
+      );
+      
+      if (createdTaskResult.length === 0) {
+        throw new Error('Failed to retrieve created task from database');
+      }
+      
+      const createdTask = dbRowToTask(createdTaskResult[0]);
+      
+      return createdTask;
     });
   }
 

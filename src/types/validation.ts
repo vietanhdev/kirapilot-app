@@ -18,6 +18,7 @@ export const CreateTaskRequestSchema = z.object({
   priority: PrioritySchema.optional().default(Priority.MEDIUM),
   timeEstimate: z.number().min(1, 'Time estimate must be positive').max(1440, 'Time estimate too large').optional(),
   dueDate: z.date().optional(),
+  scheduledDate: z.date().optional(),
   tags: z.array(z.string().max(50, 'Tag too long')).max(10, 'Too many tags').optional().default([]),
   dependencies: z.array(z.string().uuid('Invalid dependency ID')).optional().default([]),
   projectId: z.string().uuid('Invalid project ID').optional(),
@@ -31,6 +32,7 @@ export const UpdateTaskRequestSchema = z.object({
   status: TaskStatusSchema.optional(),
   timeEstimate: z.number().min(1, 'Time estimate must be positive').max(1440, 'Time estimate too large').optional(),
   dueDate: z.date().optional(),
+  scheduledDate: z.date().optional(),
   tags: z.array(z.string().max(50, 'Tag too long')).max(10, 'Too many tags').optional(),
   dependencies: z.array(z.string().uuid('Invalid dependency ID')).optional(),
 });

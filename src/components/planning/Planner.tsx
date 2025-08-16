@@ -119,6 +119,7 @@ export function Planner({ viewMode = 'week' }: PlanningScreenProps) {
           description: task.description,
           priority: task.priority,
           dueDate: task.dueDate,
+          scheduledDate: task.scheduledDate,
           timeEstimate: task.timeEstimate,
           tags: task.tags || [],
           dependencies: task.dependencies || [],

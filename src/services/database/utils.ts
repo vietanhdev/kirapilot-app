@@ -30,7 +30,17 @@ export async function resetDatabase(): Promise<void> {
     }
   }
   
-  console.log('Database reset complete. Restart the application to re-initialize.');
+  // Reset the database connection to force reinitialization
+  try {
+    const { resetDatabaseConnection, initializeDatabase } = await import('./index');
+    await resetDatabaseConnection();
+    await initializeDatabase();
+    console.log('Database reinitialized with fresh schema');
+  } catch (error) {
+    console.warn('Failed to reinitialize database:', error);
+  }
+  
+  console.log('Database reset complete.');
 }
 
 /**

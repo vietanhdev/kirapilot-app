@@ -55,14 +55,30 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onViewChange }) => 
       '- All tasks and projects\n' +
       '- Timer sessions and history\n' +
       '- User preferences\n' +
-      '- All other application data'
+      '- All other application data\n\n' +
+      'The application will restart after clearing.'
     );
     
     if (confirmed) {
       try {
-        // Import the reset function dynamically
-        const { resetDatabase } = await import('../../utils/resetDatabase');
-        resetDatabase();
+        // First try to clear the actual SQLite database
+        try {
+          const { resetDatabase } = await import('../../services/database/utils');
+          await resetDatabase();
+          console.log('SQLite database cleared successfully');
+        } catch (sqliteError) {
+          console.warn('SQLite database clear failed, trying mock database:', sqliteError);
+          
+          // Fallback to clearing localStorage (mock database)
+          const { resetDatabase: resetMockDatabase } = await import('../../utils/resetDatabase');
+          resetMockDatabase();
+          console.log('Mock database cleared successfully');
+        }
+        
+        // Force application restart to reinitialize everything
+        if (typeof window !== 'undefined') {
+          window.location.reload();
+        }
       } catch (error) {
         console.error('Failed to clear database:', error);
         alert('Failed to clear database. Check console for details.');

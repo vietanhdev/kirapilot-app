@@ -72,6 +72,20 @@ export async function closeDatabase(): Promise<void> {
 }
 
 /**
+ * Reset database connection (for development/testing)
+ */
+export async function resetDatabaseConnection(): Promise<void> {
+  if (db) {
+    try {
+      await db.close();
+    } catch (error) {
+      console.warn('Error closing database:', error);
+    }
+    db = null;
+  }
+}
+
+/**
  * Run database migrations
  */
 async function runMigrations(database: Database): Promise<void> {
@@ -152,6 +166,7 @@ function getMigrations(): Migration[] {
           time_estimate INTEGER DEFAULT 0,
           actual_time INTEGER DEFAULT 0,
           due_date DATETIME,
+          scheduled_date DATETIME,
           tags TEXT DEFAULT '[]',
           project_id TEXT,
           parent_task_id TEXT,
@@ -259,6 +274,7 @@ function getMigrations(): Migration[] {
         'CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status)',
         'CREATE INDEX IF NOT EXISTS idx_tasks_priority ON tasks(priority)',
         'CREATE INDEX IF NOT EXISTS idx_tasks_due_date ON tasks(due_date)',
+        'CREATE INDEX IF NOT EXISTS idx_tasks_scheduled_date ON tasks(scheduled_date)',
         'CREATE INDEX IF NOT EXISTS idx_tasks_created_at ON tasks(created_at)',
         'CREATE INDEX IF NOT EXISTS idx_tasks_parent_task_id ON tasks(parent_task_id)',
         'CREATE INDEX IF NOT EXISTS idx_task_dependencies_task_id ON task_dependencies(task_id)',
@@ -285,6 +301,7 @@ function getMigrations(): Migration[] {
         'DROP INDEX IF EXISTS idx_task_dependencies_task_id',
         'DROP INDEX IF EXISTS idx_tasks_parent_task_id',
         'DROP INDEX IF EXISTS idx_tasks_created_at',
+        'DROP INDEX IF EXISTS idx_tasks_scheduled_date',
         'DROP INDEX IF EXISTS idx_tasks_due_date',
         'DROP INDEX IF EXISTS idx_tasks_priority',
         'DROP INDEX IF EXISTS idx_tasks_status'
