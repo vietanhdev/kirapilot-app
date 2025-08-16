@@ -55,6 +55,9 @@ KiraPilot is a desktop productivity application that combines task management, t
 4. WHEN Kira executes actions THEN the system SHALL allow the LLM to dynamically decide which tools to use, in what order, and with what parameters based on the conversation context
 5. WHEN the user asks questions THEN Kira SHALL provide transparent reasoning explanations showing how it chose specific tools and actions to address the request
 6. WHEN appropriate THEN Kira SHALL send helpful notifications and reminders without being intrusive, using LLM-driven decision making for timing and content
+7. WHEN Kira provides responses THEN the system SHALL render markdown formatting including headers, lists, code blocks, and links for enhanced readability
+8. WHEN code snippets are included in responses THEN the system SHALL provide syntax highlighting and copy-to-clipboard functionality
+9. WHEN conversations become lengthy THEN the system SHALL provide collapsible sections and smooth scrolling with user control over auto-scroll behavior
 
 ### Requirement 5
 
