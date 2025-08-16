@@ -18,6 +18,7 @@
     "core:window:allow-maximize",
     "core:window:allow-unmaximize",
     "core:window:allow-close",
-    "core:window:allow-is-maximized"
+    "notification:allow-is-permission-granted",
+    "notification:default"
   ]
 }

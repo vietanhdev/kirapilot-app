@@ -11,7 +11,7 @@ function AppContent() {
   const [currentView, setCurrentView] = useState('week');
 
   return (
-    <div className="dark min-h-screen bg-gradient-to-br from-gray-800 to-gray-750">
+    <div className="dark text-foreground bg-background min-h-screen bg-linear-to-br from-gray-800 to-gray-750">
       {/* Custom Title Bar */}
       <TitleBar />
 
