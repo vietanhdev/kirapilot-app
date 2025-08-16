@@ -33,6 +33,7 @@ export function TaskCreationModal({
     priority: Priority.MEDIUM,
     timeEstimate: 60,
     dueDate: undefined,
+    scheduledDate: undefined,
     tags: [],
   });
 
@@ -41,13 +42,16 @@ export function TaskCreationModal({
   // Update form data when defaultDate changes or modal opens
   useEffect(() => {
     if (isOpen) {
-      const shouldSetDate = defaultColumn && defaultColumn.toLowerCase() !== 'backlog' && defaultColumn.toLowerCase() !== 'upcoming';
+      const shouldSetDueDate = defaultColumn && defaultColumn.toLowerCase() !== 'backlog' && defaultColumn.toLowerCase() !== 'upcoming';
+      const shouldSetScheduledDate = defaultColumn && defaultColumn.toLowerCase() !== 'backlog';
+      
       setFormData({
         title: '',
         description: '',
         priority: Priority.MEDIUM,
         timeEstimate: 60,
-        dueDate: shouldSetDate ? defaultDate : undefined,
+        dueDate: shouldSetDueDate ? defaultDate : undefined,
+        scheduledDate: shouldSetScheduledDate ? defaultDate : undefined,
         tags: [],
       });
       setNewTag('');
@@ -71,6 +75,7 @@ export function TaskCreationModal({
       timeEstimate: formData.timeEstimate || 60,
       actualTime: 0,
       dueDate: formData.dueDate,
+      scheduledDate: formData.scheduledDate,
       tags: formData.tags || [],
       subtasks: [],
       createdAt: new Date(),
@@ -94,6 +99,7 @@ export function TaskCreationModal({
       priority: Priority.MEDIUM,
       timeEstimate: 60,
       dueDate: undefined,
+      scheduledDate: undefined,
       tags: [],
     });
     setNewTag('');
@@ -132,14 +138,14 @@ export function TaskCreationModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-4 max-h-[90vh] overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-between p-3 border-b border-gray-200 dark:border-gray-700">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-            Create New Task
+            Create Task
             {defaultColumn && (
               <span className="ml-2 text-sm text-gray-500 dark:text-gray-400">
-                in {defaultColumn}
+                → {defaultColumn}
               </span>
             )}
           </h3>
@@ -152,18 +158,18 @@ export function TaskCreationModal({
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-4 space-y-4">
+        <form onSubmit={handleSubmit} className="p-3 space-y-3">
           {/* Title */}
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-              Task Title *
+              Title *
             </label>
             <input
               type="text"
               value={formData.title}
               onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
               placeholder="Enter task title..."
-              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 placeholder-slate-500 dark:placeholder-slate-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200"
+              className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 placeholder-slate-500 dark:placeholder-slate-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200"
               required
               autoFocus
             />
@@ -177,77 +183,107 @@ export function TaskCreationModal({
             <textarea
               value={formData.description}
               onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-              placeholder="Enter task description..."
-              rows={3}
-              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 placeholder-slate-500 dark:placeholder-slate-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200"
+              placeholder="Enter description..."
+              rows={2}
+              className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 placeholder-slate-500 dark:placeholder-slate-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200"
             />
           </div>
 
-          {/* Priority */}
-          <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-              Priority
-            </label>
-            <div className="flex gap-2">
-              {Object.entries(Priority).filter(([key]) => isNaN(Number(key))).map(([key, value]) => (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => setFormData(prev => ({ ...prev, priority: value as Priority }))}
-                  className={`
-                    flex-1 px-3 py-2 rounded-lg border text-sm font-medium transition-all duration-200
-                    ${formData.priority === value 
-                      ? getPriorityColor(value as Priority)
-                      : 'text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700'
-                    }
-                  `}
-                >
-                  <Flag className="w-4 h-4 mx-auto mb-1" />
-                  {key}
-                </button>
-              ))}
+          {/* Priority & Time Estimate Row */}
+          <div className="grid grid-cols-2 gap-3">
+            {/* Priority */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                Priority
+              </label>
+              <div className="grid grid-cols-2 gap-1">
+                {Object.entries(Priority).filter(([key]) => isNaN(Number(key))).map(([key, value]) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, priority: value as Priority }))}
+                    className={`
+                      px-2 py-1 rounded text-xs font-medium transition-all duration-200
+                      ${formData.priority === value 
+                        ? getPriorityColor(value as Priority)
+                        : 'text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700'
+                      }
+                    `}
+                  >
+                    {key}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Time Estimate */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                Time (min)
+              </label>
+              <div className="relative">
+                <Clock className="absolute left-2 top-1/2 transform -translate-y-1/2 w-3 h-3 text-slate-400" />
+                <input
+                  type="number"
+                  value={formData.timeEstimate}
+                  onChange={(e) => setFormData(prev => ({ ...prev, timeEstimate: parseInt(e.target.value) || 60 }))}
+                  min="15"
+                  step="15"
+                  className="w-full pl-8 pr-2 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200"
+                />
+              </div>
             </div>
           </div>
 
-          {/* Due Date */}
-          <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-              Due Date
-            </label>
-            <div className="relative">
-              <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <input
-                type="date"
-                value={formData.dueDate ? formData.dueDate.toISOString().split('T')[0] : ''}
-                onChange={(e) => setFormData(prev => ({ 
-                  ...prev, 
-                  dueDate: e.target.value ? new Date(e.target.value) : undefined 
-                }))}
-                className="w-full pl-10 pr-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200"
-              />
+          {/* Dates Row */}
+          <div className="grid grid-cols-2 gap-3">
+            {/* Due Date */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                Due Date
+              </label>
+              <div className="relative">
+                <Calendar className="absolute left-2 top-1/2 transform -translate-y-1/2 w-3 h-3 text-slate-400" />
+                <input
+                  type="date"
+                  value={formData.dueDate ? formData.dueDate.toISOString().split('T')[0] : ''}
+                  onChange={(e) => setFormData(prev => ({ 
+                    ...prev, 
+                    dueDate: e.target.value ? new Date(e.target.value) : undefined 
+                  }))}
+                  className="w-full pl-8 pr-2 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200"
+                />
+              </div>
             </div>
-            {defaultColumn && defaultColumn.toLowerCase() === 'backlog' && (
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                Leave empty to keep in Backlog
-              </p>
-            )}
+
+            {/* Scheduled Date */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                Scheduled
+              </label>
+              <div className="relative">
+                <Calendar className="absolute left-2 top-1/2 transform -translate-y-1/2 w-3 h-3 text-slate-400" />
+                <input
+                  type="date"
+                  value={formData.scheduledDate ? formData.scheduledDate.toISOString().split('T')[0] : ''}
+                  onChange={(e) => setFormData(prev => ({ 
+                    ...prev, 
+                    scheduledDate: e.target.value ? new Date(e.target.value) : undefined 
+                  }))}
+                  className="w-full pl-8 pr-2 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200"
+                />
+              </div>
+            </div>
           </div>
 
-          {/* Time Estimate */}
-          <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-              Time Estimate (minutes)
-            </label>
-            <div className="relative">
-              <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <input
-                type="number"
-                value={formData.timeEstimate}
-                onChange={(e) => setFormData(prev => ({ ...prev, timeEstimate: parseInt(e.target.value) || 60 }))}
-                min="15"
-                step="15"
-                className="w-full pl-10 pr-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200"
-              />
+          {/* Date Help Text */}
+          <div className="text-xs text-slate-500 dark:text-slate-400 grid grid-cols-2 gap-3">
+            <div>When task is due</div>
+            <div>
+              {defaultColumn && defaultColumn.toLowerCase() === 'backlog' 
+                ? 'Leave empty for Backlog' 
+                : 'When to work on it'
+              }
             </div>
           </div>
 
@@ -262,15 +298,15 @@ export function TaskCreationModal({
                 value={newTag}
                 onChange={(e) => setNewTag(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
-                placeholder="Add a tag..."
-                className="flex-1 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 placeholder-slate-500 dark:placeholder-slate-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200"
+                placeholder="Add tag..."
+                className="flex-1 px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 placeholder-slate-500 dark:placeholder-slate-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200"
               />
               <button
                 type="button"
                 onClick={addTag}
-                className="px-3 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors duration-200"
+                className="px-2 py-1.5 bg-primary-500 text-white rounded hover:bg-primary-600 transition-colors duration-200"
               >
-                <Plus className="w-4 h-4" />
+                <Plus className="w-3 h-3" />
               </button>
             </div>
             {formData.tags && formData.tags.length > 0 && (
@@ -278,7 +314,7 @@ export function TaskCreationModal({
                 {formData.tags.map((tag, index) => (
                   <span
                     key={index}
-                    className="inline-flex items-center px-2 py-1 bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 text-xs rounded-full"
+                    className="inline-flex items-center px-2 py-0.5 bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 text-xs rounded"
                   >
                     <Hash className="w-2 h-2 mr-1" />
                     {tag}
@@ -295,22 +331,22 @@ export function TaskCreationModal({
             )}
           </div>
 
-          {/* Submit Button */}
-          <div className="flex justify-end gap-2 pt-4">
+          {/* Submit Buttons */}
+          <div className="flex justify-end gap-2 pt-2">
             <button
               type="button"
               onClick={handleClose}
-              className="px-4 py-2 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-all duration-200"
+              className="px-3 py-1.5 text-sm text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 rounded transition-all duration-200"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={!formData.title.trim()}
-              className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center gap-2"
+              className="px-3 py-1.5 text-sm bg-primary-500 text-white rounded hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center gap-1"
             >
-              <Plus className="w-4 h-4" />
-              Create Task
+              <Plus className="w-3 h-3" />
+              Create
             </button>
           </div>
         </form>

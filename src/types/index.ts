@@ -40,6 +40,7 @@ export interface Task {
   timeEstimate: number; // in minutes
   actualTime: number; // in minutes
   dueDate?: Date;
+  scheduledDate?: Date; // When the task is scheduled to be worked on (for day view planning)
   tags: string[];
   projectId?: string;
   parentTaskId?: string;
@@ -55,6 +56,7 @@ export interface CreateTaskRequest {
   priority?: Priority;
   timeEstimate?: number;
   dueDate?: Date;
+  scheduledDate?: Date;
   tags?: string[];
   dependencies?: string[];
   projectId?: string;
@@ -68,6 +70,7 @@ export interface UpdateTaskRequest {
   status?: TaskStatus;
   timeEstimate?: number;
   dueDate?: Date;
+  scheduledDate?: Date;
   tags?: string[];
   dependencies?: string[];
 }

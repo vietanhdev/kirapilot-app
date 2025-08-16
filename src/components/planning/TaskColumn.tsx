@@ -4,11 +4,11 @@ import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { Plus, LucideIcon } from 'lucide-react';
 
-interface PlanningColumnProps {
+interface TaskColumnProps {
   title: string;
   subtitle?: string;
   count: number;
-  color: 'slate' | 'blue' | 'green' | 'purple' | 'orange' | 'red';
+  color: 'gray' | 'slate' | 'blue' | 'green' | 'purple' | 'orange' | 'red';
   icon?: LucideIcon;
   isToday?: boolean;
   onAddTask: () => void;
@@ -16,7 +16,7 @@ interface PlanningColumnProps {
   className?: string;
 }
 
-export function PlanningColumn({
+export function TaskColumn({
   title,
   subtitle,
   count,
@@ -26,7 +26,7 @@ export function PlanningColumn({
   onAddTask,
   children,
   className = ''
-}: PlanningColumnProps) {
+}: TaskColumnProps) {
   const { isOver, setNodeRef } = useDroppable({
     id: title.toLowerCase(),
     data: {
@@ -50,6 +50,12 @@ export function PlanningColumn({
 
   const getColorClasses = () => {
     const colors = {
+      gray: {
+        header: 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200',
+        border: 'border-gray-200 dark:border-gray-600',
+        count: 'bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300',
+        accent: 'border-gray-300 dark:border-gray-500'
+      },
       slate: {
         header: 'bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200',
         border: 'border-slate-200 dark:border-slate-600',

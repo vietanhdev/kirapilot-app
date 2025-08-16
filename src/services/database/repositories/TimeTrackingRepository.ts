@@ -1,5 +1,5 @@
 // Time tracking repository for database operations
-import { getDatabase, executeTransaction } from '../index';
+import { getDatabase, executeTransaction, executeWithoutTransaction } from '../index';
 import { 
   TimerSession, 
   CompletedSession, 
@@ -13,14 +13,35 @@ import { validateTimerSession } from '../../../types/validation';
 import { generateId } from '../../../utils';
 
 export class TimeTrackingRepository {
+  
+  private async executeWithRetry(operation: () => Promise<any>, maxRetries = 3, delay = 100): Promise<any> {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        return await operation();
+      } catch (error: any) {
+        if (error?.message?.includes('database is locked') && attempt < maxRetries) {
+          // Wait before retrying
+          await new Promise(resolve => setTimeout(resolve, delay * attempt));
+          console.warn(`Database locked, retrying attempt ${attempt + 1}/${maxRetries}`);
+          continue;
+        }
+        throw error;
+      }
+    }
+  }
+
   /**
    * Start a new timer session
    */
   async startSession(taskId: string, notes?: string): Promise<TimerSession> {
     return await executeTransaction(async (db) => {
-      // Check if there's already an active session
-      const activeSession = await this.getActiveSession();
-      if (activeSession) {
+      // Check if there's already an active session using the transaction db
+      const activeSessionResult = await db.select<any[]>(
+        'SELECT * FROM time_sessions WHERE is_active = ? LIMIT 1',
+        [true]
+      );
+      
+      if (activeSessionResult.length > 0) {
         throw new Error('Another timer session is already active');
       }
 
@@ -48,6 +69,10 @@ export class TimeTrackingRepository {
       // Validate session
       const validation = validateTimerSession(session);
       if (!validation.success) {
+        console.error('Timer session validation failed:', {
+          session,
+          errors: validation.error.issues
+        });
         throw new Error(`Invalid session data: ${validation.error.issues.map(i => i.message).join(', ')}`);
       }
 
@@ -67,84 +92,188 @@ export class TimeTrackingRepository {
   }
 
   /**
-   * Pause active session
+   * Pause a timer session
    */
   async pauseSession(sessionId: string): Promise<TimerSession> {
-    return await executeTransaction(async (db) => {
-      const session = await this.findById(sessionId);
-      if (!session) {
-        throw new Error(`Session with id ${sessionId} not found`);
-      }
-
-      if (!session.isActive) {
-        throw new Error('Session is not active');
-      }
-
-      // Calculate additional paused time since last resume
-      const now = new Date();
-      const additionalPausedTime = now.getTime() - session.startTime.getTime();
-      
-      const updatedSession: TimerSession = {
-        ...session,
-        pausedTime: session.pausedTime + additionalPausedTime,
-        isActive: false
-      };
-
-      const dbRow = timerSessionToDbRow(updatedSession);
-      await db.execute(
-        'UPDATE time_sessions SET paused_time = ?, is_active = ? WHERE id = ?',
-        [dbRow.paused_time, dbRow.is_active, sessionId]
-      );
-
-      return updatedSession;
+    const db = await getDatabase();
+    
+    // Get session
+    const sessionResult = await db.select<any[]>(
+      'SELECT * FROM time_sessions WHERE id = ? LIMIT 1',
+      [sessionId]
+    );
+    
+    if (sessionResult.length === 0) {
+      throw new Error(`Session with id ${sessionId} not found`);
+    }
+    
+    const session = dbRowToTimerSession(sessionResult[0]);
+    
+    console.log('Session before pause:', {
+      id: session.id,
+      taskId: session.taskId,
+      isActive: session.isActive,
+      startTime: session.startTime.toISOString(),
+      pausedTime: session.pausedTime
     });
+
+    if (!session.isActive) {
+      console.warn(`Session ${sessionId} is already paused, returning current state`);
+      return session; // Already paused, return as-is
+    }
+
+    // Calculate additional paused time since last resume
+    const now = new Date();
+    const additionalPausedTime = now.getTime() - session.startTime.getTime();
+    
+    const updatedSession: TimerSession = {
+      ...session,
+      pausedTime: session.pausedTime + additionalPausedTime,
+      isActive: false
+    };
+
+    const dbRow = timerSessionToDbRow(updatedSession);
+    console.log('Updating session with values:', {
+      sessionId,
+      pausedTime: dbRow.paused_time,
+      isActive: dbRow.is_active,
+      typeof_isActive: typeof dbRow.is_active
+    });
+    
+    const updateResult = await db.execute(
+      'UPDATE time_sessions SET paused_time = ?, is_active = ? WHERE id = ?',
+      [dbRow.paused_time, dbRow.is_active, sessionId]
+    );
+    
+    console.log('Update result:', {
+      rowsAffected: updateResult.rowsAffected,
+      lastInsertRowid: updateResult.lastInsertRowid
+    });
+    
+    // If no rows were affected, the WHERE clause didn't match
+    if (updateResult.rowsAffected === 0) {
+      console.error('UPDATE affected 0 rows - WHERE clause did not match any records');
+      // Check if the session still exists
+      const recheckResult = await db.select<any[]>(
+        'SELECT id, is_active FROM time_sessions WHERE id = ?',
+        [sessionId]
+      );
+      console.error('Session recheck:', recheckResult);
+      throw new Error('Failed to update session - session ID not found or WHERE clause failed');
+    }
+    
+    // Verify the update
+    const verifyResult = await db.select<any[]>(
+      'SELECT is_active FROM time_sessions WHERE id = ?',
+      [sessionId]
+    );
+    
+    console.log('Verification result:', {
+      found: verifyResult.length > 0,
+      is_active: verifyResult[0]?.is_active,
+      typeof_is_active: typeof verifyResult[0]?.is_active
+    });
+    
+    // Check if is_active is still truthy (could be 1 or true)
+    if (verifyResult.length > 0 && verifyResult[0].is_active) {
+      throw new Error('Failed to update session state - database inconsistency');
+    }
+
+    console.log(`Session ${sessionId} successfully paused`);
+    return updatedSession;
   }
 
   /**
-   * Resume paused session
+   * Resume a timer session
    */
   async resumeSession(sessionId: string): Promise<TimerSession> {
-    return await executeTransaction(async (db) => {
-      const session = await this.findById(sessionId);
-      if (!session) {
-        throw new Error(`Session with id ${sessionId} not found`);
-      }
+    const db = await getDatabase();
+    
+    // Get session
+    const sessionResult = await db.select<any[]>(
+      'SELECT * FROM time_sessions WHERE id = ? LIMIT 1',
+      [sessionId]
+    );
+    
+    if (sessionResult.length === 0) {
+      throw new Error(`Session with id ${sessionId} not found`);
+    }
+    
+    const session = dbRowToTimerSession(sessionResult[0]);
 
-      if (session.isActive) {
-        throw new Error('Session is already active');
-      }
+    if (session.isActive) {
+      console.warn(`Session ${sessionId} is already active, returning current state`);
+      return session; // Already active, return as-is
+    }
 
-      // Check if there's another active session
-      const activeSession = await this.getActiveSession();
-      if (activeSession && activeSession.id !== sessionId) {
-        throw new Error('Another timer session is already active');
-      }
+    // Check if there's another active session (should not happen with proper state management)
+    const activeSessionResult = await db.select<any[]>(
+      'SELECT * FROM time_sessions WHERE is_active = ? AND id != ? LIMIT 1',
+      [1, sessionId] // Use 1 instead of true for SQLite
+    );
+    
+    if (activeSessionResult.length > 0) {
+      throw new Error('Another timer session is already active');
+    }
 
-      const updatedSession: TimerSession = {
-        ...session,
-        startTime: new Date(), // Reset start time for resume
-        isActive: true
-      };
+    const updatedSession: TimerSession = {
+      ...session,
+      startTime: new Date(), // Reset start time for resume
+      isActive: true
+    };
 
-      const dbRow = timerSessionToDbRow(updatedSession);
-      await db.execute(
-        'UPDATE time_sessions SET start_time = ?, is_active = ? WHERE id = ?',
-        [dbRow.start_time, dbRow.is_active, sessionId]
-      );
-
-      return updatedSession;
+    const dbRow = timerSessionToDbRow(updatedSession);
+    console.log('Resuming session with values:', {
+      sessionId,
+      startTime: dbRow.start_time,
+      isActive: dbRow.is_active,
+      typeof_isActive: typeof dbRow.is_active
     });
+    
+    await db.execute(
+      'UPDATE time_sessions SET start_time = ?, is_active = ? WHERE id = ?',
+      [dbRow.start_time, dbRow.is_active, sessionId]
+    );
+
+    // Verify the update
+    const verifyResult = await db.select<any[]>(
+      'SELECT is_active FROM time_sessions WHERE id = ?',
+      [sessionId]
+    );
+    
+    console.log('Resume verification result:', {
+      found: verifyResult.length > 0,
+      is_active: verifyResult[0]?.is_active,
+      typeof_is_active: typeof verifyResult[0]?.is_active
+    });
+    
+    // Check if is_active is falsy (could be 0 or false)
+    if (verifyResult.length === 0 || !verifyResult[0].is_active) {
+      throw new Error('Failed to update session state - database inconsistency');
+    }
+
+    console.log(`Session ${sessionId} successfully resumed`);
+    return updatedSession;
   }
 
   /**
    * Stop session and mark as completed
    */
   async stopSession(sessionId: string, notes?: string): Promise<CompletedSession> {
-    return await executeTransaction(async (db) => {
-      const session = await this.findById(sessionId);
-      if (!session) {
+    return await this.executeWithRetry(async () => {
+      const db = await getDatabase();
+      
+      // Get session
+      const sessionResult = await db.select<any[]>(
+        'SELECT * FROM time_sessions WHERE id = ?',
+        [sessionId]
+      );
+      
+      if (sessionResult.length === 0) {
         throw new Error(`Session with id ${sessionId} not found`);
       }
+      
+      const session = dbRowToTimerSession(sessionResult[0]);
 
       const endTime = new Date();
       const totalDuration = endTime.getTime() - session.createdAt.getTime();
@@ -159,7 +288,7 @@ export class TimeTrackingRepository {
         WHERE id = ?
       `, [endTime.toISOString(), false, notes || session.notes, sessionId]);
 
-      // Update task's actual time
+      // Update task's actual time (separate operation with retry)
       await db.execute(`
         UPDATE tasks SET 
           actual_time = actual_time + ?,
@@ -167,18 +296,18 @@ export class TimeTrackingRepository {
         WHERE id = ?
       `, [Math.round(actualWork / (1000 * 60)), new Date().toISOString(), session.taskId]);
 
-      const completedSession: CompletedSession = {
-        id: session.id,
-        taskId: session.taskId,
-        duration: totalDuration,
-        actualWork,
-        breaks: session.breaks,
-        notes: notes || session.notes,
-        productivity: this.calculateProductivityScore(totalDuration, actualWork, session.breaks.length),
-        createdAt: session.createdAt
-      };
+        const completedSession: CompletedSession = {
+          id: session.id,
+          taskId: session.taskId,
+          duration: totalDuration,
+          actualWork,
+          breaks: session.breaks,
+          notes: notes || session.notes,
+          productivity: this.calculateProductivityScore(totalDuration, actualWork, session.breaks.length),
+          createdAt: session.createdAt
+        };
 
-      return completedSession;
+        return completedSession;
     });
   }
 
@@ -187,10 +316,17 @@ export class TimeTrackingRepository {
    */
   async addBreak(sessionId: string, reason: string, duration: number): Promise<TimerSession> {
     return await executeTransaction(async (db) => {
-      const session = await this.findById(sessionId);
-      if (!session) {
+      // Get session using transaction db
+      const sessionResult = await db.select<any[]>(
+        'SELECT * FROM time_sessions WHERE id = ?',
+        [sessionId]
+      );
+      
+      if (sessionResult.length === 0) {
         throw new Error(`Session with id ${sessionId} not found`);
       }
+      
+      const session = dbRowToTimerSession(sessionResult[0]);
 
       const now = new Date();
       const breakItem: TimerBreak = {
@@ -218,14 +354,14 @@ export class TimeTrackingRepository {
   }
 
   /**
-   * Get active session
+   * Get the currently active session
    */
   async getActiveSession(): Promise<TimerSession | null> {
     const db = await getDatabase();
     
     const result = await db.select<any[]>(
       'SELECT * FROM time_sessions WHERE is_active = ? LIMIT 1',
-      [true]
+      [1] // Use 1 instead of true for SQLite
     );
 
     return result.length > 0 ? dbRowToTimerSession(result[0]) : null;
@@ -377,8 +513,13 @@ export class TimeTrackingRepository {
   async delete(id: string): Promise<void> {
     const db = await getDatabase();
     
-    const session = await this.findById(id);
-    if (!session) {
+    // Check if session exists first
+    const sessionResult = await db.select<any[]>(
+      'SELECT id FROM time_sessions WHERE id = ?',
+      [id]
+    );
+    
+    if (sessionResult.length === 0) {
       throw new Error(`Session with id ${id} not found`);
     }
 
@@ -463,5 +604,34 @@ export class TimeTrackingRepository {
       averageFocusTime: averageFocusTime / (1000 * 60), // in minutes
       productivityScore
     };
+  }
+
+  /**
+   * Check and fix any database state inconsistencies
+   */
+  async ensureConsistentState(): Promise<void> {
+    const db = await getDatabase();
+    
+    // Check for multiple active sessions (should never happen)
+    const activeSessions = await db.select<any[]>(
+      'SELECT id, task_id, created_at FROM time_sessions WHERE is_active = ?',
+      [1] // Use 1 instead of true for SQLite
+    );
+    
+    if (activeSessions.length > 1) {
+      console.warn(`Found ${activeSessions.length} active sessions, fixing...`);
+      // Keep the most recent one, deactivate others
+      const sortedSessions = activeSessions.sort((a, b) => 
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+      
+      for (let i = 1; i < sortedSessions.length; i++) {
+        await db.execute(
+          'UPDATE time_sessions SET is_active = ? WHERE id = ?',
+          [0, sortedSessions[i].id] // Use 0 instead of false for SQLite
+        );
+        console.log(`Deactivated duplicate session: ${sortedSessions[i].id}`);
+      }
+    }
   }
 }

@@ -10,7 +10,7 @@ interface PlanningScreenProps {
   viewMode?: 'week' | 'day';
 }
 
-export function PlanningScreen({ viewMode = 'week' }: PlanningScreenProps) {
+export function Planner({ viewMode = 'week' }: PlanningScreenProps) {
   const { isInitialized } = useDatabase();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [currentWeek, setCurrentWeek] = useState(new Date());
@@ -22,16 +22,22 @@ export function PlanningScreen({ viewMode = 'week' }: PlanningScreenProps) {
         if (isInitialized) {
           const taskRepo = getTaskRepository();
           const dbTasks = await taskRepo.findAll();
+          console.log('Loaded tasks from database:', dbTasks.length, dbTasks);
           setTasks(dbTasks);
-          console.log('Loaded tasks from database:', dbTasks.length);
         } else {
-          // Fallback to sample tasks if database not available
-          setTasks(getSampleTasks());
-          console.log('Using sample tasks (database not initialized)');
+          // Clear and reinitialize sample data for testing
+          localStorage.removeItem('kirapilot-mock-db');
+          const sampleTasks = getSampleTasks();
+          console.log('Using sample tasks (database not initialized):', sampleTasks.length, sampleTasks);
+          setTasks(sampleTasks);
         }
       } catch (error) {
         console.error('Failed to load tasks:', error);
-        setTasks(getSampleTasks());
+        // Clear and reinitialize sample data on error
+        localStorage.removeItem('kirapilot-mock-db');
+        const fallbackTasks = getSampleTasks();
+        console.log('Using fallback sample tasks:', fallbackTasks.length, fallbackTasks);
+        setTasks(fallbackTasks);
       }
     };
 
@@ -45,29 +51,29 @@ export function PlanningScreen({ viewMode = 'week' }: PlanningScreenProps) {
     const task = tasks.find(t => t.id === taskId);
     if (!task) return;
 
-    let newDueDate: Date | undefined;
+    let newScheduledDate: Date | undefined;
     
-    // Determine new due date based on target column
+    // Determine new scheduled date based on target column
     if (toColumn === 'backlog') {
-      newDueDate = undefined; // No due date for backlog
+      newScheduledDate = undefined; // No scheduled date for backlog
     } else if (toColumn === 'upcoming') {
       // Set to next week if no specific date provided
-      newDueDate = date || (() => {
+      newScheduledDate = date || (() => {
         const nextWeek = new Date();
         nextWeek.setDate(nextWeek.getDate() + 7);
         return nextWeek;
       })();
     } else if (date) {
       // Use the provided date for daily columns
-      newDueDate = new Date(date);
+      newScheduledDate = new Date(date);
     } else {
-      // Fallback: keep existing due date
-      newDueDate = task.dueDate;
+      // Fallback: keep existing scheduled date
+      newScheduledDate = task.scheduledDate;
     }
     
     const updatedTask = {
       ...task,
-      dueDate: newDueDate,
+      scheduledDate: newScheduledDate,
       updatedAt: new Date()
     };
 
@@ -76,7 +82,7 @@ export function PlanningScreen({ viewMode = 'week' }: PlanningScreenProps) {
       if (isInitialized) {
         const taskRepo = getTaskRepository();
         await taskRepo.update(taskId, {
-          dueDate: newDueDate
+          scheduledDate: newScheduledDate
         });
         console.log('Task updated in database:', taskId);
       }
@@ -88,8 +94,8 @@ export function PlanningScreen({ viewMode = 'week' }: PlanningScreenProps) {
 
       console.log('Updated task:', {
         title: task.title,
-        oldDueDate: task.dueDate,
-        newDueDate,
+        oldScheduledDate: task.scheduledDate,
+        newScheduledDate,
         toColumn
       });
     } catch (error) {
@@ -192,6 +198,24 @@ export function PlanningScreen({ viewMode = 'week' }: PlanningScreenProps) {
     }
   };
 
+  const handleTaskDelete = async (task: Task) => {
+    try {
+      // Delete from database
+      if (isInitialized) {
+        const taskRepo = getTaskRepository();
+        await taskRepo.delete(task.id);
+        console.log('Task deleted from database:', task.title);
+      }
+
+      // Remove from local state
+      setTasks(prev => prev.filter(t => t.id !== task.id));
+    } catch (error) {
+      console.error('Failed to delete task from database:', error);
+      // Fallback: still remove from local state
+      setTasks(prev => prev.filter(t => t.id !== task.id));
+    }
+  };
+
   return (
     <div className="flex-1 p-6">
       {/* Weekly Planning Interface */}
@@ -203,6 +227,7 @@ export function PlanningScreen({ viewMode = 'week' }: PlanningScreenProps) {
         onTaskCreate={handleTaskCreate}
         onTaskEdit={handleTaskEdit}
         onTaskStatusChange={handleTaskStatusChange}
+        onTaskDelete={handleTaskDelete}
         viewMode={viewMode}
       />
     </div>
