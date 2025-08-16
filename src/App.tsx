@@ -3,9 +3,11 @@ import { Settings } from 'lucide-react';
 import { HeroUIProvider } from '@heroui/react';
 import { DatabaseProvider } from './services/database/DatabaseProvider';
 import { TimerProvider } from './contexts/TimerContext';
+import { AIProvider } from './contexts/AIContext';
 import { Planner } from './components/planning/Planner';
 import { Reports } from './components/reports/Reports';
 import { Header } from './components/common/Header';
+import { AIFloatingButton } from './components/ai/AIFloatingButton';
 import TitleBar from './components/TitleBar';
 import './App.css';
 
@@ -42,6 +44,9 @@ function AppContent() {
           </div>
         )}
       </main>
+
+      {/* AI Floating Button */}
+      <AIFloatingButton />
     </div>
   );
 }
@@ -51,7 +56,9 @@ function App() {
     <HeroUIProvider>
       <DatabaseProvider>
         <TimerProvider>
-          <AppContent />
+          <AIProvider>
+            <AppContent />
+          </AIProvider>
         </TimerProvider>
       </DatabaseProvider>
     </HeroUIProvider>
