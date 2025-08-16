@@ -301,6 +301,7 @@ export interface AIAction {
   parameters: Record<string, unknown>;
   context: AppContext;
   confidence: number;
+  reasoning?: string; // LLM's reasoning for choosing this action
 }
 
 export interface AIResponse {

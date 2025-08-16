@@ -19,7 +19,14 @@ graph TB
     subgraph "Application Layer"
         D[Tauri Runtime]
         E[State Management]
-        F[AI Assistant Engine]
+        F[ReAct AI Engine]
+    end
+
+    subgraph "ReAct AI Architecture"
+        F1[LLM Reasoning Engine]
+        F2[Tool Selection Logic]
+        F3[Action Execution Engine]
+        F4[Result Formatter]
     end
 
     subgraph "Data Layer"
@@ -34,10 +41,47 @@ graph TB
     A --> D
     D --> G
     D --> H
-    F --> G
-    F --> H
-    F -.-> J
+    F --> F1
+    F1 --> F2
+    F2 --> F3
+    F3 --> F4
+    F1 -.-> J
+    F3 --> G
+    F3 --> H
 ```
+
+### ReAct AI Architecture
+
+The Kira AI assistant uses the ReAct (Reasoning and Acting) pattern, where the LLM dynamically reasons about user requests and chooses appropriate tools to execute actions. This approach eliminates rule-based decision making in favor of LLM-powered reasoning.
+
+#### ReAct Workflow
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant ReActEngine
+    participant LLM
+    participant ToolEngine
+    participant Database
+
+    User->>ReActEngine: Natural language request
+    ReActEngine->>LLM: Process request with context
+    LLM->>LLM: Reason about request
+    LLM->>ToolEngine: Select and execute tools
+    ToolEngine->>Database: Perform actions
+    Database->>ToolEngine: Return results
+    ToolEngine->>LLM: Tool execution results
+    LLM->>LLM: Reason about results
+    LLM->>ReActEngine: Final response with reasoning
+    ReActEngine->>User: Response with transparent reasoning
+```
+
+#### Key ReAct Principles
+
+1. **LLM-Driven Decision Making**: All tool selection and action sequencing is determined by the LLM's reasoning, not predefined rules
+2. **Transparent Reasoning**: Users can see how Kira analyzed their request and chose specific actions
+3. **Dynamic Tool Selection**: The LLM chooses from available tools based on context, not hardcoded logic
+4. **Iterative Reasoning**: The LLM can reason through multi-step processes and adjust based on intermediate results
 
 ### Platform-Specific Architecture
 
@@ -123,20 +167,44 @@ interface TimerSession {
 }
 ```
 
-#### 4. Kira AI Assistant
+#### 4. Kira AI Assistant (ReAct Architecture)
 
 ```typescript
 interface KiraAI {
   processMessage(message: string, context: AppContext): Promise<AIResponse>;
-  executeAction(action: AIAction): Promise<ActionResult>;
+  executeReActWorkflow(input: ReActInput): Promise<ReActResult>;
   generateSuggestions(context: AppContext): Promise<AISuggestion[]>;
   analyzePatterns(userId: string): Promise<PatternAnalysis>;
+}
+
+interface ReActInput {
+  userMessage: string;
+  conversationHistory: ConversationMessage[];
+  availableTools: Tool[];
+  context: AppContext;
+}
+
+interface ReActResult {
+  reasoning: string[];
+  toolExecutions: ToolExecution[];
+  finalResponse: string;
+  confidence: number;
+}
+
+interface ToolExecution {
+  toolName: string;
+  reasoning: string;
+  parameters: Record<string, any>;
+  result: ToolResult;
+  executionTime: number;
 }
 
 interface AIAction {
   type: 'CREATE_TASK' | 'START_TIMER' | 'UPDATE_TASK' | 'VIEW_TIME_DATA';
   parameters: Record<string, any>;
   context: AppContext;
+  reasoning: string; // LLM's reasoning for choosing this action
+  confidence: number; // LLM's confidence in the action choice
 }
 ```
 

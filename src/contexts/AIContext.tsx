@@ -42,6 +42,7 @@ interface AIConversation {
   timestamp: Date;
   actions: AIAction[];
   suggestions: AISuggestion[];
+  reasoning?: string;
 }
 
 interface AIProviderProps {
@@ -139,6 +140,7 @@ export function AIProvider({ children }: AIProviderProps) {
         timestamp: new Date(),
         actions: response.actions,
         suggestions: response.suggestions,
+        reasoning: response.reasoning,
       };
 
       setConversations(prev => [...prev, conversation]);

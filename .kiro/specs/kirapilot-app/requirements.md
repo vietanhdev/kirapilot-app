@@ -49,11 +49,12 @@ KiraPilot is a desktop productivity application that combines task management, t
 
 #### Acceptance Criteria
 
-1. WHEN the user communicates with Kira THEN the system SHALL provide a natural language interface for app control
-2. WHEN Kira processes requests THEN the AI SHALL have access to task management and time tracking features through tool-based architecture
-3. WHEN the user needs assistance THEN Kira SHALL provide context-aware suggestions based on current tasks and time data
-4. WHEN appropriate THEN Kira SHALL send helpful notifications and reminders without being intrusive
-5. WHEN the user asks questions THEN Kira SHALL provide explanations for its suggestions and recommendations
+1. WHEN the user communicates with Kira THEN the system SHALL provide a natural language interface using ReAct (Reasoning and Acting) pattern for intelligent decision-making
+2. WHEN Kira processes requests THEN the AI SHALL autonomously choose appropriate tools from the available tool set based on LLM reasoning rather than rule-based logic
+3. WHEN the user needs assistance THEN Kira SHALL use ReAct reasoning to analyze context and determine the best sequence of tool executions to fulfill the request
+4. WHEN Kira executes actions THEN the system SHALL allow the LLM to dynamically decide which tools to use, in what order, and with what parameters based on the conversation context
+5. WHEN the user asks questions THEN Kira SHALL provide transparent reasoning explanations showing how it chose specific tools and actions to address the request
+6. WHEN appropriate THEN Kira SHALL send helpful notifications and reminders without being intrusive, using LLM-driven decision making for timing and content
 
 ### Requirement 5
 

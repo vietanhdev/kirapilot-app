@@ -265,8 +265,59 @@ export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
                         size='sm'
                         className='bg-gradient-to-r from-blue-500 to-purple-600 flex-shrink-0'
                       />
-                      <div className='bg-gray-100 dark:bg-gray-800 px-3 py-2 rounded-lg text-sm flex-1'>
-                        {conversation.response}
+                      <div className='space-y-2 flex-1'>
+                        {/* Show reasoning if available */}
+                        {conversation.reasoning && (
+                          <div className='bg-blue-50 dark:bg-blue-900/20 px-3 py-2 rounded-lg text-xs border-l-2 border-blue-400'>
+                            <div className='flex items-center gap-1 mb-1'>
+                              <Bot className='w-3 h-3 text-blue-500' />
+                              <span className='font-medium text-blue-700 dark:text-blue-300'>
+                                Reasoning
+                              </span>
+                            </div>
+                            <p className='text-blue-600 dark:text-blue-200'>
+                              {conversation.reasoning}
+                            </p>
+                          </div>
+                        )}
+
+                        {/* Show tool executions if available */}
+                        {conversation.actions &&
+                          conversation.actions.length > 0 && (
+                            <div className='space-y-1'>
+                              {conversation.actions.map((action, index) => (
+                                <div
+                                  key={index}
+                                  className='bg-green-50 dark:bg-green-900/20 px-3 py-2 rounded-lg text-xs border-l-2 border-green-400'
+                                >
+                                  <div className='flex items-center gap-1 mb-1'>
+                                    <Check className='w-3 h-3 text-green-500' />
+                                    <span className='font-medium text-green-700 dark:text-green-300'>
+                                      Action:{' '}
+                                      {action.type
+                                        .replace('_', ' ')
+                                        .toLowerCase()}
+                                    </span>
+                                    {action.confidence && (
+                                      <span className='text-green-600 dark:text-green-200 ml-auto'>
+                                        {action.confidence}% confidence
+                                      </span>
+                                    )}
+                                  </div>
+                                  {action.reasoning && (
+                                    <p className='text-green-600 dark:text-green-200 mb-1'>
+                                      {action.reasoning}
+                                    </p>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                        {/* Main response */}
+                        <div className='bg-gray-100 dark:bg-gray-800 px-3 py-2 rounded-lg text-sm'>
+                          {conversation.response}
+                        </div>
                       </div>
                     </div>
                   </div>
