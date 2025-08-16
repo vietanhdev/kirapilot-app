@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { Task, Priority, TaskStatus, CreateTaskRequest } from '../../types';
+import React, { useState, useEffect } from 'react';
+import { Task, Priority, TaskStatus } from '../../types';
 import { generateId } from '../../utils';
 import {
   Modal,

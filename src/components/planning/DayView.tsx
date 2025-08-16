@@ -49,7 +49,7 @@ export function DayView({
   selectedDate,
   onDateChange,
   onTaskMove,
-  onTaskEdit,
+  onTaskEdit: _onTaskEdit,
   onTaskStatusChange,
   onTaskCreate,
   onInlineEdit,
@@ -59,7 +59,7 @@ export function DayView({
   className = '',
 }: DayViewProps) {
   const [showTaskModal, setShowTaskModal] = useState(false);
-  const [taskModalColumn, setTaskModalColumn] = useState<string>('');
+  const [, setTaskModalColumn] = useState<string>('');
   const [taskModalDate, setTaskModalDate] = useState<Date | undefined>();
   const [draggedTask, setDraggedTask] = useState<Task | null>(null);
 

@@ -64,7 +64,7 @@ export default [
         'warn',
         { argsIgnorePattern: '^_' },
       ],
-      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-explicit-any': 'off', // Disabled for now - database code uses any heavily
 
       // Disable problematic rules for now
       'no-unused-vars': 'off',

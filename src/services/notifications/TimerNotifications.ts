@@ -73,7 +73,7 @@ export class TimerNotifications {
         });
         return null; // Tauri notifications don't return Notification objects
       }
-    } catch (error) {
+    } catch {
       console.log(
         'Tauri notifications not available, falling back to web notifications'
       );

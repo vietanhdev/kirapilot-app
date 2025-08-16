@@ -2,13 +2,12 @@ import React, { useState, useEffect } from 'react';
 import {
   Clock,
   Calendar,
-  FileText,
   Trash2,
   Coffee,
   Play,
   TrendingUp,
 } from 'lucide-react';
-import { TimerSession, Task } from '../../types';
+import { TimerSession } from '../../types';
 import { TimeTrackingRepository } from '../../services/database/repositories/TimeTrackingRepository';
 import { useDatabaseOperation } from '../../hooks/useDatabase';
 import {
@@ -39,7 +38,7 @@ export const SessionHistoryModal: React.FC<SessionHistoryModalProps> = ({
   showTaskInfo = true,
 }) => {
   const [sessions, setSessions] = useState<TimerSession[]>([]);
-  const [tasks, setTasks] = useState<Record<string, Task>>({});
+  // const [_tasks, _setTasks] = useState<Record<string, Task>>({});
   const [selectedPeriod, setSelectedPeriod] = useState<
     'today' | 'week' | 'month' | 'all'
   >('all');
@@ -364,7 +363,7 @@ export const SessionHistoryModal: React.FC<SessionHistoryModalProps> = ({
                           {formatDuration(session.pausedTime)})
                         </summary>
                         <div className='mt-1 space-y-1 pl-3 border-l border-default-200'>
-                          {session.breaks.map((breakItem, index) => {
+                          {session.breaks.map((breakItem, _index) => {
                             const breakStart =
                               typeof breakItem.startTime === 'string'
                                 ? new Date(breakItem.startTime)
@@ -415,7 +414,7 @@ interface SessionHistoryProps {
   className?: string;
 }
 
-export const SessionHistory: React.FC<SessionHistoryProps> = props => {
+export const SessionHistory: React.FC<SessionHistoryProps> = _props => {
   // This is now just a wrapper that maintains the old interface
   // but you should migrate to using SessionHistoryModal directly
   return <div>Use SessionHistoryModal instead</div>;

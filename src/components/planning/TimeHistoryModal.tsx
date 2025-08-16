@@ -1,6 +1,6 @@
 // Modal component for viewing task time history
 import React, { useState, useEffect } from 'react';
-import { Clock, Calendar, Coffee, Play, Pause } from 'lucide-react';
+import { Clock, Calendar, Coffee, Play } from 'lucide-react';
 import { Task, TimerSession } from '../../types';
 import { TimeTrackingRepository } from '../../services/database/repositories/TimeTrackingRepository';
 import {
@@ -8,8 +8,6 @@ import {
   ModalContent,
   ModalHeader,
   ModalBody,
-  Card,
-  CardBody,
   Chip,
   Divider,
 } from '@heroui/react';
@@ -166,7 +164,7 @@ export function TimeHistoryModal({
             </div>
           ) : (
             <div className='space-y-1'>
-              {sessions.map((session, index) => {
+              {sessions.map((session, _index) => {
                 const startTime =
                   typeof session.startTime === 'string'
                     ? new Date(session.startTime)

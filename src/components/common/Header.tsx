@@ -8,7 +8,6 @@ import {
   Play,
   Square,
   History,
-  X,
   Trash2,
 } from 'lucide-react';
 import { useTimerContext } from '../../contexts/TimerContext';
