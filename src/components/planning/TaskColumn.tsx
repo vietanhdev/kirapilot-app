@@ -157,7 +157,10 @@ export function TaskColumn({
       <div
         ref={setNodeRef}
         className={`
-          min-h-[400px] p-2 space-y-2 transition-all duration-300
+          min-h-[400px] max-h-[500px] overflow-y-auto p-2 space-y-2 transition-all duration-300
+          scrollbar-thin scrollbar-thumb-gray-400 dark:scrollbar-thumb-gray-600 
+          scrollbar-track-gray-100 dark:scrollbar-track-gray-800
+          hover:scrollbar-thumb-gray-500 dark:hover:scrollbar-thumb-gray-500
           ${isOver ? 'bg-primary-50 dark:bg-primary-900/20 scale-[0.98]' : ''}
         `}
       >

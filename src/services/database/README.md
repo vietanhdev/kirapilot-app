@@ -102,6 +102,7 @@ CREATE TABLE tasks (
   time_estimate INTEGER DEFAULT 0,
   actual_time INTEGER DEFAULT 0,
   due_date DATETIME,
+  scheduled_date DATETIME,
   tags TEXT DEFAULT '[]',
   project_id TEXT,
   parent_task_id TEXT,
@@ -219,7 +220,7 @@ CREATE TABLE ai_suggestions (
 ### Indexes
 
 Performance indexes are automatically created:
-- Task status, priority, due date, creation date
+- Task status, priority, due date, scheduled date, creation date
 - Task dependencies for both directions
 - Time sessions by task and start time
 - Focus sessions by task and creation date
