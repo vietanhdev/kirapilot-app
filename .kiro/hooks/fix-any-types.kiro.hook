@@ -1,0 +1,17 @@
+{
+  "enabled": true,
+  "name": "Fix Any Types",
+  "description": "Automatically detects and fixes usage of \"any\" type in TypeScript files by replacing with specific, appropriate types",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "**/*.ts",
+      "**/*.tsx"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "I need you to analyze this TypeScript file and check if it contains any usage of the \"any\" type. If it does, please replace all instances of \"any\" with specific, appropriate types based on the context and usage. Consider the following:\n\n1. Look for variable declarations, function parameters, return types, and type annotations using \"any\"\n2. Analyze the context to determine the most appropriate specific type\n3. For function parameters, infer types from usage within the function\n4. For return types, analyze what the function actually returns\n5. For object properties, determine the expected structure\n6. Use union types when multiple types are possible\n7. Use generic types when appropriate for reusability\n8. Prefer interfaces or type aliases for complex object structures\n\nPlease provide the corrected code with all \"any\" types replaced with specific types, maintaining the same functionality while improving type safety."
+  }
+}
