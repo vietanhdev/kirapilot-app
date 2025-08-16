@@ -1,7 +1,6 @@
-// Task creation modal using HeroUI components
+// Task editing modal using HeroUI components
 import { useState, useEffect } from 'react';
-import { Task, Priority, TaskStatus, CreateTaskRequest } from '../../types';
-import { generateId } from '../../utils';
+import { Task, Priority } from '../../types';
 import {
   Modal,
   ModalContent,
@@ -19,107 +18,81 @@ import {
   Calendar, 
   Clock, 
   Hash, 
-  Plus
+  Plus,
+  Save
 } from 'lucide-react';
 
-interface TaskCreationModalProps {
+interface TaskEditModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onCreateTask: (task: Task) => void;
-  defaultDate?: Date;
-  defaultColumn?: string;
+  onUpdateTask: (updatedTask: Partial<Task>) => void;
+  task: Task | null;
   className?: string;
 }
 
-export function TaskCreationModal({
+export function TaskEditModal({
   isOpen,
   onClose,
-  onCreateTask,
-  defaultDate,
-  defaultColumn
-}: TaskCreationModalProps) {
-  const [formData, setFormData] = useState<CreateTaskRequest>({
+  onUpdateTask,
+  task
+}: TaskEditModalProps) {
+  const [formData, setFormData] = useState({
     title: '',
     description: '',
     priority: Priority.MEDIUM,
     timeEstimate: 60,
-    dueDate: undefined,
-    scheduledDate: undefined,
-    tags: [],
+    dueDate: undefined as Date | undefined,
+    scheduledDate: undefined as Date | undefined,
+    tags: [] as string[],
   });
 
   const [newTag, setNewTag] = useState('');
 
-  // Update form data when defaultDate changes or modal opens
+  // Update form data when task changes or modal opens
   useEffect(() => {
-    if (isOpen) {
-      const shouldSetDueDate = defaultColumn && defaultColumn.toLowerCase() !== 'backlog' && defaultColumn.toLowerCase() !== 'upcoming';
-      const shouldSetScheduledDate = defaultColumn && defaultColumn.toLowerCase() !== 'backlog';
-      
+    if (isOpen && task) {
       setFormData({
-        title: '',
-        description: '',
-        priority: Priority.MEDIUM,
-        timeEstimate: 60,
-        dueDate: shouldSetDueDate ? defaultDate : undefined,
-        scheduledDate: shouldSetScheduledDate ? defaultDate : undefined,
-        tags: [],
+        title: task.title,
+        description: task.description || '',
+        priority: task.priority,
+        timeEstimate: task.timeEstimate || 60,
+        dueDate: task.dueDate,
+        scheduledDate: task.scheduledDate,
+        tags: task.tags || [],
       });
       setNewTag('');
     }
-  }, [isOpen, defaultDate, defaultColumn]);
+  }, [isOpen, task]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.title.trim()) return;
 
-    const newTask: Task = {
-      id: generateId(),
+    const updatedFields: Partial<Task> = {
       title: formData.title.trim(),
       description: formData.description || '',
-      priority: formData.priority || Priority.MEDIUM,
-      status: TaskStatus.PENDING,
-      dependencies: [],
-      timeEstimate: formData.timeEstimate || 60,
-      actualTime: 0,
+      priority: formData.priority,
+      timeEstimate: formData.timeEstimate,
       dueDate: formData.dueDate,
       scheduledDate: formData.scheduledDate,
-      tags: formData.tags || [],
-      subtasks: [],
-      createdAt: new Date(),
+      tags: formData.tags,
       updatedAt: new Date(),
     };
 
-    console.log('Creating task with data:', {
-      title: newTask.title,
-      dueDate: newTask.dueDate,
-      column: defaultColumn
-    });
-
-    onCreateTask(newTask);
+    onUpdateTask(updatedFields);
     handleClose();
   };
 
   const handleClose = () => {
-    setFormData({
-      title: '',
-      description: '',
-      priority: Priority.MEDIUM,
-      timeEstimate: 60,
-      dueDate: undefined,
-      scheduledDate: undefined,
-      tags: [],
-    });
-    setNewTag('');
     onClose();
   };
 
   const addTag = () => {
-    if (newTag.trim() && !formData.tags?.includes(newTag.trim())) {
+    if (newTag.trim() && !formData.tags.includes(newTag.trim())) {
       setFormData(prev => ({
         ...prev,
-        tags: [...(prev.tags || []), newTag.trim()]
+        tags: [...prev.tags, newTag.trim()]
       }));
       setNewTag('');
     }
@@ -128,7 +101,7 @@ export function TaskCreationModal({
   const removeTag = (tagToRemove: string) => {
     setFormData(prev => ({
       ...prev,
-      tags: prev.tags?.filter(tag => tag !== tagToRemove) || []
+      tags: prev.tags.filter(tag => tag !== tagToRemove)
     }));
   };
 
@@ -138,6 +111,8 @@ export function TaskCreationModal({
     { key: Priority.HIGH, label: 'High' },
     { key: Priority.URGENT, label: 'Urgent' },
   ];
+
+  if (!task) return null;
 
   return (
     <Modal 
@@ -151,14 +126,7 @@ export function TaskCreationModal({
       <ModalContent>
         <form onSubmit={handleSubmit}>
           <ModalHeader className="flex flex-col gap-1">
-            <h3 className="text-lg font-semibold">
-              Create Task
-              {defaultColumn && (
-                <span className="ml-2 text-sm font-normal opacity-70">
-                  → {defaultColumn}
-                </span>
-              )}
-            </h3>
+            <h3 className="text-lg font-semibold">Edit Task</h3>
           </ModalHeader>
           
           <ModalBody className="gap-4">
@@ -192,7 +160,7 @@ export function TaskCreationModal({
               <Select
                 label="Priority"
                 placeholder="Select priority"
-                selectedKeys={[(formData.priority ?? Priority.MEDIUM).toString()]}
+                selectedKeys={[formData.priority.toString()]}
                 onSelectionChange={(keys) => {
                   const priority = Array.from(keys)[0] as string;
                   setFormData(prev => ({ ...prev, priority: parseInt(priority) as Priority }));
@@ -212,7 +180,7 @@ export function TaskCreationModal({
                 type="number"
                 label="Time (min)"
                 placeholder="60"
-                value={(formData.timeEstimate ?? 60).toString()}
+                value={formData.timeEstimate.toString()}
                 onChange={(e) => setFormData(prev => ({ ...prev, timeEstimate: parseInt(e.target.value) || 60 }))}
                 min={15}
                 step={15}
@@ -253,17 +221,6 @@ export function TaskCreationModal({
               />
             </div>
 
-            {/* Date Help Text */}
-            <div className="text-xs opacity-70 grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>📅 When task must be completed</div>
-              <div>
-                🗓️ {defaultColumn && defaultColumn.toLowerCase() === 'backlog' 
-                  ? 'Leave empty for Backlog' 
-                  : 'When you plan to work on it'
-                }
-              </div>
-            </div>
-
             {/* Tags */}
             <div className="space-y-2">
               <div className="flex gap-2">
@@ -288,7 +245,7 @@ export function TaskCreationModal({
                 </Button>
               </div>
               
-              {formData.tags && formData.tags.length > 0 && (
+              {formData.tags.length > 0 && (
                 <div className="flex flex-wrap gap-1">
                   {formData.tags.map((tag, index) => (
                     <Chip
@@ -320,13 +277,13 @@ export function TaskCreationModal({
               type="submit"
               isDisabled={!formData.title.trim()}
               size="sm"
-              startContent={<Plus className="w-3 h-3" />}
+              startContent={<Save className="w-3 h-3" />}
             >
-              Create
+              Save Changes
             </Button>
           </ModalFooter>
         </form>
       </ModalContent>
     </Modal>
   );
-}
+} 

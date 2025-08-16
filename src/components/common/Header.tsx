@@ -49,7 +49,7 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onViewChange }) => 
   return (
     <header className="flex items-center justify-between px-6 py-4 border-b border-gray-700/30 glass-effect">
       <div className="flex items-center gap-3">
-        <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-accent-emerald rounded-lg flex items-center justify-center">
+        <div className="w-8 h-8 bg-linear-to-br from-primary-500 to-accent-emerald rounded-lg flex items-center justify-center">
           <CheckCircle className="w-5 h-5 text-white" />
         </div>
         <h1 className="text-xl font-bold text-gray-100">KiraPilot</h1>

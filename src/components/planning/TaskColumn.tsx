@@ -101,7 +101,7 @@ export function TaskColumn({
   return (
     <div
       className={`
-        flex-shrink-0 w-64 bg-white dark:bg-gray-800/30 rounded-lg border transition-all duration-200
+        shrink-0 w-64 bg-white dark:bg-gray-800/30 rounded-lg border transition-all duration-200
         ${isOver ? 'border-primary-400 bg-primary-500/10 scale-[1.02]' : colorClasses.border}
         ${isToday ? 'border-primary-500/50 shadow-lg shadow-primary-500/10' : ''}
         hover:shadow-md backdrop-blur-sm
@@ -112,7 +112,7 @@ export function TaskColumn({
       <div className={`p-2.5 border-b ${colorClasses.header} rounded-t-lg`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2 min-w-0 flex-1">
-            {Icon && <Icon className="w-4 h-4 flex-shrink-0" />}
+            {Icon && <Icon className="w-4 h-4 shrink-0" />}
             <div className="min-w-0 flex-1">
               <div className="flex items-center space-x-1">
                 <h3 className={`font-semibold text-base truncate ${isToday ? 'text-primary-600 dark:text-primary-400' : 'text-gray-900 dark:text-gray-100'}`}>
@@ -130,7 +130,7 @@ export function TaskColumn({
             </div>
           </div>
           
-          <div className="flex items-center space-x-1.5 flex-shrink-0">
+          <div className="flex items-center space-x-1.5 shrink-0">
             <span className={`text-xs font-medium px-1.5 py-0.5 rounded-full ${
               isToday 
                 ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300' 

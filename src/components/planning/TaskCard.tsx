@@ -1,6 +1,6 @@
 // Compact task card component for planning interface
 import { useState } from 'react';
-import { Task, TaskStatus, Priority } from '../../types';
+import { Task, TaskStatus } from '../../types';
 import { useDraggable } from '@dnd-kit/core';
 import { 
   Clock, 
@@ -19,6 +19,7 @@ import {
   Trash2,
   History
 } from 'lucide-react';
+import { TaskEditModal } from './TaskEditModal';
 
 interface PlanningTaskCardProps {
   task: Task;
@@ -49,15 +50,10 @@ export function TaskCard({
   elapsedTime = 0,
   className = ''
 }: PlanningTaskCardProps) {
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isEditingNotes, setIsEditingNotes] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [isTimerOperationPending, setIsTimerOperationPending] = useState(false);
-  const [editForm, setEditForm] = useState({
-    title: task.title,
-    priority: task.priority,
-    timeEstimate: task.timeEstimate || 0
-  });
   const [notesText, setNotesText] = useState(task.description || '');
 
   const {
@@ -87,29 +83,14 @@ export function TaskCard({
 
   const handleEditClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setEditForm({
-      title: task.title,
-      priority: task.priority,
-      timeEstimate: task.timeEstimate || 0
-    });
-    setIsEditing(true);
+    setIsEditModalOpen(true);
   };
 
-  const handleSave = (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleSave = (updatedTask: Partial<Task>) => {
     if (onEdit) {
-      onEdit({
-        title: editForm.title,
-        priority: editForm.priority,
-        timeEstimate: editForm.timeEstimate
-      });
+      onEdit(updatedTask);
     }
-    setIsEditing(false);
-  };
-
-  const handleCancel = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setIsEditing(false);
+    setIsEditModalOpen(false);
   };
 
   const handleNotesClick = (e: React.MouseEvent) => {
@@ -201,10 +182,10 @@ export function TaskCard({
         ${isOverdue ? 'border-l-rose-500' : ''}
         ${isDragging ? 'opacity-60 shadow-xl scale-105 z-50' : ''}
         ${isCompleted ? 'opacity-75 border-l-emerald-500' : ''}
-        ${(isEditing || isEditingNotes) ? 'border-l-indigo-500 shadow-md ring-1 ring-indigo-200 dark:ring-indigo-800' : ''}
+        ${(isEditModalOpen || isEditingNotes) ? 'border-l-indigo-500 shadow-md ring-1 ring-indigo-200 dark:ring-indigo-800' : ''}
         ${isTimerActive && isTimerRunning ? 'border-l-green-500 shadow-md ring-1 ring-green-200 dark:ring-green-800' : ''}
         ${isTimerActive && !isTimerRunning ? 'border-l-amber-500 ring-1 ring-amber-200 dark:ring-amber-800' : ''}
-        ${!isOverdue && !isCompleted && !isTimerActive && !(isEditing || isEditingNotes) ? 'border-l-slate-300 dark:border-l-slate-600' : ''}
+        ${!isOverdue && !isCompleted && !isTimerActive && !(isEditModalOpen || isEditingNotes) ? 'border-l-slate-300 dark:border-l-slate-600' : ''}
         ${className}
       `}
     >
@@ -250,275 +231,218 @@ export function TaskCard({
 
       {/* Main Content */}
       <div className="p-2.5">
-        {isEditing ? (
-          /* Inline Edit Mode */
-          <div className="space-y-2">
-            {/* Title Input */}
-            <input
-              type="text"
-              value={editForm.title}
-              onChange={(e) => setEditForm(prev => ({ ...prev, title: e.target.value }))}
-              onMouseDown={(e) => e.stopPropagation()}
-              onPointerDown={(e) => e.stopPropagation()}
-              className="w-full px-2 py-1.5 text-xs font-medium border border-slate-200 dark:border-slate-700 rounded bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
-              placeholder="Task name"
-              autoFocus
-            />
-            
-            {/* Priority & Time Row */}
-            <div className="grid grid-cols-3 gap-2">
-              <select
-                value={editForm.priority}
-                onChange={(e) => setEditForm(prev => ({ ...prev, priority: parseInt(e.target.value) as Priority }))}
+        {/* Normal Display Mode */}
+        <>
+          {/* Header */}
+          <div className="mb-2">
+            <div className="flex items-start space-x-2">
+              <button
+                onClick={handleStatusToggle}
                 onMouseDown={(e) => e.stopPropagation()}
                 onPointerDown={(e) => e.stopPropagation()}
-                className="px-2 py-1.5 text-xs border border-slate-200 dark:border-slate-700 rounded bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-1 focus:ring-indigo-500 transition-all duration-200"
+                className="shrink-0 mt-0.5 hover:scale-110 transition-all duration-200 p-0.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700"
+                title={isCompleted ? 'Click to mark incomplete' : 'Click to mark complete'}
               >
-                <option value={Priority.LOW}>Low</option>
-                <option value={Priority.MEDIUM}>Med</option>
-                <option value={Priority.HIGH}>High</option>
-                <option value={Priority.URGENT}>Urgent</option>
-              </select>
-              
-              <input
-                type="number"
-                value={editForm.timeEstimate}
-                onChange={(e) => setEditForm(prev => ({ ...prev, timeEstimate: parseInt(e.target.value) || 0 }))}
-                onMouseDown={(e) => e.stopPropagation()}
-                onPointerDown={(e) => e.stopPropagation()}
-                className="px-2 py-1.5 text-xs border border-slate-200 dark:border-slate-700 rounded bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-1 focus:ring-indigo-500 transition-all duration-200"
-                placeholder="min"
-                min="0"
-              />
-              
-              <div className="flex space-x-1">
-                <button
-                  onClick={handleSave}
-                  onMouseDown={(e) => e.stopPropagation()}
-                  onPointerDown={(e) => e.stopPropagation()}
-                  className="flex-1 px-2 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs rounded transition-all duration-200"
-                  title="Save"
-                >
-                  <Save className="w-3 h-3 mx-auto" />
-                </button>
-                <button
-                  onClick={handleCancel}
-                  onMouseDown={(e) => e.stopPropagation()}
-                  onPointerDown={(e) => e.stopPropagation()}
-                  className="flex-1 px-2 py-1.5 bg-slate-500 hover:bg-slate-600 text-white text-xs rounded transition-all duration-200"
-                  title="Cancel"
-                >
-                  <X className="w-3 h-3 mx-auto" />
-                </button>
-              </div>
-            </div>
-          </div>
-        ) : (
-          /* Normal Display Mode */
-          <>
-            {/* Header */}
-            <div className="mb-2">
-              <div className="flex items-start space-x-2">
-                <button
-                  onClick={handleStatusToggle}
-                  onMouseDown={(e) => e.stopPropagation()}
-                  onPointerDown={(e) => e.stopPropagation()}
-                  className="flex-shrink-0 mt-0.5 hover:scale-110 transition-all duration-200 p-0.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700"
-                  title={isCompleted ? 'Click to mark incomplete' : 'Click to mark complete'}
-                >
-                  {isCompleted ? (
-                    <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-500" />
-                  ) : (
-                    <Circle className="w-4 h-4 text-indigo-500 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300" />
-                  )}
-                </button>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1 min-w-0">
-                      <h4 className={`
-                        font-medium text-sm leading-tight mb-0.5
-                        ${isCompleted ? 'line-through text-slate-500 dark:text-slate-400' : 'text-slate-900 dark:text-slate-100'}
-                      `}>
-                        {task.title}
-                      </h4>
-                    </div>
-                    
-                    {/* Expand button - Right side of title */}
-                    {hasNotes && (
-                      <button
-                        onClick={handleToggleExpand}
-                        onMouseDown={(e) => e.stopPropagation()}
-                        onPointerDown={(e) => e.stopPropagation()}
-                        className="flex-shrink-0 ml-2 p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-all duration-200"
-                        title={isExpanded ? 'Collapse description' : 'Expand description'}
-                      >
-                        {isExpanded ? (
-                          <ChevronDown className="w-3 h-3" />
-                        ) : (
-                          <ChevronRight className="w-3 h-3" />
-                        )}
-                      </button>
-                    )}
+                {isCompleted ? (
+                  <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-500" />
+                ) : (
+                  <Circle className="w-4 h-4 text-indigo-500 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300" />
+                )}
+              </button>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1 min-w-0">
+                    <h4 className={`
+                      font-medium text-sm leading-tight mb-0.5
+                      ${isCompleted ? 'line-through text-slate-500 dark:text-slate-400' : 'text-slate-900 dark:text-slate-100'}
+                    `}>
+                      {task.title}
+                    </h4>
                   </div>
-                </div>
-              </div>
-              
-              {/* Description preview when expanded */}
-              {isExpanded && hasNotes && (
-                <div className="mt-1.5 ml-6 text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                  {/* Strip HTML tags and show plain text - limit to ~100 chars */}
-                  {task.description?.replace(/<[^>]*>/g, '').trim().substring(0, 100)}
-                  {task.description && task.description.replace(/<[^>]*>/g, '').trim().length > 100 && '...'}
-                </div>
-              )}
-            </div>
-
-            {/* Metadata and Actions */}
-            <div className="space-y-1.5">
-              {/* First Row - Time Information */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  {task.timeEstimate > 0 && (
-                    <div className="flex items-center space-x-1 text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-1.5 py-0.5 rounded">
-                      <Clock className="w-3 h-3" />
-                      <span>{task.timeEstimate}min</span>
-                    </div>
-                  )}
                   
-                  {task.actualTime > 0 && (
-                    <div className="flex items-center space-x-1 text-xs text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-1.5 py-0.5 rounded">
-                      <History className="w-3 h-3" />
-                      <span>{task.actualTime}min</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Second Row - Action Buttons */}
-              <div className="flex items-center justify-between transition-all duration-200">
-                {/* Timer Controls - Left side */}
-                <div className="flex items-center space-x-0.5">
-                  {/* Start Timer Button - Always visible when not completed */}
-                  {onTimerStart && !isCompleted && (
+                  {/* Expand button - Right side of title */}
+                  {hasNotes && (
                     <button
-                      onClick={handleTimerClick}
+                      onClick={handleToggleExpand}
                       onMouseDown={(e) => e.stopPropagation()}
                       onPointerDown={(e) => e.stopPropagation()}
-                      disabled={isTimerOperationPending}
-                      className={`
-                        transition-all duration-200 p-1.5 rounded
-                        ${isTimerOperationPending ? 'opacity-50 cursor-not-allowed' : ''}
-                        ${isTimerActive && isTimerRunning 
-                          ? 'bg-amber-100 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 hover:bg-amber-200 dark:hover:bg-amber-900/40'
-                          : isTimerActive && !isTimerRunning
-                          ? 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/40'
-                          : 'hover:bg-green-50 dark:hover:bg-green-900/10 text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300'
-                        }
-                      `}
-                      title={
-                        isTimerOperationPending ? 'Processing...' :
-                        isTimerActive && isTimerRunning ? 'Pause timer' :
-                        isTimerActive && !isTimerRunning ? 'Resume timer' :
-                        'Start timer for this task'
-                      }
+                      className="shrink-0 ml-2 p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-all duration-200"
+                      title={isExpanded ? 'Collapse description' : 'Expand description'}
                     >
-                      {isTimerOperationPending ? (
-                        <div className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin" />
-                      ) : isTimerActive && isTimerRunning ? (
-                        <Pause className="w-3 h-3" />
+                      {isExpanded ? (
+                        <ChevronDown className="w-3 h-3" />
                       ) : (
-                        <Play className="w-3 h-3" />
+                        <ChevronRight className="w-3 h-3" />
                       )}
                     </button>
                   )}
-
-                  {/* Stop Timer Button - Only show when timer is active */}
-                  {isTimerActive && onTimerStop && (
-                    <button
-                      onClick={handleTimerStop}
-                      onMouseDown={(e) => e.stopPropagation()}
-                      onPointerDown={(e) => e.stopPropagation()}
-                      className="p-1.5 rounded bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 transition-all duration-200"
-                      title="Stop timer"
-                    >
-                      <Square className="w-3 h-3" />
-                    </button>
-                  )}
-
-                  {/* Active Timer Display - Only show when timer is active */}
-                  {isTimerActive && (
-                    <div className="inline-flex items-center space-x-1 ml-1">
-                      <TimerIcon className={`w-3 h-3 ${isTimerRunning ? 'text-green-600 animate-pulse' : 'text-amber-600'}`} />
-                      <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${
-                        isTimerRunning 
-                          ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
-                          : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
-                      }`}>
-                        {elapsedTime > 0 ? formatElapsedTime(elapsedTime) : (isTimerRunning ? 'Recording' : 'Paused')}
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Secondary Actions - Right side */}
-                <div className="flex items-center space-x-0.5">
-                  {/* Notes Button */}
-                  <button
-                    onClick={handleNotesClick}
-                    onMouseDown={(e) => e.stopPropagation()}
-                    onPointerDown={(e) => e.stopPropagation()}
-                    className={`p-1.5 rounded transition-all duration-200 hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 ${
-                      hasNotes ? 'bg-blue-50 dark:bg-blue-900/10' : ''
-                    }`}
-                    title={hasNotes ? "View/Edit notes" : "Add notes"}
-                  >
-                    <FileText className="w-3 h-3" />
-                  </button>
-
-                  {/* Session Logs Button */}
-                  <button
-                    onClick={handleViewTimeHistory}
-                    onMouseDown={(e) => e.stopPropagation()}
-                    onPointerDown={(e) => e.stopPropagation()}
-                    className={`p-1.5 rounded transition-all duration-200 hover:bg-purple-50 dark:hover:bg-purple-900/20 text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 ${
-                      task.actualTime > 0 ? 'bg-purple-50 dark:bg-purple-900/10' : ''
-                    }`}
-                    title={task.actualTime > 0 ? `Session logs (${task.actualTime}min total)` : 'Session logs'}
-                  >
-                    <History className="w-3 h-3" />
-                  </button>
-
-                  {/* Edit Button */}
-                  {onEdit && (
-                    <button
-                      onClick={handleEditClick}
-                      onMouseDown={(e) => e.stopPropagation()}
-                      onPointerDown={(e) => e.stopPropagation()}
-                      className="p-1.5 rounded transition-all duration-200 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300"
-                      title="Edit task"
-                    >
-                      <Edit3 className="w-3 h-3" />
-                    </button>
-                  )}
-
-                  {/* Delete Button - Always Accessible */}
-                  {onDelete && (
-                    <button
-                      onClick={handleDelete}
-                      onMouseDown={(e) => e.stopPropagation()}
-                      onPointerDown={(e) => e.stopPropagation()}
-                      className="p-1.5 rounded transition-all duration-200 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 opacity-60 hover:opacity-100"
-                      title="Delete task"
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </button>
-                  )}
                 </div>
               </div>
             </div>
-          </>
-        )}
+            
+            {/* Description preview when expanded */}
+            {isExpanded && hasNotes && (
+              <div className="mt-1.5 ml-6 text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                {/* Strip HTML tags and show plain text - limit to ~100 chars */}
+                {task.description?.replace(/<[^>]*>/g, '').trim().substring(0, 100)}
+                {task.description && task.description.replace(/<[^>]*>/g, '').trim().length > 100 && '...'}
+              </div>
+            )}
+          </div>
+
+          {/* Metadata and Actions */}
+          <div className="space-y-1.5">
+            {/* First Row - Time Information */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                {task.timeEstimate > 0 && (
+                  <div className="flex items-center space-x-1 text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-1.5 py-0.5 rounded">
+                    <Clock className="w-3 h-3" />
+                    <span>{task.timeEstimate}min</span>
+                  </div>
+                )}
+                
+                {task.actualTime > 0 && (
+                  <div className="flex items-center space-x-1 text-xs text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-1.5 py-0.5 rounded">
+                    <History className="w-3 h-3" />
+                    <span>{task.actualTime}min</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Second Row - Action Buttons */}
+            <div className="flex items-center justify-between transition-all duration-200">
+              {/* Timer Controls - Left side */}
+              <div className="flex items-center space-x-0.5">
+                {/* Start Timer Button - Always visible when not completed */}
+                {onTimerStart && !isCompleted && (
+                  <button
+                    onClick={handleTimerClick}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    disabled={isTimerOperationPending}
+                    className={`
+                      transition-all duration-200 p-1.5 rounded
+                      ${isTimerOperationPending ? 'opacity-50 cursor-not-allowed' : ''}
+                      ${isTimerActive && isTimerRunning 
+                        ? 'bg-amber-100 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 hover:bg-amber-200 dark:hover:bg-amber-900/40'
+                        : isTimerActive && !isTimerRunning
+                        ? 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/40'
+                        : 'hover:bg-green-50 dark:hover:bg-green-900/10 text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300'
+                      }
+                    `}
+                    title={
+                      isTimerOperationPending ? 'Processing...' :
+                      isTimerActive && isTimerRunning ? 'Pause timer' :
+                      isTimerActive && !isTimerRunning ? 'Resume timer' :
+                      'Start timer for this task'
+                    }
+                  >
+                    {isTimerOperationPending ? (
+                      <div className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin" />
+                    ) : isTimerActive && isTimerRunning ? (
+                      <Pause className="w-3 h-3" />
+                    ) : (
+                      <Play className="w-3 h-3" />
+                    )}
+                  </button>
+                )}
+
+                {/* Stop Timer Button - Only show when timer is active */}
+                {isTimerActive && onTimerStop && (
+                  <button
+                    onClick={handleTimerStop}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    className="p-1.5 rounded bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 transition-all duration-200"
+                    title="Stop timer"
+                  >
+                    <Square className="w-3 h-3" />
+                  </button>
+                )}
+
+                {/* Active Timer Display - Only show when timer is active */}
+                {isTimerActive && (
+                  <div className="inline-flex items-center space-x-1 ml-1">
+                    <TimerIcon className={`w-3 h-3 ${isTimerRunning ? 'text-green-600 animate-pulse' : 'text-amber-600'}`} />
+                    <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${
+                      isTimerRunning 
+                        ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
+                        : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                    }`}>
+                      {elapsedTime > 0 ? formatElapsedTime(elapsedTime) : (isTimerRunning ? 'Recording' : 'Paused')}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Secondary Actions - Right side */}
+              <div className="flex items-center space-x-0.5">
+                {/* Notes Button */}
+                <button
+                  onClick={handleNotesClick}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  className={`p-1.5 rounded transition-all duration-200 hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 ${
+                    hasNotes ? 'bg-blue-50 dark:bg-blue-900/10' : ''
+                  }`}
+                  title={hasNotes ? "View/Edit notes" : "Add notes"}
+                >
+                  <FileText className="w-3 h-3" />
+                </button>
+
+                {/* Session Logs Button */}
+                <button
+                  onClick={handleViewTimeHistory}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  className={`p-1.5 rounded transition-all duration-200 hover:bg-purple-50 dark:hover:bg-purple-900/20 text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 ${
+                    task.actualTime > 0 ? 'bg-purple-50 dark:bg-purple-900/10' : ''
+                  }`}
+                  title={task.actualTime > 0 ? `Session logs (${task.actualTime}min total)` : 'Session logs'}
+                >
+                  <History className="w-3 h-3" />
+                </button>
+
+                {/* Edit Button */}
+                {onEdit && (
+                  <button
+                    onClick={handleEditClick}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    className="p-1.5 rounded transition-all duration-200 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300"
+                    title="Edit task"
+                  >
+                    <Edit3 className="w-3 h-3" />
+                  </button>
+                )}
+
+                {/* Delete Button - Always Accessible */}
+                {onDelete && (
+                  <button
+                    onClick={handleDelete}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    className="p-1.5 rounded transition-all duration-200 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 opacity-60 hover:opacity-100"
+                    title="Delete task"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </>
       </div>
+      
+      {/* Task Edit Modal */}
+      <TaskEditModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        onUpdateTask={handleSave}
+        task={task}
+      />
     </div>
   );
 }
