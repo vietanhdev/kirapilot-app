@@ -2,7 +2,7 @@
 
 ## Overview
 
-KiraPilot is designed as a cross-platform productivity application with a hybrid architecture combining a Tauri-based desktop application and native mobile apps. The system emphasizes local-first data processing with optional cloud synchronization, ensuring privacy while providing seamless cross-device experiences. The core innovation lies in the integration of Kira AI assistant, which has direct access to all application features through a tool-based architecture.
+KiraPilot is designed as a desktop productivity application built with Tauri, combining React frontend with Rust backend. The system emphasizes local-first data processing and storage, ensuring privacy and performance while providing a native desktop experience. The core innovation lies in the integration of Kira AI assistant, which has direct access to task management and time tracking features through a tool-based architecture.
 
 ## Architecture
 
@@ -15,63 +15,59 @@ graph TB
         B[Tailwind CSS + Animations]
         C[Lucide React Icons]
     end
-    
+
     subgraph "Application Layer"
         D[Tauri Runtime]
         E[State Management]
         F[AI Assistant Engine]
     end
-    
+
     subgraph "Data Layer"
         G[Local SQLite Database]
         H[File System Storage]
-        I[Optional Supabase Sync]
     end
-    
+
     subgraph "External Services"
         J[Cloud LLM APIs]
-        K[NestJS Sync Service]
-        L[Background Services]
     end
-    
+
     A --> D
     D --> G
     D --> H
     F --> G
     F --> H
-    G -.-> I
-    I -.-> K
     F -.-> J
 ```
 
 ### Platform-Specific Architecture
 
 - **Desktop (macOS, Windows, Linux)**: Tauri + React frontend with Rust backend
-- **Mobile (iOS, Android)**: React Native with shared TypeScript business logic
-- **Shared Components**: TypeScript interfaces, data models, and AI logic
+- **Local Storage**: SQLite database with file system for all user data
+- **AI Integration**: Optional cloud LLM APIs with local fallback processing
 
 ## Components and Interfaces
 
 ### Core Components
 
-#### 1. Dashboard Component
+#### 1. Planning Interface Component
+
 ```typescript
-interface DashboardProps {
+interface PlanningProps {
   tasks: Task[];
-  energyMetrics: EnergyMetrics;
   weeklyPlan: WeeklyPlan;
   suggestions: AISuggestion[];
 }
 
-interface EnergyMetrics {
-  currentLevel: number;
-  focusScore: number;
-  productivityTrend: TrendData[];
-  optimalTimes: TimeSlot[];
+interface WeeklyPlan {
+  startDate: Date;
+  endDate: Date;
+  scheduledTasks: Task[];
+  backlogTasks: Task[];
 }
 ```
 
 #### 2. Task Management System
+
 ```typescript
 interface Task {
   id: string;
@@ -82,8 +78,8 @@ interface Task {
   dependencies: string[];
   timeEstimate: number;
   actualTime: number;
-  dueDate?: Date;           // When the task is due (deadline)
-  scheduledDate?: Date;     // When the task is planned to be worked on
+  dueDate?: Date; // When the task is due (deadline)
+  scheduledDate?: Date; // When the task is planned to be worked on
   tags: string[];
 }
 
@@ -97,6 +93,7 @@ interface TaskManager {
 ```
 
 #### Planning System Logic
+
 The planning interface uses `scheduledDate` for organizing tasks into columns:
 
 - **Backlog Column**: Tasks with `scheduledDate = null` (no scheduled work date)
@@ -106,6 +103,7 @@ The planning interface uses `scheduledDate` for organizing tasks into columns:
 Note: `dueDate` represents when a task must be completed (deadline), while `scheduledDate` represents when you plan to work on it. A task can have a due date but no scheduled date (appears in backlog until scheduled).
 
 #### 3. Time Tracking Engine
+
 ```typescript
 interface TimeTracker {
   startSession(taskId: string): Promise<TimerSession>;
@@ -125,26 +123,8 @@ interface TimerSession {
 }
 ```
 
-#### 4. Focus Environment Manager
-```typescript
-interface FocusManager {
-  startFocusSession(config: FocusConfig): Promise<FocusSession>;
-  endFocusSession(sessionId: string): Promise<FocusMetrics>;
-  blockDistractions(): Promise<void>;
-  restoreDistractions(): Promise<void>;
-  updateWorkspace(context: TaskContext): Promise<void>;
-}
+#### 4. Kira AI Assistant
 
-interface FocusConfig {
-  duration: number;
-  taskId: string;
-  distractionLevel: DistractionLevel;
-  backgroundAudio?: AudioConfig;
-  breakReminders: boolean;
-}
-```
-
-#### 5. Kira AI Assistant
 ```typescript
 interface KiraAI {
   processMessage(message: string, context: AppContext): Promise<AIResponse>;
@@ -154,7 +134,7 @@ interface KiraAI {
 }
 
 interface AIAction {
-  type: 'CREATE_TASK' | 'START_TIMER' | 'SCHEDULE_FOCUS' | 'ANALYZE_PRODUCTIVITY';
+  type: 'CREATE_TASK' | 'START_TIMER' | 'UPDATE_TASK' | 'VIEW_TIME_DATA';
   parameters: Record<string, any>;
   context: AppContext;
 }
@@ -196,26 +176,12 @@ CREATE TABLE time_sessions (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
--- Focus sessions
-CREATE TABLE focus_sessions (
+-- AI interactions and suggestions
+CREATE TABLE ai_interactions (
     id TEXT PRIMARY KEY,
-    task_id TEXT REFERENCES tasks(id),
-    duration INTEGER NOT NULL,
-    actual_duration INTEGER,
-    focus_score REAL,
-    distraction_count INTEGER DEFAULT 0,
-    notes TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
-
--- User patterns and analytics
-CREATE TABLE productivity_patterns (
-    id TEXT PRIMARY KEY,
-    user_id TEXT NOT NULL,
-    pattern_type TEXT NOT NULL,
-    time_slot TEXT,
-    productivity_score REAL,
-    confidence_level REAL,
+    message TEXT NOT NULL,
+    response TEXT NOT NULL,
+    action_taken TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 ```
@@ -224,12 +190,10 @@ CREATE TABLE productivity_patterns (
 
 ```typescript
 interface AppState {
-  user: UserState;
   tasks: TaskState;
   timer: TimerState;
-  focus: FocusState;
   ai: AIState;
-  sync: SyncState;
+  ui: UIState;
 }
 
 interface TaskState {
@@ -246,21 +210,25 @@ interface TaskState {
 ### Error Categories and Strategies
 
 #### 1. Network Errors
+
 - **Strategy**: Graceful degradation with local-first approach
 - **Implementation**: Queue sync operations, retry with exponential backoff
 - **User Experience**: Show offline indicator, continue local operations
 
 #### 2. Data Validation Errors
+
 - **Strategy**: Client-side validation with server-side verification
 - **Implementation**: TypeScript interfaces with runtime validation using Zod
 - **User Experience**: Inline validation messages, prevent invalid submissions
 
 #### 3. AI Service Errors
+
 - **Strategy**: Fallback to local processing or simplified responses
 - **Implementation**: Circuit breaker pattern for external AI services
 - **User Experience**: Inform user of limited AI functionality, maintain core features
 
 #### 4. Database Errors
+
 - **Strategy**: Transaction rollback and data integrity preservation
 - **Implementation**: SQLite WAL mode with automatic backup
 - **User Experience**: Show error message, attempt automatic recovery
@@ -291,16 +259,19 @@ class ErrorHandler {
 ### Testing Pyramid
 
 #### 1. Unit Tests (70%)
+
 - **Framework**: Jest + React Testing Library
 - **Coverage**: Individual components, utilities, and business logic
 - **Focus**: Pure functions, component behavior, data transformations
 
 #### 2. Integration Tests (20%)
+
 - **Framework**: Jest + Supertest for API testing
 - **Coverage**: Component interactions, database operations, AI tool integration
 - **Focus**: Data flow between layers, API endpoints, state management
 
 #### 3. End-to-End Tests (10%)
+
 - **Framework**: Playwright for cross-platform testing
 - **Coverage**: Critical user journeys, AI assistant interactions
 - **Focus**: Complete workflows, cross-device synchronization
@@ -308,34 +279,36 @@ class ErrorHandler {
 ### AI-Specific Testing
 
 #### 1. AI Response Testing
+
 ```typescript
 describe('Kira AI Assistant', () => {
   test('should create task from natural language', async () => {
     const response = await kira.processMessage(
-      "Create a task to review the quarterly report by Friday",
+      'Create a task to review the quarterly report by Friday',
       mockContext
     );
-    
+
     expect(response.actions).toContainEqual({
       type: 'CREATE_TASK',
       parameters: {
         title: expect.stringContaining('quarterly report'),
-        dueDate: expect.any(Date)
-      }
+        dueDate: expect.any(Date),
+      },
     });
   });
 });
 ```
 
-#### 2. Pattern Recognition Testing
+#### 2. Time Tracking Testing
+
 ```typescript
-describe('Pattern Analysis', () => {
-  test('should identify productivity patterns', async () => {
-    const mockData = generateMockProductivityData();
-    const patterns = await kira.analyzePatterns('user123');
-    
-    expect(patterns.optimalTimes).toBeDefined();
-    expect(patterns.energyLevels).toHaveLength(7); // 7 days
+describe('Time Tracking', () => {
+  test('should track time sessions accurately', async () => {
+    const session = await timeTracker.startSession('task123');
+    await timeTracker.stopSession(session.id, 'Completed task');
+
+    expect(session.taskId).toBe('task123');
+    expect(session.endTime).toBeDefined();
   });
 });
 ```
@@ -343,16 +316,19 @@ describe('Pattern Analysis', () => {
 ### Performance Testing
 
 #### 1. Database Performance
+
 - Test query performance with large datasets
 - Validate indexing strategies
 - Monitor memory usage during sync operations
 
 #### 2. AI Response Times
+
 - Benchmark local vs cloud AI processing
 - Test fallback mechanisms
 - Validate caching strategies
 
 #### 3. Cross-Platform Performance
+
 - Test startup times across platforms
 - Validate memory usage on mobile devices
 - Monitor battery impact on mobile platforms
@@ -360,11 +336,13 @@ describe('Pattern Analysis', () => {
 ### Security Testing
 
 #### 1. Data Privacy
+
 - Validate local data encryption
 - Test data anonymization for cloud sync
 - Verify no sensitive data in logs
 
 #### 2. AI Security
+
 - Test prompt injection resistance
 - Validate tool access permissions
 - Monitor for data leakage in AI responses
@@ -372,25 +350,29 @@ describe('Pattern Analysis', () => {
 ## Implementation Considerations
 
 ### Privacy-First Design
-- All sensitive data processing occurs locally by default
-- Cloud sync uses encrypted, anonymized data
-- User has granular control over data sharing
+
+- All sensitive data processing and storage occurs locally
+- No personal data shared with external services without explicit consent
+- User has full control over AI interactions and data usage
 - AI explanations are transparent and auditable
 
 ### Performance Optimization
+
 - Lazy loading for large task lists
 - Virtual scrolling for time tracking visualizations
 - Debounced AI suggestions to prevent excessive API calls
 - Efficient SQLite queries with proper indexing
 
 ### Accessibility
+
 - Full keyboard navigation support
 - Screen reader compatibility
 - High contrast mode support
 - Customizable font sizes and UI scaling
 
-### Internationalization
-- Support for multiple languages
-- Locale-aware date and time formatting
-- Cultural considerations for productivity patterns
-- RTL language support
+### Cross-Platform Consistency
+
+- Native feel on macOS, Windows, and Linux
+- Consistent design language across platforms
+- Platform-specific optimizations and integrations
+- Responsive design for different screen sizes
