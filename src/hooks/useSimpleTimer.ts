@@ -124,7 +124,9 @@ export function useSimpleTimer(options: UseSimpleTimerOptions = {}) {
   );
 
   const pauseTimer = useCallback(() => {
-    if (!state.isRunning) return;
+    if (!state.isRunning) {
+      return;
+    }
 
     console.log('Pausing timer');
 
@@ -172,7 +174,9 @@ export function useSimpleTimer(options: UseSimpleTimerOptions = {}) {
   }, [state, enableNotifications]);
 
   const stopTimer = useCallback(() => {
-    if (!state.activeTaskId) return;
+    if (!state.activeTaskId) {
+      return;
+    }
 
     console.log('Stopping timer');
 

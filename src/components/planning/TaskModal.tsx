@@ -101,7 +101,9 @@ export function TaskModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.title.trim()) return;
+    if (!formData.title.trim()) {
+      return;
+    }
 
     setIsSubmitting(true);
 

@@ -260,7 +260,7 @@ export interface ActivityEvent {
     | 'focus_started'
     | 'focus_ended';
   timestamp: Date;
-  data: Record<string, any>;
+  data: Record<string, unknown>;
 }
 
 export interface UserPreferences {
@@ -298,7 +298,7 @@ export interface AIAction {
     | 'TAKE_BREAK'
     | 'ANALYZE_PRODUCTIVITY'
     | 'SUGGEST_SCHEDULE';
-  parameters: Record<string, any>;
+  parameters: Record<string, unknown>;
   context: AppContext;
   confidence: number;
 }
@@ -347,4 +347,25 @@ export interface TaskFilters {
 export interface TaskSortOptions {
   field: 'title' | 'priority' | 'dueDate' | 'createdAt' | 'updatedAt';
   direction: 'asc' | 'desc';
+}
+// Timer-related types
+export interface TaskTimerProps {
+  onTimerStart: () => void;
+  onTimerPause: () => void;
+  onTimerStop: () => void;
+  activeTimerTaskId: string | null;
+  isTimerRunning: boolean;
+  elapsedTime: number;
+}
+
+// Statistics types
+export interface SessionStatistics {
+  totalSessions: number;
+  totalTime: number;
+  totalWorkTime: number;
+  totalBreakTime: number;
+  averageSessionLength: number;
+  averageProductivity: number;
+  mostProductiveHour: number;
+  sessionsPerDay: Record<string, number>;
 }

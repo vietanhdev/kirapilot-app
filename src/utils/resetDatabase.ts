@@ -23,7 +23,9 @@ export function resetDatabase(): void {
  * This preserves user data while fixing the missing column issue
  */
 export function migrateScheduledDateData(): boolean {
-  if (typeof localStorage === 'undefined') return false;
+  if (typeof localStorage === 'undefined') {
+    return false;
+  }
 
   try {
     const existingData = localStorage.getItem('kirapilot-mock-db');
@@ -32,7 +34,7 @@ export function migrateScheduledDateData(): boolean {
       if (parsed.tasks && parsed.tasks.length > 0) {
         // Check if tasks have scheduledDate but we need to ensure the column exists
         const hasScheduledTasks = parsed.tasks.some(
-          (task: any) =>
+          (task: Record<string, unknown>) =>
             task.scheduledDate !== undefined && task.scheduledDate !== null
         );
 
@@ -58,7 +60,9 @@ export function migrateScheduledDateData(): boolean {
  * Check if database needs reset due to old format data
  */
 export function checkAndResetIfNeeded(): boolean {
-  if (typeof localStorage === 'undefined') return false;
+  if (typeof localStorage === 'undefined') {
+    return false;
+  }
 
   try {
     const existingData = localStorage.getItem('kirapilot-mock-db');
@@ -67,7 +71,7 @@ export function checkAndResetIfNeeded(): boolean {
       if (parsed.tasks && parsed.tasks.length > 0) {
         // Check if any task has old format ID
         const hasOldFormatIds = parsed.tasks.some(
-          (task: any) =>
+          (task: { id: string }) =>
             task.id &&
             !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
               task.id
@@ -110,7 +114,11 @@ export function checkDatabaseIntegrity(): boolean {
 
 // Export for console debugging
 if (typeof window !== 'undefined') {
-  (window as any).resetKiraPilotDatabase = resetDatabase;
-  (window as any).checkKiraPilotDatabase = checkAndResetIfNeeded;
-  (window as any).checkKiraPilotDatabaseIntegrity = checkDatabaseIntegrity;
+  (window as unknown as Record<string, unknown>).resetKiraPilotDatabase =
+    resetDatabase;
+  (window as unknown as Record<string, unknown>).checkKiraPilotDatabase =
+    checkAndResetIfNeeded;
+  (
+    window as unknown as Record<string, unknown>
+  ).checkKiraPilotDatabaseIntegrity = checkDatabaseIntegrity;
 }

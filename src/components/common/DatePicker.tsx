@@ -58,8 +58,12 @@ export function DatePicker({
   };
 
   const isDateDisabled = (date: Date) => {
-    if (minDate && date < minDate) return true;
-    if (maxDate && date > maxDate) return true;
+    if (minDate && date < minDate) {
+      return true;
+    }
+    if (maxDate && date > maxDate) {
+      return true;
+    }
     return false;
   };
 

@@ -102,7 +102,7 @@ export async function getDatabaseStats(): Promise<{
 export async function exportDatabaseToJSON(): Promise<string> {
   const db = await getDatabase();
 
-  const backup: Record<string, any[]> = {};
+  const backup: Record<string, Record<string, unknown>[]> = {};
 
   // Get all user tables
   const tables = await db.select<{ name: string }[]>(
@@ -111,7 +111,9 @@ export async function exportDatabaseToJSON(): Promise<string> {
 
   for (const table of tables) {
     try {
-      const data = await db.select<any[]>(`SELECT * FROM ${table.name}`);
+      const data = await db.select<Record<string, unknown>[]>(
+        `SELECT * FROM ${table.name}`
+      );
       backup[table.name] = data;
     } catch (error) {
       console.warn(`Failed to export table ${table.name}:`, error);

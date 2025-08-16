@@ -7,7 +7,7 @@ import { getDatabase } from '../services/database';
 export async function checkActiveTimerSessions(): Promise<void> {
   try {
     const db = await getDatabase();
-    const activeSessions = await db.select<any[]>(
+    const activeSessions = await db.select<Record<string, unknown>[]>(
       'SELECT * FROM time_sessions WHERE is_active = ?',
       [true]
     );
@@ -53,7 +53,10 @@ export async function clearAllTimerData(): Promise<void> {
 
 // Export for console debugging
 if (typeof window !== 'undefined') {
-  (window as any).checkActiveTimerSessions = checkActiveTimerSessions;
-  (window as any).forceStopAllTimers = forceStopAllTimers;
-  (window as any).clearAllTimerData = clearAllTimerData;
+  (window as unknown as Record<string, unknown>).checkActiveTimerSessions =
+    checkActiveTimerSessions;
+  (window as unknown as Record<string, unknown>).forceStopAllTimers =
+    forceStopAllTimers;
+  (window as unknown as Record<string, unknown>).clearAllTimerData =
+    clearAllTimerData;
 }

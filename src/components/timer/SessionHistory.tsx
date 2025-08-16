@@ -7,7 +7,7 @@ import {
   Play,
   TrendingUp,
 } from 'lucide-react';
-import { TimerSession } from '../../types';
+import { TimerSession, SessionStatistics } from '../../types';
 import { TimeTrackingRepository } from '../../services/database/repositories/TimeTrackingRepository';
 import { useDatabaseOperation } from '../../hooks/useDatabase';
 import {
@@ -42,14 +42,16 @@ export const SessionHistoryModal: React.FC<SessionHistoryModalProps> = ({
   const [selectedPeriod, setSelectedPeriod] = useState<
     'today' | 'week' | 'month' | 'all'
   >('all');
-  const [statistics, setStatistics] = useState<any>(null);
+  const [statistics, setStatistics] = useState<SessionStatistics | null>(null);
 
   const { execute, isLoading, error } = useDatabaseOperation();
   const timeTrackingRepo = new TimeTrackingRepository();
 
   // Load sessions and statistics
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) {
+      return;
+    }
 
     const loadData = async () => {
       let sessionsData: TimerSession[] = [];
@@ -129,14 +131,22 @@ export const SessionHistoryModal: React.FC<SessionHistoryModalProps> = ({
       (now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24)
     );
 
-    if (diffDays === 0) return 'Today';
-    if (diffDays === 1) return 'Yesterday';
-    if (diffDays < 7) return `${diffDays} days ago`;
+    if (diffDays === 0) {
+      return 'Today';
+    }
+    if (diffDays === 1) {
+      return 'Yesterday';
+    }
+    if (diffDays < 7) {
+      return `${diffDays} days ago`;
+    }
     return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
   };
 
   const getSessionDuration = (session: TimerSession): number => {
-    if (!session.endTime) return 0;
+    if (!session.endTime) {
+      return 0;
+    }
     const startTime =
       typeof session.startTime === 'string'
         ? new Date(session.startTime)
@@ -159,7 +169,9 @@ export const SessionHistoryModal: React.FC<SessionHistoryModalProps> = ({
         : session.endTime
       : null;
     const totalDuration = endTime ? endTime.getTime() - startTime.getTime() : 0;
-    if (totalDuration === 0) return 0;
+    if (totalDuration === 0) {
+      return 0;
+    }
 
     const workTime = totalDuration - session.pausedTime;
     return Math.round((workTime / totalDuration) * 100);
@@ -187,7 +199,9 @@ export const SessionHistoryModal: React.FC<SessionHistoryModalProps> = ({
               <Select
                 selectedKeys={[selectedPeriod]}
                 onSelectionChange={keys =>
-                  setSelectedPeriod(Array.from(keys)[0] as any)
+                  setSelectedPeriod(
+                    Array.from(keys)[0] as 'today' | 'week' | 'month' | 'all'
+                  )
                 }
                 size='sm'
                 className='w-24'

@@ -8,9 +8,9 @@ export class MockDatabase {
   public readonly isMock = true;
   private storageKey = 'kirapilot-mock-db';
   private transactionActive = false;
-  private transactionData: any = null;
+  private transactionData: Record<string, unknown> | null = null;
 
-  private getData(): any {
+  private getData(): Record<string, unknown> {
     const data = localStorage.getItem(this.storageKey);
     return data
       ? JSON.parse(data)
@@ -24,7 +24,7 @@ export class MockDatabase {
         };
   }
 
-  private saveData(data: any): void {
+  private saveData(data: Record<string, unknown>): void {
     localStorage.setItem(this.storageKey, JSON.stringify(data));
   }
 
@@ -35,7 +35,10 @@ export class MockDatabase {
     this.saveData(data);
   }
 
-  async execute(query: string, params?: any[]): Promise<any> {
+  async execute(
+    query: string,
+    params?: unknown[]
+  ): Promise<{ changes: number; lastInsertRowid?: number }> {
     console.log('Mock DB Execute:', query, params);
 
     // Handle transaction commands
@@ -104,7 +107,7 @@ export class MockDatabase {
           updatedAt: params[16], // ISO string
         };
 
-        data.tasks.push(newTask);
+        (data.tasks as Record<string, unknown>[]).push(newTask);
         this.saveData(data);
 
         return { changes: 1, lastInsertRowid: Date.now() };
@@ -115,7 +118,7 @@ export class MockDatabase {
     return { changes: 1, lastInsertRowid: Date.now() };
   }
 
-  async select<T>(query: string, params?: any[]): Promise<T> {
+  async select<T>(query: string, params?: unknown[]): Promise<T> {
     console.log('Mock DB Select:', query, params);
 
     const data = this.getData();
@@ -178,13 +181,13 @@ export async function initializeMockDatabase(): Promise<MockDatabase> {
       if (parsed.tasks && parsed.tasks.length > 0) {
         // Check if any task has old format ID or is missing scheduledDate field
         const hasOldFormatIds = parsed.tasks.some(
-          (task: any) =>
+          (task: { id: string }) =>
             !task.id.match(
               /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
             )
         );
         const missingScheduledDate = parsed.tasks.some(
-          (task: any) =>
+          (task: Record<string, unknown>) =>
             task.scheduledDate === undefined &&
             task.hasOwnProperty('scheduledDate') === false
         );
@@ -381,14 +384,16 @@ export function getSampleTasks(): Task[] {
   const tasks = data.tasks || [];
 
   // Convert date strings back to Date objects
-  return tasks.map((task: any) => ({
+  return tasks.map((task: Record<string, unknown>) => ({
     ...task,
-    createdAt: new Date(task.createdAt),
-    updatedAt: new Date(task.updatedAt),
-    dueDate: task.dueDate ? new Date(task.dueDate) : undefined,
+    createdAt: new Date(task.createdAt as string),
+    updatedAt: new Date(task.updatedAt as string),
+    dueDate: task.dueDate ? new Date(task.dueDate as string) : undefined,
     scheduledDate: task.scheduledDate
-      ? new Date(task.scheduledDate)
+      ? new Date(task.scheduledDate as string)
       : undefined,
-    completedAt: task.completedAt ? new Date(task.completedAt) : undefined,
+    completedAt: task.completedAt
+      ? new Date(task.completedAt as string)
+      : undefined,
   }));
 }

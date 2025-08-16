@@ -16,7 +16,12 @@ interface DatabaseContextType {
     lastMigration?: string;
   } | null;
   initialize: () => Promise<void>;
-  checkHealth: () => Promise<any>;
+  checkHealth: () => Promise<{
+    isHealthy: boolean;
+    version: string;
+    tableCount: number;
+    lastMigration?: string;
+  }>;
   close: () => Promise<void>;
 }
 

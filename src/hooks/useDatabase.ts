@@ -105,7 +105,9 @@ export function useDatabase() {
 
   // Periodic health checks
   useEffect(() => {
-    if (!state.isInitialized) return;
+    if (!state.isInitialized) {
+      return;
+    }
 
     const healthCheckInterval = setInterval(() => {
       checkHealth();

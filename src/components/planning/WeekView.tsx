@@ -11,7 +11,7 @@ import {
   DragOverlay,
 } from '@dnd-kit/core';
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
-import { Task, TaskStatus } from '../../types';
+import { Task, TaskStatus, TaskTimerProps } from '../../types';
 import { TaskColumn } from './TaskColumn';
 import { TaskCard } from './TaskCard';
 import { TaskModal } from './TaskModal';
@@ -39,7 +39,7 @@ interface WeekViewProps {
   onInlineEdit?: (taskId: string, updates: Partial<Task>) => void;
   onTaskDelete?: (task: Task) => void;
   onViewTimeHistory?: (task: Task) => void;
-  getTaskTimerProps?: (task: Task) => any;
+  getTaskTimerProps?: (task: Task) => TaskTimerProps;
 }
 
 export function WeekView({
@@ -147,7 +147,9 @@ export function WeekView({
     today.setHours(0, 0, 0, 0);
 
     return tasks.filter(task => {
-      if (!task.scheduledDate) return false;
+      if (!task.scheduledDate) {
+        return false;
+      }
       const scheduledDate = new Date(task.scheduledDate);
       scheduledDate.setHours(0, 0, 0, 0);
 
@@ -171,7 +173,9 @@ export function WeekView({
   // Get upcoming tasks (STRICTLY after this week)
   const upcomingTasks = useMemo(() => {
     return tasks.filter(task => {
-      if (!task.scheduledDate) return false;
+      if (!task.scheduledDate) {
+        return false;
+      }
       const scheduledDate = new Date(task.scheduledDate);
       return scheduledDate > weekEnd;
     });

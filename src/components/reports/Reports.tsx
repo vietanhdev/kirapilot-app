@@ -14,6 +14,7 @@ import {
   ResponsiveContainer,
   Area,
   AreaChart,
+  PieLabelRenderProps,
 } from 'recharts';
 import {
   Clock,
@@ -101,7 +102,9 @@ export function Reports() {
   };
 
   const loadAnalyticsData = async () => {
-    if (!database) return;
+    if (!database) {
+      return;
+    }
 
     const timeTrackingRepository = new TimeTrackingRepository();
     const taskRepository = new TaskRepository();
@@ -149,7 +152,9 @@ export function Reports() {
       >();
 
       completedSessions.forEach((session: TimerSession) => {
-        if (!session.endTime) return;
+        if (!session.endTime) {
+          return;
+        }
 
         const date = session.startTime.toISOString().split('T')[0];
         const duration =
@@ -203,7 +208,9 @@ export function Reports() {
       >();
 
       completedSessions.forEach((session: TimerSession) => {
-        if (!session.endTime) return;
+        if (!session.endTime) {
+          return;
+        }
 
         const hour = session.startTime.getHours();
         const duration =
@@ -257,7 +264,9 @@ export function Reports() {
       >();
 
       completedSessions.forEach((session: TimerSession) => {
-        if (!session.endTime) return;
+        if (!session.endTime) {
+          return;
+        }
 
         const duration =
           session.endTime.getTime() - session.startTime.getTime();
@@ -500,8 +509,9 @@ export function Reports() {
                   cx='50%'
                   cy='50%'
                   labelLine={false}
-                  label={(props: TaskTimeData) => {
-                    const taskTitle = props.taskTitle || '';
+                  label={(props: PieLabelRenderProps) => {
+                    const data = props.payload as TaskTimeData;
+                    const taskTitle = data?.taskTitle || '';
                     return `${taskTitle.slice(0, 15)}${taskTitle.length > 15 ? '...' : ''}`;
                   }}
                   outerRadius={80}

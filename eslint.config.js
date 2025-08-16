@@ -51,20 +51,22 @@ export default [
       '@typescript-eslint': tseslint,
     },
     rules: {
-      // Essential rules only
-      'prefer-const': 'error',
-      'no-var': 'error',
-
       // React rules
       'react/react-in-jsx-scope': 'off',
       'react/prop-types': 'off',
 
-      // TypeScript rules - warnings only for now
+      // TypeScript rules
       '@typescript-eslint/no-unused-vars': [
         'warn',
         { argsIgnorePattern: '^_' },
       ],
-      '@typescript-eslint/no-explicit-any': 'off', // Disabled for now - database code uses any heavily
+      '@typescript-eslint/no-explicit-any': 'warn',
+
+      // Code quality rules
+      'prefer-const': 'error',
+      'no-var': 'error',
+      eqeqeq: ['error', 'always'],
+      curly: ['error', 'all'],
 
       // Disable problematic rules for now
       'no-unused-vars': 'off',

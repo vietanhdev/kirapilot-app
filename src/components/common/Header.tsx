@@ -36,7 +36,9 @@ export const Header: React.FC<HeaderProps> = ({
   const [showSessionLogs, setShowSessionLogs] = useState(false);
 
   const handleTimerControl = () => {
-    if (!activeTask) return;
+    if (!activeTask) {
+      return;
+    }
 
     try {
       if (isRunning) {
@@ -50,7 +52,9 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   const handleStopTimer = () => {
-    if (!activeTask) return;
+    if (!activeTask) {
+      return;
+    }
 
     try {
       handleTimerStop(activeTask);
@@ -60,7 +64,9 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   const handleClearDatabase = async () => {
-    if (!import.meta.env.DEV) return;
+    if (!import.meta.env.DEV) {
+      return;
+    }
 
     const confirmed = window.confirm(
       'Are you sure you want to clear all database data? This action cannot be undone.\n\n' +
@@ -169,23 +175,23 @@ export const Header: React.FC<HeaderProps> = ({
 
       <nav className='flex items-center gap-3'>
         {/* Week/Day Toggle */}
-        <div className='flex rounded-md border border-gray-600 overflow-hidden'>
+        <div className='flex rounded-lg border border-gray-500/50 overflow-hidden bg-gray-800/30'>
           <button
             onClick={() => onViewChange('week')}
-            className={`px-2 py-1 text-xs font-medium transition-colors duration-200 ${
+            className={`px-4 py-1 text-sm font-semibold transition-all duration-200 ${
               currentView === 'week'
-                ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
-                : 'text-gray-400 hover:text-gray-300 hover:bg-gray-700/30'
+                ? 'bg-primary-600 text-white shadow-lg'
+                : 'text-gray-300 hover:text-white hover:bg-gray-700/50'
             }`}
           >
             Week
           </button>
           <button
             onClick={() => onViewChange('day')}
-            className={`px-2 py-1 text-xs font-medium transition-colors duration-200 ${
+            className={`px-4 py-1 text-sm font-semibold transition-all duration-200 ${
               currentView === 'day'
-                ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
-                : 'text-gray-400 hover:text-gray-300 hover:bg-gray-700/30'
+                ? 'bg-primary-600 text-white shadow-lg'
+                : 'text-gray-300 hover:text-white hover:bg-gray-700/50'
             }`}
           >
             Day

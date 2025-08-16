@@ -1,6 +1,6 @@
 // Mock database implementation for testing
 export class MockDatabase {
-  private data: Map<string, any[]> = new Map();
+  private data: Map<string, Record<string, unknown>[]> = new Map();
   private isConnected = false;
 
   async load(_connectionString: string): Promise<MockDatabase> {
@@ -13,7 +13,7 @@ export class MockDatabase {
     this.data.clear();
   }
 
-  async execute(query: string, params: any[] = []): Promise<void> {
+  async execute(query: string, params: unknown[] = []): Promise<void> {
     if (!this.isConnected) {
       throw new Error('Database not connected');
     }
@@ -38,7 +38,7 @@ export class MockDatabase {
         const table = this.data.get(tableName) || [];
 
         // Create a mock row with the parameters
-        const row: any = {};
+        const row: Record<string, unknown> = {};
         const columns = this.extractColumnsFromInsert(query);
         columns.forEach((col, index) => {
           row[col] = params[index];
@@ -91,7 +91,10 @@ export class MockDatabase {
     }
   }
 
-  async select<T = any[]>(query: string, params: any[] = []): Promise<T> {
+  async select<T = Record<string, unknown>[]>(
+    query: string,
+    params: unknown[] = []
+  ): Promise<T> {
     if (!this.isConnected) {
       throw new Error('Database not connected');
     }

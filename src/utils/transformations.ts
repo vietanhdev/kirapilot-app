@@ -47,10 +47,15 @@ export function applyTaskUpdate(task: Task, update: UpdateTaskRequest): Task {
   };
 
   // Apply updates only for defined fields
-  if (update.title !== undefined) updatedTask.title = update.title;
-  if (update.description !== undefined)
+  if (update.title !== undefined) {
+    updatedTask.title = update.title;
+  }
+  if (update.description !== undefined) {
     updatedTask.description = update.description;
-  if (update.priority !== undefined) updatedTask.priority = update.priority;
+  }
+  if (update.priority !== undefined) {
+    updatedTask.priority = update.priority;
+  }
   if (update.status !== undefined) {
     updatedTask.status = update.status;
     // Set completion time when task is completed
@@ -62,14 +67,21 @@ export function applyTaskUpdate(task: Task, update: UpdateTaskRequest): Task {
       updatedTask.completedAt = undefined;
     }
   }
-  if (update.timeEstimate !== undefined)
+  if (update.timeEstimate !== undefined) {
     updatedTask.timeEstimate = update.timeEstimate;
-  if (update.dueDate !== undefined) updatedTask.dueDate = update.dueDate;
-  if (update.scheduledDate !== undefined)
+  }
+  if (update.dueDate !== undefined) {
+    updatedTask.dueDate = update.dueDate;
+  }
+  if (update.scheduledDate !== undefined) {
     updatedTask.scheduledDate = update.scheduledDate;
-  if (update.tags !== undefined) updatedTask.tags = update.tags;
-  if (update.dependencies !== undefined)
+  }
+  if (update.tags !== undefined) {
+    updatedTask.tags = update.tags;
+  }
+  if (update.dependencies !== undefined) {
     updatedTask.dependencies = update.dependencies;
+  }
 
   return updatedTask;
 }
@@ -77,7 +89,7 @@ export function applyTaskUpdate(task: Task, update: UpdateTaskRequest): Task {
 /**
  * Convert Task to database row format
  */
-export function taskToDbRow(task: Task): Record<string, any> {
+export function taskToDbRow(task: Task): Record<string, unknown> {
   return {
     id: task.id,
     title: task.title,
@@ -102,16 +114,16 @@ export function taskToDbRow(task: Task): Record<string, any> {
 /**
  * Safely parse JSON string with fallback
  */
-function safeJsonParse(
+function safeJsonParse<T = unknown>(
   jsonString: string | null | undefined,
-  fallback: any = []
-): any {
+  fallback: T = [] as T
+): T {
   if (!jsonString || jsonString.trim() === '') {
     return fallback;
   }
 
   try {
-    return JSON.parse(jsonString);
+    return JSON.parse(jsonString) as T;
   } catch (error) {
     console.warn('Failed to parse JSON:', jsonString, error);
     return fallback;
@@ -121,27 +133,29 @@ function safeJsonParse(
 /**
  * Convert database row to Task
  */
-export function dbRowToTask(row: Record<string, any>): Task {
+export function dbRowToTask(row: Record<string, unknown>): Task {
   return {
-    id: row.id,
-    title: row.title,
-    description: row.description,
-    priority: row.priority,
-    status: row.status,
-    dependencies: safeJsonParse(row.dependencies, []),
-    timeEstimate: row.time_estimate || 0,
-    actualTime: row.actual_time || 0,
-    dueDate: row.due_date ? new Date(row.due_date) : undefined,
+    id: row.id as string,
+    title: row.title as string,
+    description: row.description as string,
+    priority: row.priority as Priority,
+    status: row.status as TaskStatus,
+    dependencies: safeJsonParse<string[]>(row.dependencies as string, []),
+    timeEstimate: (row.time_estimate as number) || 0,
+    actualTime: (row.actual_time as number) || 0,
+    dueDate: row.due_date ? new Date(row.due_date as string) : undefined,
     scheduledDate: row.scheduled_date
-      ? new Date(row.scheduled_date)
+      ? new Date(row.scheduled_date as string)
       : undefined,
-    tags: safeJsonParse(row.tags, []),
-    projectId: row.project_id,
-    parentTaskId: row.parent_task_id,
-    subtasks: safeJsonParse(row.subtasks, []),
-    completedAt: row.completed_at ? new Date(row.completed_at) : undefined,
-    createdAt: new Date(row.created_at),
-    updatedAt: new Date(row.updated_at),
+    tags: safeJsonParse<string[]>(row.tags as string, []),
+    projectId: row.project_id as string | undefined,
+    parentTaskId: row.parent_task_id as string | undefined,
+    subtasks: safeJsonParse<string[]>(row.subtasks as string, []),
+    completedAt: row.completed_at
+      ? new Date(row.completed_at as string)
+      : undefined,
+    createdAt: new Date(row.created_at as string),
+    updatedAt: new Date(row.updated_at as string),
   };
 }
 
@@ -150,7 +164,7 @@ export function dbRowToTask(row: Record<string, any>): Task {
  */
 export function timerSessionToDbRow(
   session: TimerSession
-): Record<string, any> {
+): Record<string, unknown> {
   return {
     id: session.id,
     task_id: session.taskId,
@@ -167,17 +181,19 @@ export function timerSessionToDbRow(
 /**
  * Convert database row to TimerSession
  */
-export function dbRowToTimerSession(row: Record<string, any>): TimerSession {
+export function dbRowToTimerSession(
+  row: Record<string, unknown>
+): TimerSession {
   return {
-    id: row.id,
-    taskId: row.task_id,
-    startTime: new Date(row.start_time),
-    endTime: row.end_time ? new Date(row.end_time) : undefined,
-    pausedTime: row.paused_time || 0,
+    id: row.id as string,
+    taskId: row.task_id as string,
+    startTime: new Date(row.start_time as string),
+    endTime: row.end_time ? new Date(row.end_time as string) : undefined,
+    pausedTime: (row.paused_time as number) || 0,
     isActive: Boolean(row.is_active),
-    notes: row.notes || '',
-    breaks: JSON.parse(row.breaks || '[]'),
-    createdAt: new Date(row.created_at),
+    notes: (row.notes as string) || '',
+    breaks: JSON.parse((row.breaks as string) || '[]'),
+    createdAt: new Date(row.created_at as string),
   };
 }
 
@@ -186,7 +202,7 @@ export function dbRowToTimerSession(row: Record<string, any>): TimerSession {
  */
 export function focusSessionToDbRow(
   session: FocusSession
-): Record<string, any> {
+): Record<string, unknown> {
   return {
     id: session.id,
     task_id: session.taskId,
@@ -209,23 +225,28 @@ export function focusSessionToDbRow(
 /**
  * Convert database row to FocusSession
  */
-export function dbRowToFocusSession(row: Record<string, any>): FocusSession {
+export function dbRowToFocusSession(
+  row: Record<string, unknown>
+): FocusSession {
   return {
-    id: row.id,
-    taskId: row.task_id,
-    plannedDuration: row.planned_duration,
-    actualDuration: row.actual_duration,
-    focusScore: row.focus_score,
-    distractionCount: row.distraction_count || 0,
-    distractionLevel: row.distraction_level || DistractionLevel.MODERATE,
+    id: row.id as string,
+    taskId: row.task_id as string,
+    plannedDuration: row.planned_duration as number,
+    actualDuration: row.actual_duration as number | undefined,
+    focusScore: row.focus_score as number | undefined,
+    distractionCount: (row.distraction_count as number) || 0,
+    distractionLevel:
+      (row.distraction_level as DistractionLevel) || DistractionLevel.MODERATE,
     backgroundAudio: row.background_audio
-      ? JSON.parse(row.background_audio)
+      ? JSON.parse(row.background_audio as string)
       : undefined,
-    notes: row.notes || '',
-    breaks: JSON.parse(row.breaks || '[]'),
-    metrics: JSON.parse(row.metrics || '{}'),
-    createdAt: new Date(row.created_at),
-    completedAt: row.completed_at ? new Date(row.completed_at) : undefined,
+    notes: (row.notes as string) || '',
+    breaks: JSON.parse((row.breaks as string) || '[]'),
+    metrics: JSON.parse((row.metrics as string) || '{}'),
+    createdAt: new Date(row.created_at as string),
+    completedAt: row.completed_at
+      ? new Date(row.completed_at as string)
+      : undefined,
   };
 }
 
