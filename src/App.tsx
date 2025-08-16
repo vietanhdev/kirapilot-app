@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { BarChart3, Settings } from 'lucide-react';
+import { Settings } from 'lucide-react';
 import { HeroUIProvider } from '@heroui/react';
 import { DatabaseProvider } from './services/database/DatabaseProvider';
 import { TimerProvider } from './contexts/TimerContext';
 import { Planner } from './components/planning/Planner';
+import { Reports } from './components/reports/Reports';
 import { Header } from './components/common/Header';
 import TitleBar from './components/TitleBar';
 import './App.css';
@@ -25,19 +26,7 @@ function AppContent() {
           <Planner viewMode={currentView as 'week' | 'day'} />
         )}
 
-        {currentView === 'reports' && (
-          <div className='flex-1 flex items-center justify-center'>
-            <div className='text-center'>
-              <BarChart3 className='w-16 h-16 text-gray-600 mx-auto mb-4' />
-              <h2 className='text-xl font-semibold text-gray-300 mb-2'>
-                Reports
-              </h2>
-              <p className='text-gray-400'>
-                Analytics and insights coming soon...
-              </p>
-            </div>
-          </div>
-        )}
+        {currentView === 'reports' && <Reports />}
 
         {currentView === 'settings' && (
           <div className='flex-1 flex items-center justify-center'>

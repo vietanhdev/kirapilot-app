@@ -1,5 +1,5 @@
 // Modal component for viewing task time history
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Clock, Calendar, Coffee, Play } from 'lucide-react';
 import { Task, TimerSession } from '../../types';
 import { TimeTrackingRepository } from '../../services/database/repositories/TimeTrackingRepository';

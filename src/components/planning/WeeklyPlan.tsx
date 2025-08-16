@@ -1,5 +1,5 @@
 // Weekly planning interface with day and week views
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Task, TaskStatus } from '../../types';
 import { WeekView } from './WeekView';
 import { DayView } from './DayView';
