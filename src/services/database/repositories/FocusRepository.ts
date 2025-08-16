@@ -6,6 +6,7 @@ import {
   FocusMetrics,
   FocusBreak,
 } from '../../../types';
+import { FocusSessionDbRow, DbQueryResult } from '../../../types/database';
 import {
   focusSessionToDbRow,
   dbRowToFocusSession,
@@ -285,7 +286,7 @@ export class FocusRepository {
   async getActiveSession(): Promise<FocusSession | null> {
     const db = await getDatabase();
 
-    const result = await db.select<any[]>(
+    const result = await db.select<DbQueryResult<FocusSessionDbRow>>(
       'SELECT * FROM focus_sessions WHERE completed_at IS NULL LIMIT 1'
     );
 
@@ -298,7 +299,7 @@ export class FocusRepository {
   async findById(id: string): Promise<FocusSession | null> {
     const db = await getDatabase();
 
-    const result = await db.select<any[]>(
+    const result = await db.select<DbQueryResult<FocusSessionDbRow>>(
       'SELECT * FROM focus_sessions WHERE id = ?',
       [id]
     );
@@ -312,7 +313,7 @@ export class FocusRepository {
   async getByTask(taskId: string): Promise<FocusSession[]> {
     const db = await getDatabase();
 
-    const result = await db.select<any[]>(
+    const result = await db.select<DbQueryResult<FocusSessionDbRow>>(
       'SELECT * FROM focus_sessions WHERE task_id = ? ORDER BY created_at DESC',
       [taskId]
     );
@@ -329,7 +330,7 @@ export class FocusRepository {
   ): Promise<FocusSession[]> {
     const db = await getDatabase();
 
-    const result = await db.select<any[]>(
+    const result = await db.select<DbQueryResult<FocusSessionDbRow>>(
       'SELECT * FROM focus_sessions WHERE created_at >= ? AND created_at <= ? ORDER BY created_at DESC',
       [startDate.toISOString(), endDate.toISOString()]
     );
@@ -368,7 +369,7 @@ export class FocusRepository {
     const db = await getDatabase();
 
     let query = 'SELECT * FROM focus_sessions';
-    const params: any[] = [];
+    const params: unknown[] = [];
 
     if (startDate) {
       query += ' WHERE created_at >= ?';
@@ -381,7 +382,10 @@ export class FocusRepository {
       params.push(endDate.toISOString());
     }
 
-    const sessions = await db.select<any[]>(query, params);
+    const sessions = await db.select<DbQueryResult<FocusSessionDbRow>>(
+      query,
+      params
+    );
     const focusSessions = sessions.map(row => dbRowToFocusSession(row));
 
     if (focusSessions.length === 0) {
@@ -489,7 +493,7 @@ export class FocusRepository {
   async getIncompleteSessions(): Promise<FocusSession[]> {
     const db = await getDatabase();
 
-    const result = await db.select<any[]>(
+    const result = await db.select<DbQueryResult<FocusSessionDbRow>>(
       'SELECT * FROM focus_sessions WHERE completed_at IS NULL ORDER BY created_at DESC'
     );
 

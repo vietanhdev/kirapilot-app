@@ -53,10 +53,20 @@ export function createIdMigrationMap(oldIds: string[]): Map<string, string> {
   return migrationMap;
 }
 
+interface TaskMigrationData {
+  id: string;
+  dependencies?: string[];
+  parentTaskId?: string;
+  subtasks?: string[];
+  [key: string]: unknown;
+}
+
 /**
  * Migrate task data to use proper UUIDs
  */
-export function migrateTaskData(tasks: any[]): any[] {
+export function migrateTaskData(
+  tasks: TaskMigrationData[]
+): TaskMigrationData[] {
   // First pass: create ID migration map
   const allIds = tasks.map(task => task.id);
   const idMap = createIdMigrationMap(allIds);

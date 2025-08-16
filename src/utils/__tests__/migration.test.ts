@@ -82,7 +82,7 @@ describe('Migration Utilities', () => {
       expect(isValidUUID(migratedTasks[1].id)).toBe(true);
 
       // Relationships should be preserved
-      expect(migratedTasks[0].dependencies[0]).toBe(migratedTasks[1].id);
+      expect(migratedTasks[0].dependencies?.[0]).toBe(migratedTasks[1].id);
       expect(migratedTasks[1].parentTaskId).toBe(migratedTasks[0].id);
     });
 

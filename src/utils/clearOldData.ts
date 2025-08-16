@@ -5,7 +5,9 @@ import { isValidUUID } from './migration';
  * Clear localStorage if it contains old format data
  */
 export function clearOldDataIfNeeded(): void {
-  if (typeof localStorage === 'undefined') return;
+  if (typeof localStorage === 'undefined') {
+    return;
+  }
 
   try {
     const existingData = localStorage.getItem('kirapilot-mock-db');
@@ -14,7 +16,7 @@ export function clearOldDataIfNeeded(): void {
       if (parsed.tasks && parsed.tasks.length > 0) {
         // Check if any task has old format ID
         const hasOldFormatIds = parsed.tasks.some(
-          (task: any) => task.id && !isValidUUID(task.id)
+          (task: { id: string }) => task.id && !isValidUUID(task.id)
         );
 
         if (hasOldFormatIds) {

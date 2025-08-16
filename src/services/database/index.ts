@@ -7,8 +7,8 @@ let db: Database | MockDatabase | null = null;
 // Type declaration for Tauri window properties
 declare global {
   interface Window {
-    __TAURI__?: any;
-    __TAURI_INTERNALS__?: any;
+    __TAURI__?: Record<string, unknown>;
+    __TAURI_INTERNALS__?: Record<string, unknown>;
   }
 }
 
@@ -314,7 +314,7 @@ function getMigrations(): Migration[] {
 
 // Transaction management state
 let isTransactionActive = false;
-const transactionQueue: Array<() => Promise<any>> = [];
+const transactionQueue: Array<() => Promise<unknown>> = [];
 let processingQueue = false;
 
 /**
@@ -398,7 +398,9 @@ export async function executeTransaction<T>(
       } catch (rollbackError) {
         // Only log rollback errors that aren't "no transaction is active"
         if (
-          !(rollbackError as any)?.message?.includes('no transaction is active')
+          !(rollbackError as Error)?.message?.includes(
+            'no transaction is active'
+          )
         ) {
           console.warn('Failed to rollback transaction:', rollbackError);
         }

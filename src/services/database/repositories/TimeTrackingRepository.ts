@@ -1,6 +1,7 @@
 // Time tracking repository for database operations
 import { getDatabase, executeTransaction } from '../index';
 import { TimerSession, CompletedSession, TimerBreak } from '../../../types';
+import { TimerSessionDbRow, DbQueryResult } from '../../../types/database';
 import {
   timerSessionToDbRow,
   dbRowToTimerSession,
@@ -9,17 +10,18 @@ import { validateTimerSession } from '../../../types/validation';
 import { generateId } from '../../../utils';
 
 export class TimeTrackingRepository {
-  private async executeWithRetry(
-    operation: () => Promise<any>,
+  private async executeWithRetry<T>(
+    operation: () => Promise<T>,
     maxRetries = 3,
     delay = 100
-  ): Promise<any> {
+  ): Promise<T> {
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         return await operation();
-      } catch (error: any) {
+      } catch (error: unknown) {
         if (
-          error?.message?.includes('database is locked') &&
+          error instanceof Error &&
+          error.message.includes('database is locked') &&
           attempt < maxRetries
         ) {
           // Wait before retrying
@@ -32,6 +34,9 @@ export class TimeTrackingRepository {
         throw error;
       }
     }
+
+    // This should never be reached, but TypeScript requires it
+    throw new Error('Maximum retry attempts exceeded');
   }
 
   /**
@@ -40,10 +45,9 @@ export class TimeTrackingRepository {
   async startSession(taskId: string, notes?: string): Promise<TimerSession> {
     return await executeTransaction(async db => {
       // Check if there's already an active session using the transaction db
-      const activeSessionResult = await db.select<any[]>(
-        'SELECT * FROM time_sessions WHERE is_active = ? LIMIT 1',
-        [true]
-      );
+      const activeSessionResult = await db.select<
+        DbQueryResult<TimerSessionDbRow>
+      >('SELECT * FROM time_sessions WHERE is_active = ? LIMIT 1', [true]);
 
       if (activeSessionResult.length > 0) {
         throw new Error('Another timer session is already active');
@@ -114,7 +118,7 @@ export class TimeTrackingRepository {
     const db = await getDatabase();
 
     // Get session
-    const sessionResult = await db.select<any[]>(
+    const sessionResult = await db.select<DbQueryResult<TimerSessionDbRow>>(
       'SELECT * FROM time_sessions WHERE id = ? LIMIT 1',
       [sessionId]
     );
@@ -164,17 +168,18 @@ export class TimeTrackingRepository {
     );
 
     console.log('Update result:', {
-      rowsAffected: updateResult.rowsAffected,
-      lastInsertRowid: updateResult.lastInsertRowid,
+      changes: (updateResult as { changes: number }).changes,
+      lastInsertRowid: (updateResult as { lastInsertRowid?: number })
+        .lastInsertRowid,
     });
 
     // If no rows were affected, the WHERE clause didn't match
-    if (updateResult.rowsAffected === 0) {
+    if ((updateResult as { changes: number }).changes === 0) {
       console.error(
         'UPDATE affected 0 rows - WHERE clause did not match any records'
       );
       // Check if the session still exists
-      const recheckResult = await db.select<any[]>(
+      const recheckResult = await db.select<DbQueryResult<TimerSessionDbRow>>(
         'SELECT id, is_active FROM time_sessions WHERE id = ?',
         [sessionId]
       );
@@ -185,7 +190,7 @@ export class TimeTrackingRepository {
     }
 
     // Verify the update
-    const verifyResult = await db.select<any[]>(
+    const verifyResult = await db.select<DbQueryResult<TimerSessionDbRow>>(
       'SELECT is_active FROM time_sessions WHERE id = ?',
       [sessionId]
     );
@@ -214,7 +219,7 @@ export class TimeTrackingRepository {
     const db = await getDatabase();
 
     // Get session
-    const sessionResult = await db.select<any[]>(
+    const sessionResult = await db.select<DbQueryResult<TimerSessionDbRow>>(
       'SELECT * FROM time_sessions WHERE id = ? LIMIT 1',
       [sessionId]
     );
@@ -233,7 +238,9 @@ export class TimeTrackingRepository {
     }
 
     // Check if there's another active session (should not happen with proper state management)
-    const activeSessionResult = await db.select<any[]>(
+    const activeSessionResult = await db.select<
+      DbQueryResult<TimerSessionDbRow>
+    >(
       'SELECT * FROM time_sessions WHERE is_active = ? AND id != ? LIMIT 1',
       [1, sessionId] // Use 1 instead of true for SQLite
     );
@@ -262,7 +269,7 @@ export class TimeTrackingRepository {
     );
 
     // Verify the update
-    const verifyResult = await db.select<any[]>(
+    const verifyResult = await db.select<DbQueryResult<TimerSessionDbRow>>(
       'SELECT is_active FROM time_sessions WHERE id = ?',
       [sessionId]
     );
@@ -295,7 +302,7 @@ export class TimeTrackingRepository {
       const db = await getDatabase();
 
       // Get session
-      const sessionResult = await db.select<any[]>(
+      const sessionResult = await db.select<DbQueryResult<TimerSessionDbRow>>(
         'SELECT * FROM time_sessions WHERE id = ?',
         [sessionId]
       );
@@ -366,7 +373,7 @@ export class TimeTrackingRepository {
   ): Promise<TimerSession> {
     return await executeTransaction(async db => {
       // Get session using transaction db
-      const sessionResult = await db.select<any[]>(
+      const sessionResult = await db.select<DbQueryResult<TimerSessionDbRow>>(
         'SELECT * FROM time_sessions WHERE id = ?',
         [sessionId]
       );
@@ -408,7 +415,7 @@ export class TimeTrackingRepository {
   async getActiveSession(): Promise<TimerSession | null> {
     const db = await getDatabase();
 
-    const result = await db.select<any[]>(
+    const result = await db.select<DbQueryResult<TimerSessionDbRow>>(
       'SELECT * FROM time_sessions WHERE is_active = ? LIMIT 1',
       [1] // Use 1 instead of true for SQLite
     );
@@ -422,7 +429,7 @@ export class TimeTrackingRepository {
   async findById(id: string): Promise<TimerSession | null> {
     const db = await getDatabase();
 
-    const result = await db.select<any[]>(
+    const result = await db.select<DbQueryResult<TimerSessionDbRow>>(
       'SELECT * FROM time_sessions WHERE id = ?',
       [id]
     );
@@ -436,7 +443,7 @@ export class TimeTrackingRepository {
   async getByTask(taskId: string): Promise<TimerSession[]> {
     const db = await getDatabase();
 
-    const result = await db.select<any[]>(
+    const result = await db.select<DbQueryResult<TimerSessionDbRow>>(
       'SELECT * FROM time_sessions WHERE task_id = ? ORDER BY created_at DESC',
       [taskId]
     );
@@ -453,7 +460,7 @@ export class TimeTrackingRepository {
   ): Promise<TimerSession[]> {
     const db = await getDatabase();
 
-    const result = await db.select<any[]>(
+    const result = await db.select<DbQueryResult<TimerSessionDbRow>>(
       'SELECT * FROM time_sessions WHERE created_at >= ? AND created_at <= ? ORDER BY created_at DESC',
       [startDate.toISOString(), endDate.toISOString()]
     );
@@ -492,7 +499,7 @@ export class TimeTrackingRepository {
     const db = await getDatabase();
 
     let query = 'SELECT * FROM time_sessions WHERE end_time IS NOT NULL';
-    const params: any[] = [];
+    const params: unknown[] = [];
 
     if (startDate) {
       query += ' AND created_at >= ?';
@@ -504,7 +511,10 @@ export class TimeTrackingRepository {
       params.push(endDate.toISOString());
     }
 
-    const sessions = await db.select<any[]>(query, params);
+    const sessions = await db.select<DbQueryResult<TimerSessionDbRow>>(
+      query,
+      params
+    );
     const completedSessions = sessions.map(row => dbRowToTimerSession(row));
 
     if (completedSessions.length === 0) {
@@ -572,7 +582,7 @@ export class TimeTrackingRepository {
     const db = await getDatabase();
 
     // Check if session exists first
-    const sessionResult = await db.select<any[]>(
+    const sessionResult = await db.select<DbQueryResult<TimerSessionDbRow>>(
       'SELECT id FROM time_sessions WHERE id = ?',
       [id]
     );
@@ -590,7 +600,7 @@ export class TimeTrackingRepository {
   async getIncompleteSessions(): Promise<TimerSession[]> {
     const db = await getDatabase();
 
-    const result = await db.select<any[]>(
+    const result = await db.select<DbQueryResult<TimerSessionDbRow>>(
       'SELECT * FROM time_sessions WHERE end_time IS NULL ORDER BY created_at DESC'
     );
 
@@ -605,7 +615,9 @@ export class TimeTrackingRepository {
     actualWork: number,
     breakCount: number
   ): number {
-    if (totalDuration === 0) return 0;
+    if (totalDuration === 0) {
+      return 0;
+    }
 
     const workRatio = actualWork / totalDuration;
     const breakPenalty = Math.min(breakCount * 0.05, 0.3); // Max 30% penalty for breaks
@@ -680,7 +692,7 @@ export class TimeTrackingRepository {
     const db = await getDatabase();
 
     // Check for multiple active sessions (should never happen)
-    const activeSessions = await db.select<any[]>(
+    const activeSessions = await db.select<DbQueryResult<TimerSessionDbRow>>(
       'SELECT id, task_id, created_at FROM time_sessions WHERE is_active = ?',
       [1] // Use 1 instead of true for SQLite
     );

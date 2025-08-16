@@ -16,7 +16,7 @@
 ## Development Tools
 
 - **Linting**: ESLint 9+ with TypeScript rules
-- **Formatting**: Prettier with single quotes, 2-space tabs
+- **Formatting**: Prettier with single quotes, 2-space tabs, don't use "any" as ts type
 - **Testing**: Jest with ts-jest, React Testing Library
 - **Git Hooks**: Husky with lint-staged
 - **Type Checking**: TypeScript 5.8+ in strict mode

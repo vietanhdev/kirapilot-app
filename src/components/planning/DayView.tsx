@@ -11,7 +11,7 @@ import {
   DragOverlay,
 } from '@dnd-kit/core';
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
-import { Task, TaskStatus } from '../../types';
+import { Task, TaskStatus, TaskTimerProps } from '../../types';
 import { TaskColumn } from './TaskColumn';
 import { TaskCard } from './TaskCard';
 import { TaskModal } from './TaskModal';
@@ -40,7 +40,7 @@ interface DayViewProps {
   onInlineEdit?: (taskId: string, updates: Partial<Task>) => void;
   onTaskDelete?: (task: Task) => void;
   onViewTimeHistory?: (task: Task) => void;
-  getTaskTimerProps?: (task: Task) => any;
+  getTaskTimerProps?: (task: Task) => TaskTimerProps;
   className?: string;
 }
 

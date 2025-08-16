@@ -8,6 +8,7 @@ import {
   TaskSortOptions,
   ValidationResult,
 } from '../../../types';
+import { TaskDbRow, DbQueryResult } from '../../../types/database';
 import {
   createTaskRequestToTask,
   applyTaskUpdate,
@@ -89,7 +90,7 @@ export class TaskRepository {
 
       // Update parent task's subtasks if this is a subtask
       if (task.parentTaskId) {
-        const parentResult = await db.select<any[]>(
+        const parentResult = await db.select<DbQueryResult<TaskDbRow>>(
           'SELECT * FROM tasks WHERE id = ?',
           [task.parentTaskId]
         );
@@ -108,7 +109,7 @@ export class TaskRepository {
       }
 
       // Retrieve the task from database to ensure proper data conversion
-      const createdTaskResult = await db.select<any[]>(
+      const createdTaskResult = await db.select<DbQueryResult<TaskDbRow>>(
         'SELECT * FROM tasks WHERE id = ?',
         [task.id]
       );
@@ -129,9 +130,10 @@ export class TaskRepository {
   async findById(id: string): Promise<Task | null> {
     const db = await getDatabase();
 
-    const result = await db.select<any[]>('SELECT * FROM tasks WHERE id = ?', [
-      id,
-    ]);
+    const result = await db.select<DbQueryResult<TaskDbRow>>(
+      'SELECT * FROM tasks WHERE id = ?',
+      [id]
+    );
 
     return result.length > 0 ? dbRowToTask(result[0]) : null;
   }
@@ -146,7 +148,7 @@ export class TaskRepository {
     const db = await getDatabase();
 
     let query = 'SELECT * FROM tasks';
-    const params: any[] = [];
+    const params: unknown[] = [];
     const conditions: string[] = [];
 
     // Apply filters
@@ -226,7 +228,7 @@ export class TaskRepository {
       query += ' ORDER BY created_at DESC';
     }
 
-    const result = await db.select<any[]>(query, params);
+    const result = await db.select<DbQueryResult<TaskDbRow>>(query, params);
     return result.map(row => dbRowToTask(row));
   }
 
@@ -244,7 +246,7 @@ export class TaskRepository {
 
     return await executeTransaction(async db => {
       // Find existing task using transaction db
-      const existingResult = await db.select<any[]>(
+      const existingResult = await db.select<DbQueryResult<TaskDbRow>>(
         'SELECT * FROM tasks WHERE id = ?',
         [id]
       );
@@ -259,7 +261,9 @@ export class TaskRepository {
       // Check for circular dependencies if dependencies changed
       if (request.dependencies) {
         // Get all tasks using transaction db
-        const allTasksResult = await db.select<any[]>('SELECT * FROM tasks');
+        const allTasksResult = await db.select<DbQueryResult<TaskDbRow>>(
+          'SELECT * FROM tasks'
+        );
         const allTasks = allTasksResult.map(row => dbRowToTask(row));
 
         if (hasCircularDependency(id, request.dependencies, allTasks)) {
@@ -323,7 +327,7 @@ export class TaskRepository {
   async delete(id: string): Promise<void> {
     return await executeTransaction(async db => {
       // Get task using transaction db
-      const taskResult = await db.select<any[]>(
+      const taskResult = await db.select<DbQueryResult<TaskDbRow>>(
         'SELECT * FROM tasks WHERE id = ?',
         [id]
       );
@@ -335,7 +339,7 @@ export class TaskRepository {
 
       // Remove from parent's subtasks if this is a subtask
       if (task.parentTaskId) {
-        const parentResult = await db.select<any[]>(
+        const parentResult = await db.select<DbQueryResult<TaskDbRow>>(
           'SELECT * FROM tasks WHERE id = ?',
           [task.parentTaskId]
         );
@@ -367,7 +371,7 @@ export class TaskRepository {
   async getDependencies(taskId: string): Promise<Task[]> {
     const db = await getDatabase();
 
-    const result = await db.select<any[]>(
+    const result = await db.select<DbQueryResult<TaskDbRow>>(
       `
       SELECT t.* FROM tasks t
       INNER JOIN task_dependencies td ON t.id = td.depends_on_id
@@ -386,7 +390,7 @@ export class TaskRepository {
   async getDependents(taskId: string): Promise<Task[]> {
     const db = await getDatabase();
 
-    const result = await db.select<any[]>(
+    const result = await db.select<DbQueryResult<TaskDbRow>>(
       `
       SELECT t.* FROM tasks t
       INNER JOIN task_dependencies td ON t.id = td.task_id
@@ -405,7 +409,7 @@ export class TaskRepository {
   async getSubtasks(parentId: string): Promise<Task[]> {
     const db = await getDatabase();
 
-    const result = await db.select<any[]>(
+    const result = await db.select<DbQueryResult<TaskDbRow>>(
       'SELECT * FROM tasks WHERE parent_task_id = ? ORDER BY created_at ASC',
       [parentId]
     );
@@ -419,7 +423,7 @@ export class TaskRepository {
   async getByProject(projectId: string): Promise<Task[]> {
     const db = await getDatabase();
 
-    const result = await db.select<any[]>(
+    const result = await db.select<DbQueryResult<TaskDbRow>>(
       'SELECT * FROM tasks WHERE project_id = ? ORDER BY priority DESC, created_at DESC',
       [projectId]
     );
@@ -434,7 +438,7 @@ export class TaskRepository {
     const db = await getDatabase();
     const now = new Date().toISOString();
 
-    const result = await db.select<any[]>(
+    const result = await db.select<DbQueryResult<TaskDbRow>>(
       'SELECT * FROM tasks WHERE due_date < ? AND status != ? ORDER BY due_date ASC',
       [now, 'completed']
     );
@@ -448,7 +452,7 @@ export class TaskRepository {
   async getByTag(tag: string): Promise<Task[]> {
     const db = await getDatabase();
 
-    const result = await db.select<any[]>(
+    const result = await db.select<DbQueryResult<TaskDbRow>>(
       'SELECT * FROM tasks WHERE tags LIKE ? ORDER BY created_at DESC',
       [`%"${tag}"%`]
     );
@@ -462,7 +466,7 @@ export class TaskRepository {
   async search(query: string): Promise<Task[]> {
     const db = await getDatabase();
 
-    const result = await db.select<any[]>(
+    const result = await db.select<DbQueryResult<TaskDbRow>>(
       `
       SELECT * FROM tasks 
       WHERE title LIKE ? OR description LIKE ? OR tags LIKE ?

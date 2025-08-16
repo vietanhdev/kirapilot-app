@@ -6,6 +6,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { Plus, LucideIcon } from 'lucide-react';
+import { Task } from '../../types';
 
 interface TaskColumnProps {
   title: string;
@@ -50,7 +51,7 @@ export function TaskColumn({
         typeof child.props.task === 'object' &&
         'id' in child.props.task
       ) {
-        return (child.props.task as any).id;
+        return (child.props.task as Task).id;
       }
       return null;
     })

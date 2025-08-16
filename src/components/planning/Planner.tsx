@@ -51,7 +51,9 @@ export function Planner({ viewMode = 'week' }: PlanningScreenProps) {
     console.log('Moving task:', { taskId, fromColumn, toColumn, date });
 
     const task = tasks.find(t => t.id === taskId);
-    if (!task) return;
+    if (!task) {
+      return;
+    }
 
     let newScheduledDate: Date | undefined;
 

@@ -2,6 +2,15 @@ import React, { createContext, useContext } from 'react';
 import { Task } from '../types';
 import { useSimpleTimer } from '../hooks/useSimpleTimer';
 
+interface TaskTimerProps {
+  onTimerStart: () => void;
+  onTimerPause: () => void;
+  onTimerStop: () => void;
+  activeTimerTaskId: string | null;
+  isTimerRunning: boolean;
+  elapsedTime: number;
+}
+
 interface TimerContextType {
   // State
   isRunning: boolean;
@@ -14,7 +23,7 @@ interface TimerContextType {
   startTimer: (task: Task) => void;
   pauseTimer: () => void;
   stopTimer: () => void;
-  getTaskTimerProps: (task: Task) => any;
+  getTaskTimerProps: (task: Task) => TaskTimerProps;
   formatElapsedTime: (milliseconds?: number) => string;
 
   // Legacy compatibility

@@ -71,14 +71,22 @@ export function TimeHistoryModal({
       (now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24)
     );
 
-    if (diffDays === 0) return 'Today';
-    if (diffDays === 1) return 'Yesterday';
-    if (diffDays < 7) return `${diffDays} days ago`;
+    if (diffDays === 0) {
+      return 'Today';
+    }
+    if (diffDays === 1) {
+      return 'Yesterday';
+    }
+    if (diffDays < 7) {
+      return `${diffDays} days ago`;
+    }
     return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
   };
 
   const getSessionDuration = (session: TimerSession): number => {
-    if (!session.endTime) return 0;
+    if (!session.endTime) {
+      return 0;
+    }
     const startTime =
       typeof session.startTime === 'string'
         ? new Date(session.startTime)

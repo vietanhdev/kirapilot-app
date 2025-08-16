@@ -76,11 +76,12 @@
   - Write tests for time analytics calculations
   - _Requirements: 3.3, 3.4_
 
-- [ ] 4.3 Refactor code base
+- [x] 4.3 Refactor code base
   - Scan for "any" type in all code base (.ts, .tsx)
-  - Fix them. Replace with proper types.
-  - Run linting and code formatting to ensure all passed.
-  - Run build and fix issues at the final.
+  - Fix them. Replace with proper types, only stop when you finish all
+  - Run linting and code formatting to ensure all passed
+  - Run build and fix issues at the final
+  - Adjust linting configs to improve it and iterate
 
 - [ ] 5. Develop focus environment system
 - [ ] 5.1 Implement focus session management

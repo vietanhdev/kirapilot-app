@@ -7,6 +7,12 @@ import {
   PatternAnalysis,
   TrendData,
 } from '../../../types';
+import {
+  ProductivityPatternDbRow,
+  TaskTrendDbRow,
+  FocusTrendDbRow,
+  DbQueryResult,
+} from '../../../types/database';
 import { generateId } from '../../../utils';
 
 export class PatternRepository {
@@ -22,7 +28,7 @@ export class PatternRepository {
   ): Promise<void> {
     return await executeTransaction(async db => {
       // Check if pattern already exists
-      const existing = await db.select<any[]>(
+      const existing = await db.select<DbQueryResult<ProductivityPatternDbRow>>(
         `
         SELECT * FROM productivity_patterns 
         WHERE user_id = ? AND pattern_type = ? AND time_slot = ?
@@ -96,7 +102,7 @@ export class PatternRepository {
   ): Promise<ProductivityPattern[]> {
     const db = await getDatabase();
 
-    const result = await db.select<any[]>(
+    const result = await db.select<DbQueryResult<ProductivityPatternDbRow>>(
       `
       SELECT * FROM productivity_patterns 
       WHERE user_id = ? AND pattern_type = ?
@@ -108,7 +114,11 @@ export class PatternRepository {
     return result.map(row => ({
       id: row.id,
       userId: row.user_id,
-      patternType: row.pattern_type,
+      patternType: row.pattern_type as
+        | 'daily'
+        | 'weekly'
+        | 'task_based'
+        | 'energy_based',
       timeSlots: this.parseTimeSlot(row.time_slot),
       productivity: row.productivity_score,
       confidence: row.confidence_level,
@@ -140,7 +150,7 @@ export class PatternRepository {
   ): Promise<TimeSlot[]> {
     const db = await getDatabase();
 
-    const result = await db.select<any[]>(
+    const result = await db.select<DbQueryResult<ProductivityPatternDbRow>>(
       `
       SELECT time_slot, productivity_score, confidence_level, sample_size
       FROM productivity_patterns 
@@ -165,7 +175,7 @@ export class PatternRepository {
     const db = await getDatabase();
 
     // Get completed tasks in date range
-    const tasks = await db.select<any[]>(
+    const tasks = await db.select<DbQueryResult<ProductivityPatternDbRow>>(
       `
       SELECT * FROM tasks 
       WHERE completed_at >= ? AND completed_at <= ? AND status = 'completed'
@@ -175,7 +185,9 @@ export class PatternRepository {
     );
 
     // Get focus sessions in date range
-    const focusSessions = await db.select<any[]>(
+    const focusSessions = await db.select<
+      DbQueryResult<ProductivityPatternDbRow>
+    >(
       `
       SELECT * FROM focus_sessions 
       WHERE created_at >= ? AND created_at <= ? AND completed_at IS NOT NULL
@@ -185,7 +197,9 @@ export class PatternRepository {
     );
 
     // Get time sessions in date range
-    const timeSessions = await db.select<any[]>(
+    const timeSessions = await db.select<
+      DbQueryResult<ProductivityPatternDbRow>
+    >(
       `
       SELECT * FROM time_sessions 
       WHERE created_at >= ? AND created_at <= ? AND end_time IS NOT NULL
@@ -200,9 +214,9 @@ export class PatternRepository {
 
     // Generate insights
     const insights = this.generateInsights(
-      tasks,
-      focusSessions,
-      timeSessions,
+      tasks as Record<string, unknown>[],
+      focusSessions as Record<string, unknown>[],
+      timeSessions as Record<string, unknown>[],
       productivityPatterns
     );
 
@@ -320,7 +334,7 @@ export class PatternRepository {
     }
 
     // Get task completion trend
-    const taskTrend = await db.select<any[]>(
+    const taskTrend = await db.select<DbQueryResult<TaskTrendDbRow>>(
       `
       SELECT 
         ${groupBy} as period,
@@ -335,7 +349,7 @@ export class PatternRepository {
     );
 
     // Get focus session trend
-    const focusTrend = await db.select<any[]>(
+    const focusTrend = await db.select<DbQueryResult<FocusTrendDbRow>>(
       `
       SELECT 
         ${groupBy} as period,
@@ -413,7 +427,7 @@ export class PatternRepository {
   }> {
     const db = await getDatabase();
 
-    const patterns = await db.select<any[]>(
+    const patterns = await db.select<DbQueryResult<ProductivityPatternDbRow>>(
       `
       SELECT * FROM productivity_patterns WHERE user_id = ?
     `,
@@ -509,10 +523,18 @@ export class PatternRepository {
    * Categorize energy level
    */
   private categorizeEnergyLevel(score: number): string {
-    if (score >= 80) return 'high';
-    if (score >= 60) return 'medium-high';
-    if (score >= 40) return 'medium';
-    if (score >= 20) return 'low-medium';
+    if (score >= 80) {
+      return 'high';
+    }
+    if (score >= 60) {
+      return 'medium-high';
+    }
+    if (score >= 40) {
+      return 'medium';
+    }
+    if (score >= 20) {
+      return 'low-medium';
+    }
     return 'low';
   }
 
@@ -520,9 +542,9 @@ export class PatternRepository {
    * Generate insights from data
    */
   private generateInsights(
-    tasks: any[],
-    focusSessions: any[],
-    _timeSessions: any[],
+    tasks: Record<string, unknown>[],
+    focusSessions: Record<string, unknown>[],
+    _timeSessions: Record<string, unknown>[],
     patterns: ProductivityPattern[]
   ) {
     // Find most productive time
@@ -546,11 +568,13 @@ export class PatternRepository {
     );
 
     // Calculate average task duration
-    const completedTasks = tasks.filter(t => t.actual_time > 0);
+    const completedTasks = tasks.filter(t => (t.actual_time as number) > 0);
     const averageTaskDuration =
       completedTasks.length > 0
-        ? completedTasks.reduce((sum, t) => sum + t.actual_time, 0) /
-          completedTasks.length
+        ? completedTasks.reduce(
+            (sum, t) => sum + (t.actual_time as number),
+            0
+          ) / completedTasks.length
         : 0;
 
     // Calculate completion rate
@@ -567,8 +591,10 @@ export class PatternRepository {
     );
     const focusEfficiency =
       completedFocusSessions.length > 0
-        ? completedFocusSessions.reduce((sum, s) => sum + s.focus_score, 0) /
-          completedFocusSessions.length
+        ? completedFocusSessions.reduce(
+            (sum, s) => sum + (s.focus_score as number),
+            0
+          ) / completedFocusSessions.length
         : 0;
 
     return {
@@ -583,13 +609,16 @@ export class PatternRepository {
   /**
    * Generate AI recommendations based on patterns
    */
-  private async generateRecommendations(_userId: string, insights: any) {
+  private async generateRecommendations(
+    _userId: string,
+    insights: Record<string, unknown>
+  ) {
     // This would typically integrate with the AI system
     // For now, return basic recommendations based on patterns
 
     const recommendations = [];
 
-    if (insights.focusEfficiency < 70) {
+    if ((insights.focusEfficiency as number) < 70) {
       recommendations.push({
         id: generateId(),
         type: 'focus' as const,
@@ -605,7 +634,7 @@ export class PatternRepository {
       });
     }
 
-    if (insights.completionRate < 80) {
+    if ((insights.completionRate as number) < 80) {
       recommendations.push({
         id: generateId(),
         type: 'task' as const,

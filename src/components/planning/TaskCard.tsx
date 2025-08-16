@@ -30,7 +30,7 @@ interface PlanningTaskCardProps {
   onTimerStop?: (task: Task) => void;
   onDelete?: (task: Task) => void;
   onViewTimeHistory?: (task: Task) => void;
-  activeTimerTaskId?: string;
+  activeTimerTaskId?: string | null;
   isTimerRunning?: boolean;
   elapsedTime?: number;
   className?: string;
@@ -69,7 +69,9 @@ export function TaskCard({
 
   const handleStatusToggle = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!onStatusChange) return;
+    if (!onStatusChange) {
+      return;
+    }
 
     if (task.status === TaskStatus.COMPLETED) {
       onStatusChange(TaskStatus.PENDING);
@@ -118,7 +120,9 @@ export function TaskCard({
 
   const handleTimerClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (isTimerOperationPending) return; // Prevent rapid clicks
+    if (isTimerOperationPending) {
+      return;
+    } // Prevent rapid clicks
     setIsTimerOperationPending(true);
     if (isTimerActive && isTimerRunning) {
       // If timer is running, pause it
