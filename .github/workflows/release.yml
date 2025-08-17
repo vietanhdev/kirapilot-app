@@ -51,12 +51,16 @@ jobs:
         include:
           - platform: "macos-latest" # for Arm based macs (M1 and above).
             args: "--target aarch64-apple-darwin"
+            os_name: "macos-arm64"
           - platform: "macos-latest" # for Intel based macs.
             args: "--target x86_64-apple-darwin"
+            os_name: "macos-x64"
           - platform: "ubuntu-22.04" # for Tauri v1 you could replace this with ubuntu-20.04.
             args: ""
+            os_name: "linux-x64"
           - platform: "windows-latest"
             args: ""
+            os_name: "windows-x64"
 
     runs-on: ${{ matrix.platform }}
     steps:
@@ -90,6 +94,7 @@ jobs:
         with:
           releaseId: ${{ needs.create-release.outputs.release_id }}
           args: ${{ matrix.args }}
+          assetNamePattern: "KiraPilot-${{ matrix.os_name }}-${version}.${ext}"
 
   publish-release:
     permissions:
