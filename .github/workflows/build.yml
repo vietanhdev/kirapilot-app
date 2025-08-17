@@ -3,6 +3,8 @@ name: Build and Test
 on:
   push:
     branches: [ main, develop ]
+    tags:
+      - 'v*'
   pull_request:
     branches: [ main, develop ]
 
@@ -59,6 +61,7 @@ jobs:
 
   build:
     needs: test
+    if: startsWith(github.ref, 'refs/tags/v')
     permissions:
       contents: write
     strategy:
