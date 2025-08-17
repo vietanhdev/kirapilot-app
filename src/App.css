@@ -8,6 +8,14 @@
 @source '../node_modules/@heroui/theme/dist/**/*.{js,ts,jsx,tsx}';
 @custom-variant dark (&:is(.dark *));
 
+/* Prevent scrollbars in frameless mode */
+html,
+body,
+#root {
+  height: 100%;
+  overflow: hidden;
+}
+
 @utility task-card {
   @apply bg-content2 backdrop-blur-sm rounded-lg border border-divider p-3 mb-3 
            hover:bg-content3 transition-all duration-200 cursor-pointer

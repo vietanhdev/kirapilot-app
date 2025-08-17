@@ -59,9 +59,7 @@ export default function TitleBar() {
         className='flex-1 h-full flex items-center px-4'
         onDoubleClick={handleMaximize}
       >
-        <span className='text-sm font-medium text-foreground-600'>
-          KiraPilot
-        </span>
+        <span className='text-sm font-medium text-foreground-600'>&nbsp;</span>
       </div>
 
       {/* Window controls */}
