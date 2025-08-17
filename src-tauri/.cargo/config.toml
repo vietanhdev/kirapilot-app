@@ -1,0 +1,18 @@
+[profile.release]
+# Optimize for size and performance
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
+
+# Enable all optimizations
+[target.'cfg(target_os = "windows")']
+rustflags = ["-C", "target-feature=+crt-static"]
+
+[build]
+# Use multiple cores for compilation (default behavior)
+
+[net]
+# Speed up builds by allowing git to use multiple connections
+git-fetch-with-cli = true 

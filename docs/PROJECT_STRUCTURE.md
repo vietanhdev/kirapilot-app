@@ -1,6 +1,7 @@
 # KiraPilot Project Structure
 
 ## Overview
+
 KiraPilot is built with Tauri + React + TypeScript, providing a cross-platform productivity application with AI assistant integration.
 
 ## Directory Structure

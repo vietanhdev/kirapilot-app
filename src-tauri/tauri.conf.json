@@ -51,6 +51,56 @@
     ],
     "category": "Productivity",
     "shortDescription": "AI-powered productivity application",
-    "longDescription": "KiraPilot is a cross-platform productivity application that combines task management, time tracking, and focus tools with an intelligent AI assistant named Kira."
+    "longDescription": "KiraPilot is a cross-platform productivity application that combines task management, time tracking, and focus tools with an intelligent AI assistant named Kira.",
+    "copyright": "Copyright © 2025 Viet-Anh Nguyen. All rights reserved.",
+    "licenseFile": "LICENSE",
+    "homepage": "https://github.com/vietanhdev/KiraPilot",
+    "publisher": "VietAnh Dev",
+    "windows": {
+      "certificateThumbprint": null,
+      "digestAlgorithm": "sha256",
+      "timestampUrl": "",
+      "wix": {
+        "language": ["en-US"]
+      },
+      "nsis": {
+        "installerIcon": "icons/icon.ico",
+        "installMode": "perMachine",
+        "languages": ["English"],
+        "displayLanguageSelector": false
+      }
+    },
+    "macOS": {
+      "frameworks": [],
+      "minimumSystemVersion": "10.13",
+      "exceptionDomain": "",
+      "signingIdentity": null,
+      "providerShortName": null,
+      "entitlements": null,
+      "dmg": {
+        "appPosition": {
+          "x": 180,
+          "y": 170
+        },
+        "applicationFolderPosition": {
+          "x": 480,
+          "y": 170
+        },
+        "windowSize": {
+          "width": 660,
+          "height": 400
+        }
+      }
+    },
+    "linux": {
+      "appimage": {
+        "bundleMediaFramework": false
+      },
+      "deb": {
+        "depends": ["libwebkit2gtk-4.1-0", "libgtk-3-0"],
+        "section": "office",
+        "priority": "optional"
+      }
+    }
   }
 }
