@@ -284,6 +284,21 @@ export interface UserPreferences {
     dailySummary: boolean;
     weeklyReview: boolean;
   };
+  aiSettings: {
+    conversationHistory: boolean;
+    autoSuggestions: boolean;
+    toolPermissions: boolean;
+    responseStyle: 'concise' | 'balanced' | 'detailed';
+    suggestionFrequency: 'minimal' | 'moderate' | 'frequent';
+  };
+  taskSettings: {
+    defaultPriority: Priority;
+    autoScheduling: boolean;
+    smartDependencies: boolean;
+    weekStartDay: 0 | 1; // 0 = Sunday, 1 = Monday
+    showCompletedTasks: boolean;
+    compactView: boolean;
+  };
   theme: 'light' | 'dark' | 'auto';
   language: string;
 }

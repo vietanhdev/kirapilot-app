@@ -15,6 +15,7 @@ import { Task, TaskStatus, TaskTimerProps } from '../../types';
 import { TaskColumn } from './TaskColumn';
 import { TaskCard } from './TaskCard';
 import { TaskModal } from './TaskModal';
+import { useTranslation } from '../../hooks/useTranslation';
 import {
   ChevronLeft,
   ChevronRight,
@@ -55,6 +56,7 @@ export function WeekView({
   onViewTimeHistory,
   getTaskTimerProps,
 }: WeekViewProps) {
+  const { t } = useTranslation();
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [taskModalColumn, setTaskModalColumn] = useState<string>('');
   const [taskModalDate, setTaskModalDate] = useState<Date | undefined>();
@@ -301,13 +303,13 @@ export function WeekView({
       onDragEnd={handleDragEnd}
     >
       <div
-        className={`bg-gray-100 dark:bg-gray-800/50 backdrop-blur-sm rounded-lg`}
+        className={`bg-content1 backdrop-blur-sm rounded-lg border border-divider`}
       >
         {/* Header */}
-        <div className='p-2 bg-gray-200 dark:bg-gray-700/50 backdrop-blur-sm rounded-t-lg border-b border-gray-300 dark:border-gray-700/30'>
+        <div className='p-2 bg-content2 backdrop-blur-sm rounded-t-lg border-b border-divider'>
           <div className='flex items-center justify-between mb-1'>
             <div className='flex items-center space-x-2'>
-              <span className='text-sm font-medium text-gray-900 dark:text-gray-100'>
+              <span className='text-sm font-medium text-foreground'>
                 {formatWeekRange()}
               </span>
             </div>
@@ -321,10 +323,10 @@ export function WeekView({
                     newDate.setDate(newDate.getDate() - 7);
                     onWeekChange(newDate);
                   }}
-                  className='p-1 hover:bg-gray-300 dark:hover:bg-gray-700/50 rounded transition-colors duration-200'
-                  title='Previous week'
+                  className='p-1 hover:bg-content3 rounded transition-colors duration-200'
+                  title={t('planning.previousWeek') || 'Previous week'}
                 >
-                  <ChevronLeft className='w-4 h-4 text-gray-600 dark:text-gray-400' />
+                  <ChevronLeft className='w-4 h-4 text-foreground-600' />
                 </button>
 
                 <button
@@ -341,10 +343,10 @@ export function WeekView({
                     newDate.setDate(newDate.getDate() + 7);
                     onWeekChange(newDate);
                   }}
-                  className='p-1 hover:bg-gray-300 dark:hover:bg-gray-700/50 rounded transition-colors duration-200'
-                  title='Next week'
+                  className='p-1 hover:bg-content3 rounded transition-colors duration-200'
+                  title={t('planning.nextWeek') || 'Next week'}
                 >
-                  <ChevronRight className='w-4 h-4 text-gray-600 dark:text-gray-400' />
+                  <ChevronRight className='w-4 h-4 text-foreground-600' />
                 </button>
               </div>
             </div>
@@ -354,20 +356,20 @@ export function WeekView({
           <div className='flex items-center space-x-4 text-xs'>
             <div className='flex items-center space-x-1'>
               <TrendingUp className='w-3 h-3 text-blue-500' />
-              <span className='text-gray-600 dark:text-gray-400'>
-                {weekStats.total} total
+              <span className='text-foreground-600'>
+                {weekStats.total} {t('planning.total')}
               </span>
             </div>
             <div className='flex items-center space-x-1'>
               <div className='w-2 h-2 bg-green-500 rounded-full'></div>
-              <span className='text-gray-600 dark:text-gray-400'>
-                {weekStats.completed} done
+              <span className='text-foreground-600'>
+                {weekStats.completed} {t('planning.done')}
               </span>
             </div>
             <div className='flex items-center space-x-1'>
               <div className='w-2 h-2 bg-blue-500 rounded-full'></div>
-              <span className='text-gray-600 dark:text-gray-400'>
-                {weekStats.inProgress} active
+              <span className='text-foreground-600'>
+                {weekStats.inProgress} {t('planning.active')}
               </span>
             </div>
           </div>

@@ -1,21 +1,27 @@
 import { useState } from 'react';
-import { Settings } from 'lucide-react';
 import { HeroUIProvider } from '@heroui/react';
 import { DatabaseProvider } from './services/database/DatabaseProvider';
 import { TimerProvider } from './contexts/TimerContext';
 import { AIProvider } from './contexts/AIContext';
+import { PrivacyProvider } from './contexts/PrivacyContext';
+import { SettingsProvider } from './contexts/SettingsContext';
 import { Planner } from './components/planning/Planner';
 import { Reports } from './components/reports/Reports';
+import { Settings } from './components/settings/Settings';
 import { Header } from './components/common/Header';
 import { AIFloatingButton } from './components/ai/AIFloatingButton';
 import TitleBar from './components/TitleBar';
+import { useTheme } from './hooks/useTheme';
 import './App.css';
 
 function AppContent() {
   const [currentView, setCurrentView] = useState('week');
+  const { resolvedTheme } = useTheme();
 
   return (
-    <div className='dark text-foreground bg-gray-800 min-h-screen'>
+    <div
+      className={`${resolvedTheme} text-foreground bg-background min-h-screen`}
+    >
       {/* Custom Title Bar */}
       <TitleBar />
 
@@ -30,19 +36,7 @@ function AppContent() {
 
         {currentView === 'reports' && <Reports />}
 
-        {currentView === 'settings' && (
-          <div className='flex-1 flex items-center justify-center'>
-            <div className='text-center'>
-              <Settings className='w-16 h-16 text-gray-600 mx-auto mb-4' />
-              <h2 className='text-xl font-semibold text-gray-300 mb-2'>
-                Settings
-              </h2>
-              <p className='text-gray-400'>
-                Configuration options coming soon...
-              </p>
-            </div>
-          </div>
-        )}
+        {currentView === 'settings' && <Settings />}
       </main>
 
       {/* AI Floating Button */}
@@ -51,17 +45,27 @@ function AppContent() {
   );
 }
 
-function App() {
+function ThemedApp() {
   return (
     <HeroUIProvider>
-      <DatabaseProvider>
-        <TimerProvider>
-          <AIProvider>
-            <AppContent />
-          </AIProvider>
-        </TimerProvider>
-      </DatabaseProvider>
+      <AppContent />
     </HeroUIProvider>
+  );
+}
+
+function App() {
+  return (
+    <PrivacyProvider>
+      <SettingsProvider>
+        <DatabaseProvider>
+          <TimerProvider>
+            <AIProvider>
+              <ThemedApp />
+            </AIProvider>
+          </TimerProvider>
+        </DatabaseProvider>
+      </SettingsProvider>
+    </PrivacyProvider>
   );
 }
 

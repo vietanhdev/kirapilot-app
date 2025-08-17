@@ -60,18 +60,16 @@ export function TaskColumn({
   const getColorClasses = () => {
     const colors = {
       gray: {
-        header: 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200',
-        border: 'border-gray-200 dark:border-gray-600',
-        count: 'bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300',
-        accent: 'border-gray-300 dark:border-gray-500',
+        header: 'bg-content2 text-foreground',
+        border: 'border-divider',
+        count: 'bg-content3 text-foreground-600',
+        accent: 'border-divider',
       },
       slate: {
-        header:
-          'bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200',
-        border: 'border-slate-200 dark:border-slate-600',
-        count:
-          'bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-300',
-        accent: 'border-slate-300 dark:border-slate-500',
+        header: 'bg-content2 text-foreground',
+        border: 'border-divider',
+        count: 'bg-content3 text-foreground-600',
+        accent: 'border-divider',
       },
       blue: {
         header:
@@ -134,12 +132,12 @@ export function TaskColumn({
             <div className='min-w-0 flex-1'>
               <div className='flex items-center space-x-1'>
                 <h3
-                  className={`font-semibold text-base truncate ${isToday ? 'text-primary-600 dark:text-primary-400' : 'text-gray-900 dark:text-gray-100'}`}
+                  className={`font-semibold text-base truncate ${isToday ? 'text-primary-600 dark:text-primary-400' : 'text-foreground'}`}
                 >
                   {title}
                   {subtitle && (
                     <span
-                      className={`ml-1 text-sm font-normal ${isToday ? 'text-primary-500 dark:text-primary-400' : 'text-gray-500 dark:text-gray-400'}`}
+                      className={`ml-1 text-sm font-normal ${isToday ? 'text-primary-500 dark:text-primary-400' : 'text-foreground-600'}`}
                     >
                       {subtitle}
                     </span>
@@ -157,7 +155,7 @@ export function TaskColumn({
               className={`text-xs font-medium px-1.5 py-0.5 rounded-full ${
                 isToday
                   ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300'
-                  : 'bg-gray-200 dark:bg-gray-700/40 text-gray-600 dark:text-gray-400'
+                  : 'bg-content3 text-foreground-600'
               }`}
             >
               {count}
@@ -167,7 +165,7 @@ export function TaskColumn({
               className={`p-1 rounded-md transition-all duration-200 ${
                 isToday
                   ? 'text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 hover:bg-primary-100 dark:hover:bg-primary-900/30'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700/30'
+                  : 'text-foreground-600 hover:text-foreground hover:bg-content2'
               }`}
               title='Add task'
             >
@@ -206,11 +204,11 @@ export function TaskColumn({
 
         {/* Empty State */}
         {count === 0 && !isOver && (
-          <div className='text-center py-6 border-2 border-dashed border-gray-600 rounded-lg'>
-            <div className='text-xs text-gray-500 text-center'>
+          <div className='text-center py-6 border-2 border-dashed border-divider rounded-lg'>
+            <div className='text-xs text-foreground-500 text-center'>
               {isOver ? 'Drop task here' : 'No tasks'}
             </div>
-            <p className='text-xs text-gray-600 mt-1'>
+            <p className='text-xs text-foreground-600 mt-1'>
               Drag tasks here or click + to add
             </p>
           </div>

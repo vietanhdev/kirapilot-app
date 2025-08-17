@@ -9,13 +9,13 @@
 @custom-variant dark (&:is(.dark *));
 
 @utility task-card {
-  @apply bg-gray-700/30 backdrop-blur-sm rounded-lg border border-gray-600/20 p-3 mb-3 
-           hover:bg-gray-600/40 transition-all duration-200 cursor-pointer
+  @apply bg-content2 backdrop-blur-sm rounded-lg border border-divider p-3 mb-3 
+           hover:bg-content3 transition-all duration-200 cursor-pointer
            hover:border-primary-500/30 hover:shadow-lg;
 }
 
 @utility timer-display {
-  @apply font-mono text-lg font-semibold bg-linear-to-r from-green-500 to-green-600 
+  @apply font-mono text-lg font-semibold bg-gradient-to-r from-green-500 to-green-600 
            bg-clip-text text-transparent;
 }
 

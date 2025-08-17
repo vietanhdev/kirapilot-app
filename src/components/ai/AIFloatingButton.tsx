@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Button, Badge, Tooltip } from '@heroui/react';
 import { Bot, MessageCircle, Sparkles } from 'lucide-react';
 import { useAI } from '../../contexts/AIContext';
+import { useTranslation } from '../../hooks/useTranslation';
 import { ChatUI } from './ChatUI';
 
 interface AIFloatingButtonProps {
@@ -12,6 +13,7 @@ interface AIFloatingButtonProps {
 export function AIFloatingButton({ className = '' }: AIFloatingButtonProps) {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const { isInitialized, suggestions, isLoading, error } = useAI();
+  const { t } = useTranslation();
 
   const activeSuggestions = suggestions.filter(
     s => !s.dismissedAt && !s.appliedAt
@@ -33,15 +35,17 @@ export function AIFloatingButton({ className = '' }: AIFloatingButtonProps) {
 
   const getTooltipText = () => {
     if (error) {
-      return 'AI Error - Click to resolve';
+      return t('ai.error') || 'AI Error - Click to resolve';
     }
     if (!isInitialized) {
-      return 'Setup Kira AI';
+      return t('ai.setup') || 'Setup Kira AI';
     }
     if (hasNotifications) {
-      return `${activeSuggestions.length} AI suggestions`;
+      return t('ai.suggestions')
+        ? `${activeSuggestions.length} ${t('ai.suggestions')}`
+        : `${activeSuggestions.length} AI suggestions`;
     }
-    return 'Chat with Kira AI';
+    return t('ai.chat');
   };
 
   const handleToggleChat = () => {
@@ -52,7 +56,7 @@ export function AIFloatingButton({ className = '' }: AIFloatingButtonProps) {
     <>
       <Tooltip content={getTooltipText()} placement='left'>
         <div
-          className={`fixed bottom-8 right-8 z-40 bg-green-700 rounded-lg ${className}`}
+          className={`fixed bottom-8 right-8 z-40 bg-primary-500 rounded-lg ${className}`}
         >
           <motion.div
             whileHover={{ scale: 1.1 }}
@@ -73,7 +77,7 @@ export function AIFloatingButton({ className = '' }: AIFloatingButtonProps) {
                 isIconOnly
                 color={getButtonColor()}
                 size='lg'
-                className='w-14 h-14 shadow-2xl bg-green-600'
+                className='w-14 h-14 shadow-2xl'
                 onPress={handleToggleChat}
                 isLoading={isLoading && !isChatOpen}
               >

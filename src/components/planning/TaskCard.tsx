@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { Task, TaskStatus } from '../../types';
 import { useDraggable } from '@dnd-kit/core';
+import { useTranslation } from '../../hooks/useTranslation';
 import {
   Clock,
   Circle,
@@ -50,6 +51,7 @@ export function TaskCard({
   elapsedTime = 0,
   className = '',
 }: PlanningTaskCardProps) {
+  const { t } = useTranslation();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isEditingNotes, setIsEditingNotes] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -190,7 +192,7 @@ export function TaskCard({
       {...listeners}
       {...attributes}
       className={`
-        group relative bg-gray-50 dark:bg-gray-600/50 rounded-md shadow-sm
+        group relative bg-content1 dark:bg-content2 rounded-md shadow-sm
         border-l-1 transition-all duration-300 ease-out hover:shadow-md hover:-translate-y-0.5
         cursor-grab active:cursor-grabbing
         ${isOverdue ? 'border-l-rose-500' : ''}
@@ -199,13 +201,13 @@ export function TaskCard({
         ${isEditModalOpen || isEditingNotes ? 'border-l-indigo-500 shadow-md ring-1 ring-indigo-200 dark:ring-indigo-800' : ''}
         ${isTimerActive && isTimerRunning ? 'border-l-green-500 shadow-md ring-1 ring-green-200 dark:ring-green-800' : ''}
         ${isTimerActive && !isTimerRunning ? 'border-l-amber-500 ring-1 ring-amber-200 dark:ring-amber-800' : ''}
-        ${!isOverdue && !isCompleted && !isTimerActive && !(isEditModalOpen || isEditingNotes) ? 'border-l-slate-300 dark:border-l-slate-600' : ''}
+        ${!isOverdue && !isCompleted && !isTimerActive && !(isEditModalOpen || isEditingNotes) ? 'border-l-divider' : ''}
         ${className}
       `}
     >
       {/* Notes Editing Modal */}
       {isEditingNotes && (
-        <div className='absolute inset-0 bg-gray-50 dark:bg-gray-800/90 rounded-md border-l-3 border-l-indigo-500 shadow-lg ring-1 ring-indigo-200 dark:ring-indigo-800 z-10 p-3'>
+        <div className='absolute inset-0 bg-content1 rounded-md border-l-3 border-l-primary shadow-lg ring-1 ring-primary/20 z-10 p-3'>
           <div className='space-y-2'>
             <div className='flex items-center justify-between'>
               <h4 className='text-xs font-semibold text-slate-900 dark:text-slate-100'>
@@ -217,7 +219,7 @@ export function TaskCard({
                   onMouseDown={e => e.stopPropagation()}
                   onPointerDown={e => e.stopPropagation()}
                   className='px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs rounded transition-all duration-200'
-                  title='Save notes'
+                  title={t('common.save')}
                 >
                   <Save className='w-3 h-3' />
                 </button>
@@ -226,7 +228,7 @@ export function TaskCard({
                   onMouseDown={e => e.stopPropagation()}
                   onPointerDown={e => e.stopPropagation()}
                   className='px-2 py-1 bg-slate-500 hover:bg-slate-600 text-white text-xs rounded transition-all duration-200'
-                  title='Cancel'
+                  title={t('common.cancel')}
                 >
                   <X className='w-3 h-3' />
                 </button>
@@ -469,7 +471,7 @@ export function TaskCard({
                     onMouseDown={e => e.stopPropagation()}
                     onPointerDown={e => e.stopPropagation()}
                     className='p-1.5 rounded transition-all duration-200 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300'
-                    title='Edit task'
+                    title={t('tasks.edit')}
                   >
                     <Edit3 className='w-3 h-3' />
                   </button>
@@ -482,7 +484,7 @@ export function TaskCard({
                     onMouseDown={e => e.stopPropagation()}
                     onPointerDown={e => e.stopPropagation()}
                     className='p-1.5 rounded transition-all duration-200 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 opacity-60 hover:opacity-100'
-                    title='Delete task'
+                    title={t('tasks.delete')}
                   >
                     <Trash2 className='w-3 h-3' />
                   </button>

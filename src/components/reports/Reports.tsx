@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import { Card, CardBody, CardHeader } from '@heroui/react';
 import { useDatabase } from '../../hooks/useDatabase';
+import { useTranslation } from '../../hooks/useTranslation';
 import { TimerSession, Task } from '../../types';
 import { TimeTrackingRepository } from '../../services/database/repositories/TimeTrackingRepository';
 import { TaskRepository } from '../../services/database/repositories/TaskRepository';
@@ -69,6 +70,7 @@ const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff7300', '#00ff00'];
 
 export function Reports() {
   const { database } = useDatabase();
+  const { t } = useTranslation();
   const [timeRange, setTimeRange] = useState<'week' | 'month' | 'quarter'>(
     'week'
   );
@@ -318,7 +320,7 @@ export function Reports() {
       <div className='flex-1 flex items-center justify-center'>
         <div className='text-center'>
           <Activity className='w-8 h-8 text-blue-500 mx-auto mb-2 animate-spin' />
-          <p className='text-gray-400'>Loading analytics...</p>
+          <p className='text-foreground-600'>{t('reports.loading')}</p>
         </div>
       </div>
     );
@@ -329,10 +331,10 @@ export function Reports() {
       {/* Header */}
       <div className='flex justify-between items-center mb-6'>
         <div>
-          <h1 className='text-2xl font-bold text-white mb-2'>Time Analytics</h1>
-          <p className='text-gray-400'>
-            Insights into your productivity patterns
-          </p>
+          <h1 className='text-2xl font-bold text-foreground mb-2'>
+            {t('reports.title')}
+          </h1>
+          <p className='text-foreground-600'>{t('reports.subtitle')}</p>
         </div>
 
         <div className='flex gap-2'>
@@ -340,13 +342,13 @@ export function Reports() {
             <button
               key={range}
               onClick={() => setTimeRange(range)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 border ${
                 timeRange === range
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  ? 'bg-primary-500 text-white border-primary-500 shadow-lg shadow-primary-500/25'
+                  : 'bg-content2 text-foreground-600 hover:bg-content3 hover:text-foreground border-divider hover:border-primary-500/30'
               }`}
             >
-              {range.charAt(0).toUpperCase() + range.slice(1)}
+              {t(`reports.${range}`)}
             </button>
           ))}
         </div>
@@ -355,12 +357,14 @@ export function Reports() {
       {/* Stats Cards */}
       {stats && (
         <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6'>
-          <Card className='bg-gray-800 border-gray-700'>
+          <Card className='bg-content1 border-divider'>
             <CardBody className='p-4'>
               <div className='flex items-center justify-between'>
                 <div>
-                  <p className='text-gray-400 text-sm'>Total Time</p>
-                  <p className='text-2xl font-bold text-white'>
+                  <p className='text-foreground-600 text-sm'>
+                    {t('reports.totalTime')}
+                  </p>
+                  <p className='text-2xl font-bold text-foreground'>
                     {formatTime(stats.totalHours)}
                   </p>
                 </div>
@@ -369,12 +373,14 @@ export function Reports() {
             </CardBody>
           </Card>
 
-          <Card className='bg-gray-800 border-gray-700'>
+          <Card className='bg-content1 border-divider'>
             <CardBody className='p-4'>
               <div className='flex items-center justify-between'>
                 <div>
-                  <p className='text-gray-400 text-sm'>Focus Time</p>
-                  <p className='text-2xl font-bold text-white'>
+                  <p className='text-foreground-600 text-sm'>
+                    {t('reports.focusTime')}
+                  </p>
+                  <p className='text-2xl font-bold text-foreground'>
                     {formatTime(stats.workingHours)}
                   </p>
                 </div>
@@ -383,12 +389,14 @@ export function Reports() {
             </CardBody>
           </Card>
 
-          <Card className='bg-gray-800 border-gray-700'>
+          <Card className='bg-content1 border-divider'>
             <CardBody className='p-4'>
               <div className='flex items-center justify-between'>
                 <div>
-                  <p className='text-gray-400 text-sm'>Sessions</p>
-                  <p className='text-2xl font-bold text-white'>
+                  <p className='text-foreground-600 text-sm'>
+                    {t('reports.sessions')}
+                  </p>
+                  <p className='text-2xl font-bold text-foreground'>
                     {stats.sessionsCount}
                   </p>
                 </div>
@@ -397,12 +405,14 @@ export function Reports() {
             </CardBody>
           </Card>
 
-          <Card className='bg-gray-800 border-gray-700'>
+          <Card className='bg-content1 border-divider'>
             <CardBody className='p-4'>
               <div className='flex items-center justify-between'>
                 <div>
-                  <p className='text-gray-400 text-sm'>Productivity</p>
-                  <p className='text-2xl font-bold text-white'>
+                  <p className='text-foreground-600 text-sm'>
+                    {t('reports.productivity')}
+                  </p>
+                  <p className='text-2xl font-bold text-foreground'>
                     {Math.round(stats.productivityScore)}%
                   </p>
                 </div>
@@ -416,12 +426,12 @@ export function Reports() {
       {/* Charts Grid */}
       <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
         {/* Daily Time Tracking */}
-        <Card className='bg-gray-800 border-gray-700'>
+        <Card className='bg-content1 border-divider'>
           <CardHeader className='pb-2'>
             <div className='flex items-center gap-2'>
               <BarChart3 className='w-5 h-5 text-blue-500' />
-              <h3 className='text-lg font-semibold text-white'>
-                Daily Activity
+              <h3 className='text-lg font-semibold text-foreground'>
+                {t('reports.dailyActivity')}
               </h3>
             </div>
           </CardHeader>
@@ -452,11 +462,11 @@ export function Reports() {
         </Card>
 
         {/* Hourly Productivity */}
-        <Card className='bg-gray-800 border-gray-700'>
+        <Card className='bg-content1 border-divider'>
           <CardHeader className='pb-2'>
             <div className='flex items-center gap-2'>
               <TrendingUp className='w-5 h-5 text-green-500' />
-              <h3 className='text-lg font-semibold text-white'>
+              <h3 className='text-lg font-semibold text-foreground'>
                 Hourly Patterns
               </h3>
             </div>
@@ -494,11 +504,13 @@ export function Reports() {
         </Card>
 
         {/* Task Time Distribution */}
-        <Card className='bg-gray-800 border-gray-700'>
+        <Card className='bg-content1 border-divider'>
           <CardHeader className='pb-2'>
             <div className='flex items-center gap-2'>
               <PieChartIcon className='w-5 h-5 text-purple-500' />
-              <h3 className='text-lg font-semibold text-white'>Top Tasks</h3>
+              <h3 className='text-lg font-semibold text-foreground'>
+                Top Tasks
+              </h3>
             </div>
           </CardHeader>
           <CardBody className='pt-0'>
@@ -540,11 +552,11 @@ export function Reports() {
         </Card>
 
         {/* Productivity Trends */}
-        <Card className='bg-gray-800 border-gray-700'>
+        <Card className='bg-content1 border-divider'>
           <CardHeader className='pb-2'>
             <div className='flex items-center gap-2'>
               <Activity className='w-5 h-5 text-orange-500' />
-              <h3 className='text-lg font-semibold text-white'>
+              <h3 className='text-lg font-semibold text-foreground'>
                 Productivity Trend
               </h3>
             </div>
@@ -577,11 +589,11 @@ export function Reports() {
 
       {/* Task Details Table */}
       {taskTimeData.length > 0 && (
-        <Card className='bg-gray-800 border-gray-700 mt-6'>
+        <Card className='bg-content1 border-divider mt-6'>
           <CardHeader className='pb-2'>
             <div className='flex items-center gap-2'>
               <Calendar className='w-5 h-5 text-indigo-500' />
-              <h3 className='text-lg font-semibold text-white'>
+              <h3 className='text-lg font-semibold text-foreground'>
                 Task Breakdown
               </h3>
             </div>
@@ -590,40 +602,42 @@ export function Reports() {
             <div className='overflow-x-auto'>
               <table className='w-full text-sm'>
                 <thead>
-                  <tr className='border-b border-gray-700'>
-                    <th className='text-left py-3 px-4 text-gray-300 font-medium'>
+                  <tr className='border-b border-divider'>
+                    <th className='text-left py-3 px-4 text-foreground-600 font-medium'>
                       Task
                     </th>
-                    <th className='text-left py-3 px-4 text-gray-300 font-medium'>
+                    <th className='text-left py-3 px-4 text-foreground-600 font-medium'>
                       Time
                     </th>
-                    <th className='text-left py-3 px-4 text-gray-300 font-medium'>
+                    <th className='text-left py-3 px-4 text-foreground-600 font-medium'>
                       Sessions
                     </th>
-                    <th className='text-left py-3 px-4 text-gray-300 font-medium'>
+                    <th className='text-left py-3 px-4 text-foreground-600 font-medium'>
                       Productivity
                     </th>
                   </tr>
                 </thead>
                 <tbody>
                   {taskTimeData.map((task, index) => (
-                    <tr key={index} className='border-b border-gray-700/50'>
-                      <td className='py-3 px-4 text-white'>{task.taskTitle}</td>
-                      <td className='py-3 px-4 text-gray-300'>
+                    <tr key={index} className='border-b border-divider/50'>
+                      <td className='py-3 px-4 text-foreground'>
+                        {task.taskTitle}
+                      </td>
+                      <td className='py-3 px-4 text-foreground-600'>
                         {formatTime(task.totalTime)}
                       </td>
-                      <td className='py-3 px-4 text-gray-300'>
+                      <td className='py-3 px-4 text-foreground-600'>
                         {task.sessions}
                       </td>
                       <td className='py-3 px-4'>
                         <div className='flex items-center gap-2'>
-                          <div className='w-16 bg-gray-700 rounded-full h-2'>
+                          <div className='w-16 bg-content3 rounded-full h-2'>
                             <div
-                              className='bg-green-500 h-2 rounded-full'
+                              className='bg-success h-2 rounded-full'
                               style={{ width: `${task.productivity}%` }}
                             />
                           </div>
-                          <span className='text-gray-300 text-xs'>
+                          <span className='text-foreground-600 text-xs'>
                             {task.productivity}%
                           </span>
                         </div>
