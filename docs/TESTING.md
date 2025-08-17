@@ -7,28 +7,33 @@ KiraPilot uses a multi-layered testing approach to ensure code quality and relia
 ## Test Categories
 
 ### 1. Unit Tests ✅ Working
+
 - **Location**: `src/**/__tests__/*.test.ts`
 - **Framework**: Jest + ts-jest
 - **Coverage**: Utility functions, validation schemas, business logic
 - **Status**: Fully functional
 
 #### Examples:
+
 - `src/utils/__tests__/validation.test.ts` - Zod schema validation tests
 - Type validation and error handling
 - Data transformation utilities
 
 ### 2. Repository Tests ⚠️ Excluded from Jest Environment
+
 - **Location**: `src/services/database/repositories/__tests__/*.test.ts`
 - **Framework**: Designed for Tauri runtime testing
 - **Limitation**: Tauri SQL plugin only works in Tauri runtime, not Node.js/Jest
 - **Status**: Excluded from Jest runs, should be tested in Tauri environment
 
 #### Current Approach:
+
 - Repository tests are excluded from Jest runs (`testPathIgnorePatterns`)
 - Integration tests should be run in Tauri environment using the DatabaseTest component
 - Focus on business logic validation in Jest, database operations in Tauri
 
 ### 3. Integration Tests (Recommended)
+
 - **Environment**: Tauri development environment
 - **Method**: Manual testing through the application UI
 - **Coverage**: Database operations, cross-component interactions
@@ -37,6 +42,7 @@ KiraPilot uses a multi-layered testing approach to ensure code quality and relia
 ## Running Tests
 
 ### Unit Tests (Validation, Utils)
+
 ```bash
 # Run all working tests
 npm test -- --testPathPattern=validation.test.ts
@@ -49,6 +55,7 @@ npm run test:watch -- --testPathPattern=validation.test.ts
 ```
 
 ### Repository Tests (Excluded from Jest)
+
 ```bash
 # Repository tests are excluded from Jest runs
 # They should be tested in the Tauri environment using:
@@ -60,6 +67,7 @@ npm run tauri dev
 ```
 
 ### Integration Tests (Manual)
+
 ```bash
 # Start the application
 npm run tauri dev
@@ -74,11 +82,13 @@ npm run tauri dev
 ## Test Database
 
 ### Mock Database for Jest
+
 - **File**: `src/services/database/__mocks__/mockDatabase.ts`
 - **Purpose**: Allows basic repository tests to run in Jest environment
 - **Limitations**: Simplified SQL parsing, no complex queries, no foreign keys
 
 ### Real Database for Integration
+
 - **Environment**: Tauri runtime
 - **Database**: SQLite with full Tauri SQL plugin functionality
 - **Testing**: Use the DatabaseTest component in the application
@@ -86,12 +96,14 @@ npm run tauri dev
 ## Testing Best Practices
 
 ### What Works Well ✅
+
 1. **Validation Tests**: Comprehensive Zod schema validation
 2. **Utility Functions**: Pure functions with predictable inputs/outputs
 3. **Business Logic**: Type transformations and calculations
 4. **Error Handling**: Validation error scenarios
 
 ### What Needs Manual Testing ⚠️
+
 1. **Database Operations**: CRUD operations, transactions, migrations
 2. **Tauri Integration**: File system access, native APIs
 3. **Cross-Component Integration**: Repository + UI interactions
@@ -117,21 +129,24 @@ npm run tauri dev
 ## Future Improvements
 
 ### Potential Enhancements
+
 1. **E2E Testing**: Playwright or similar for full application testing
 2. **Database Testing**: More sophisticated mock or test database
 3. **Component Testing**: React Testing Library for UI components
 4. **Performance Testing**: Automated performance benchmarks
 
 ### Current Limitations
+
 1. **Tauri Dependencies**: Cannot fully test Tauri-specific code in Jest
 2. **Database Complexity**: Mock database is simplified
 3. **Integration Coverage**: Limited automated integration testing
 
 ## Conclusion
 
-The current testing strategy focuses on what can be reliably tested in a Node.js environment (validation, utilities, business logic) while acknowledging the limitations of testing Tauri-specific functionality. 
+The current testing strategy focuses on what can be reliably tested in a Node.js environment (validation, utilities, business logic) while acknowledging the limitations of testing Tauri-specific functionality.
 
 For comprehensive testing, developers should:
+
 1. Run unit tests regularly during development
 2. Use the built-in database testing tools for integration testing
 3. Perform manual testing in the Tauri environment for full functionality validation
