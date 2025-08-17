@@ -33,7 +33,7 @@ jobs:
             const { data } = await github.rest.repos.createRelease({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              tag_name: `app-v${process.env.PACKAGE_VERSION}`,
+              tag_name: `kiropilot-v${process.env.PACKAGE_VERSION}`,
               name: `KiraPilot v${process.env.PACKAGE_VERSION}`,
               body: 'KiraPilot is a cross-platform productivity application that combines task management, time tracking, and intelligent AI assistance. The app helps users navigate their day with precision through beautiful design and smart automation. Take a look at the assets to download and install this app.',
               draft: true,
