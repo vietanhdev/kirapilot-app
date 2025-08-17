@@ -7,6 +7,7 @@ import {
   Play,
   Square,
   History,
+  CheckCircle,
 } from 'lucide-react';
 import { useTimerContext } from '../../contexts/TimerContext';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -66,11 +67,9 @@ export const Header: React.FC<HeaderProps> = ({
   return (
     <header className='flex items-center justify-between px-6 py-4 border-b border-divider bg-content1 shadow-sm'>
       <div className='flex items-center gap-3'>
-        <img
-          src='/app-icon.png'
-          alt='KiraPilot'
-          className='w-10 h-10 rounded-lg   '
-        />
+        <div className='w-8 h-8 bg-linear-to-br from-primary-500 to-accent-emerald rounded-lg flex items-center justify-center'>
+          <CheckCircle className='w-5 h-5 text-white' />
+        </div>
         <h1 className='text-xl font-bold text-foreground'>KiraPilot</h1>
 
         {/* Timer Display and Controls */}
