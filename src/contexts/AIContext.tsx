@@ -59,6 +59,53 @@ export function AIProvider({ children }: AIProviderProps) {
   const [conversations, setConversations] = useState<AIConversation[]>([]);
   const [suggestions, setSuggestions] = useState<AISuggestion[]>([]);
 
+  // Get AI preferences - we'll use a ref to avoid circular dependencies during initialization
+  const getAIPreferences = () => {
+    const stored = localStorage.getItem('kirapilot-preferences');
+    if (stored) {
+      try {
+        const prefs = JSON.parse(stored);
+        return (
+          prefs.aiSettings || {
+            conversationHistory: true,
+            autoSuggestions: true,
+            toolPermissions: true,
+            responseStyle: 'balanced',
+            suggestionFrequency: 'moderate',
+          }
+        );
+      } catch {
+        return {
+          conversationHistory: true,
+          autoSuggestions: true,
+          toolPermissions: true,
+          responseStyle: 'balanced',
+          suggestionFrequency: 'moderate',
+        };
+      }
+    }
+    return {
+      conversationHistory: true,
+      autoSuggestions: true,
+      toolPermissions: true,
+      responseStyle: 'balanced',
+      suggestionFrequency: 'moderate',
+    };
+  };
+
+  // Get privacy settings - we'll use a ref to avoid circular dependencies
+  const getPrivacySettings = () => {
+    const stored = localStorage.getItem('kirapilot-privacy-settings');
+    if (stored) {
+      try {
+        return JSON.parse(stored);
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  };
+
   useEffect(() => {
     initializeAI();
   }, []);
@@ -126,33 +173,60 @@ export function AIProvider({ children }: AIProviderProps) {
       return null;
     }
 
+    // Check privacy settings before processing
+    const privacySettings = getPrivacySettings();
+    if (privacySettings && !privacySettings.aiDataUsage) {
+      setError('AI data usage is disabled in privacy settings');
+      return null;
+    }
+
+    // Get AI preferences
+    const aiPreferences = getAIPreferences();
+
+    // Note: Tool permissions are handled by the AI service internally
+    // We pass the preferences through the context for the service to use
+
     setIsLoading(true);
     setError(null);
 
     try {
       const response = await aiService.processMessage(message, context);
 
-      // Add to conversation history
-      const conversation: AIConversation = {
-        id: `conv-${Date.now()}`,
-        message,
-        response: response.message,
-        timestamp: new Date(),
-        actions: response.actions,
-        suggestions: response.suggestions,
-        reasoning: response.reasoning,
-      };
+      // Apply response style preferences
+      if (aiPreferences.responseStyle === 'concise') {
+        response.message = response.message.split('\n').slice(0, 3).join('\n');
+      } else if (aiPreferences.responseStyle === 'detailed') {
+        // Keep full response as is
+      }
 
-      setConversations(prev => [...prev, conversation]);
+      // Only add to conversation history if retention is enabled
+      if (
+        aiPreferences.conversationHistory &&
+        (!privacySettings || privacySettings.conversationRetention)
+      ) {
+        const conversation: AIConversation = {
+          id: `conv-${Date.now()}`,
+          message,
+          response: response.message,
+          timestamp: new Date(),
+          actions: response.actions,
+          suggestions: response.suggestions,
+          reasoning: response.reasoning,
+        };
 
-      // Update suggestions
-      setSuggestions(prev => {
-        const newSuggestions = response.suggestions.filter(
-          (newSugg: AISuggestion) =>
-            !prev.some(existingSugg => existingSugg.id === newSugg.id)
-        );
-        return [...prev, ...newSuggestions];
-      });
+        setConversations(prev => [...prev, conversation]);
+      }
+
+      // Update suggestions based on auto-suggestions preference
+      if (aiPreferences.autoSuggestions) {
+        setSuggestions(prev => {
+          const newSuggestions = response.suggestions.filter(
+            (newSugg: AISuggestion) =>
+              !prev.some(existingSugg => existingSugg.id === newSugg.id)
+          );
+          return [...prev, ...newSuggestions];
+        });
+      }
 
       return response;
     } catch (err) {

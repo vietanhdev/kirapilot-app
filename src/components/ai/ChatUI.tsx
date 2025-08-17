@@ -112,6 +112,21 @@ export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
           dailySummary: true,
           weeklyReview: true,
         },
+        aiSettings: {
+          conversationHistory: true,
+          autoSuggestions: true,
+          toolPermissions: true,
+          responseStyle: 'balanced',
+          suggestionFrequency: 'moderate',
+        },
+        taskSettings: {
+          defaultPriority: Priority.MEDIUM,
+          autoScheduling: false,
+          smartDependencies: true,
+          weekStartDay: 1,
+          showCompletedTasks: true,
+          compactView: false,
+        },
         theme: 'auto',
         language: 'en',
       },
@@ -196,20 +211,22 @@ export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
   return (
     <>
       <Card
-        className={`fixed bottom-4 right-4 w-96 h-96 z-50 shadow-2xl border border-gray-200 dark:border-gray-700 ${className}`}
+        className={`fixed bottom-4 right-4 w-96 h-96 z-50 shadow-2xl bg-content1 border border-divider backdrop-blur-sm ring-1 ring-black/5 dark:ring-white/10 ${className}`}
       >
         <CardBody className='p-0 flex flex-col h-full'>
           {/* Header */}
-          <div className='flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700'>
+          <div className='flex items-center justify-between p-4 border-b border-divider bg-content2 shadow-sm'>
             <div className='flex items-center gap-3'>
               <Avatar
-                icon={<Bot className='w-5 h-5' />}
-                className='bg-gradient-to-r from-blue-500 to-purple-600 flex-shrink-0'
+                icon={<Bot className='w-5 h-5 text-white' />}
+                className='bg-gradient-to-r from-primary-500 to-primary-600 flex-shrink-0'
                 size='sm'
               />
               <div className='flex-1'>
-                <h3 className='font-semibold text-sm'>Kira AI</h3>
-                <p className='text-xs text-gray-500'>
+                <h3 className='font-semibold text-sm text-foreground'>
+                  Kira AI
+                </h3>
+                <p className='text-xs text-foreground-600'>
                   {isInitialized ? 'Ready to help' : 'Setup required'}
                 </p>
               </div>
@@ -220,10 +237,17 @@ export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
                 variant='light'
                 size='sm'
                 onPress={onApiModalOpen}
+                className='text-foreground-600 hover:text-foreground hover:bg-content3'
               >
                 <Settings className='w-4 h-4' />
               </Button>
-              <Button isIconOnly variant='light' size='sm' onPress={onClose}>
+              <Button
+                isIconOnly
+                variant='light'
+                size='sm'
+                onPress={onClose}
+                className='text-foreground-600 hover:text-foreground hover:bg-content3'
+              >
                 <X className='w-4 h-4' />
               </Button>
             </div>
@@ -231,7 +255,7 @@ export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
 
           {/* Error Display */}
           {error && (
-            <div className='p-3 bg-red-50 border-b border-red-200 text-red-700 text-sm flex items-center gap-2'>
+            <div className='p-3 bg-danger/10 border-b border-danger/20 text-danger text-sm flex items-center gap-2'>
               <AlertCircle className='w-4 h-4' />
               {error}
             </div>
@@ -240,7 +264,7 @@ export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
           {/* Messages */}
           <div
             ref={scrollRef}
-            className='flex-1 overflow-y-auto p-4 space-y-6 relative'
+            className='flex-1 overflow-y-auto p-4 space-y-6 relative bg-content1'
           >
             {/* Auto-scroll control */}
             {isAutoScrollPaused && (
@@ -251,7 +275,6 @@ export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
                   color='primary'
                   startContent={<Play className='w-3 h-3' />}
                   onPress={resumeAutoScroll}
-                  className='shadow-lg'
                 >
                   Resume auto-scroll
                 </Button>
@@ -259,8 +282,8 @@ export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
             )}
 
             {!isInitialized && (
-              <div className='text-center text-gray-500 text-sm'>
-                <Bot className='w-8 h-8 mx-auto mb-2 text-gray-400' />
+              <div className='text-center text-foreground-600 text-sm'>
+                <Bot className='w-8 h-8 mx-auto mb-2 text-foreground-500' />
                 <p>Welcome to Kira AI!</p>
                 <p className='mt-1'>Setup your API key to get started.</p>
                 <Button
@@ -293,13 +316,16 @@ export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
                             content={conversation.message}
                             className='mt-1 mr-1'
                           />
-                          <div className='bg-blue-500 text-white px-3 py-2 rounded-lg text-sm flex-1'>
-                            <MarkdownRenderer content={conversation.message} />
+                          <div className='bg-primary-500 text-white px-3 py-2 rounded-lg text-sm flex-1'>
+                            <MarkdownRenderer
+                              content={conversation.message}
+                              className='[&_*]:text-white [&_h1]:text-white [&_h2]:text-white [&_h3]:text-white [&_p]:text-white [&_li]:text-white [&_ul]:text-white [&_ol]:text-white'
+                            />
                           </div>
                           <Avatar
                             icon={<User className='w-4 h-4' />}
                             size='sm'
-                            className='bg-gray-400 flex-shrink-0'
+                            className='bg-content3 text-foreground flex-shrink-0'
                           />
                         </div>
                       </div>
@@ -308,23 +334,23 @@ export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
                       <div className='flex justify-start'>
                         <div className='flex items-start gap-2 max-w-[80%] group'>
                           <Avatar
-                            icon={<Bot className='w-4 h-4' />}
+                            icon={<Bot className='w-4 h-4 text-white' />}
                             size='sm'
-                            className='bg-gradient-to-r from-blue-500 to-purple-600 flex-shrink-0'
+                            className='bg-gradient-to-r from-primary-500 to-primary-600 flex-shrink-0'
                           />
                           <div className='space-y-2 flex-1 relative'>
                             {/* Show reasoning if available */}
                             {conversation.reasoning && (
-                              <div className='bg-blue-50 dark:bg-blue-900/20 px-3 py-2 rounded-lg text-xs border-l-2 border-blue-400'>
+                              <div className='bg-primary-50 dark:bg-primary-900/20 px-3 py-2 rounded-lg text-xs border-l-2 border-primary-400'>
                                 <div className='flex items-center gap-1 mb-1'>
-                                  <Bot className='w-3 h-3 text-blue-500' />
-                                  <span className='font-medium text-blue-700 dark:text-blue-300'>
+                                  <Bot className='w-3 h-3 text-primary-500' />
+                                  <span className='font-medium text-primary-700 dark:text-primary-300'>
                                     Reasoning
                                   </span>
                                 </div>
                                 <MarkdownRenderer
                                   content={conversation.reasoning}
-                                  className='text-blue-600 dark:text-blue-200'
+                                  className='text-primary-600 dark:text-primary-200'
                                 />
                               </div>
                             )}
@@ -336,18 +362,18 @@ export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
                                   {conversation.actions.map((action, index) => (
                                     <div
                                       key={index}
-                                      className='bg-green-50 dark:bg-green-900/20 px-3 py-2 rounded-lg text-xs border-l-2 border-green-400'
+                                      className='bg-success-50 dark:bg-success-900/20 px-3 py-2 rounded-lg text-xs border-l-2 border-success-400'
                                     >
                                       <div className='flex items-center gap-1 mb-1'>
-                                        <Check className='w-3 h-3 text-green-500' />
-                                        <span className='font-medium text-green-700 dark:text-green-300'>
+                                        <Check className='w-3 h-3 text-success-500' />
+                                        <span className='font-medium text-success-700 dark:text-success-300'>
                                           Action:{' '}
                                           {action.type
                                             .replace('_', ' ')
                                             .toLowerCase()}
                                         </span>
                                         {action.confidence && (
-                                          <span className='text-green-600 dark:text-green-200 ml-auto'>
+                                          <span className='text-success-600 dark:text-success-200 ml-auto'>
                                             {action.confidence}% confidence
                                           </span>
                                         )}
@@ -355,7 +381,7 @@ export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
                                       {action.reasoning && (
                                         <MarkdownRenderer
                                           content={action.reasoning}
-                                          className='text-green-600 dark:text-green-200'
+                                          className='text-success-600 dark:text-success-200'
                                         />
                                       )}
                                     </div>
@@ -364,7 +390,7 @@ export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
                               )}
 
                             {/* Main response with markdown */}
-                            <div className='bg-gray-100 dark:bg-gray-800 px-3 py-2 rounded-lg text-sm'>
+                            <div className='bg-content2 px-3 py-2 rounded-lg text-sm border border-divider'>
                               <MarkdownRenderer
                                 content={conversation.response}
                               />
@@ -381,7 +407,7 @@ export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
                         </div>
                       </div>
 
-                      <div className='text-xs text-gray-400 text-center'>
+                      <div className='text-xs text-foreground-500 text-center'>
                         {formatTimestamp(conversation.timestamp)}
                       </div>
                     </motion.div>
@@ -415,15 +441,16 @@ export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
                                     content={conversation.message}
                                     className='mt-1 mr-1'
                                   />
-                                  <div className='bg-blue-500 text-white px-3 py-2 rounded-lg text-sm flex-1'>
+                                  <div className='bg-primary-500 text-white px-3 py-2 rounded-lg text-sm flex-1'>
                                     <MarkdownRenderer
                                       content={conversation.message}
+                                      className='[&_*]:text-white [&_h1]:text-white [&_h2]:text-white [&_h3]:text-white [&_p]:text-white [&_li]:text-white [&_ul]:text-white [&_ol]:text-white'
                                     />
                                   </div>
                                   <Avatar
                                     icon={<User className='w-4 h-4' />}
                                     size='sm'
-                                    className='bg-gray-400 flex-shrink-0'
+                                    className='bg-content3 text-foreground flex-shrink-0'
                                   />
                                 </div>
                               </div>
@@ -432,12 +459,14 @@ export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
                               <div className='flex justify-start'>
                                 <div className='flex items-start gap-2 max-w-[80%]'>
                                   <Avatar
-                                    icon={<Bot className='w-4 h-4' />}
+                                    icon={
+                                      <Bot className='w-4 h-4 text-white' />
+                                    }
                                     size='sm'
-                                    className='bg-gradient-to-r from-blue-500 to-purple-600 flex-shrink-0'
+                                    className='bg-gradient-to-r from-primary-500 to-primary-600 flex-shrink-0'
                                   />
                                   <div className='space-y-2 flex-1 relative'>
-                                    <div className='bg-gray-100 dark:bg-gray-800 px-3 py-2 rounded-lg text-sm'>
+                                    <div className='bg-content2 px-3 py-2 rounded-lg text-sm border border-divider'>
                                       <MarkdownRenderer
                                         content={conversation.response}
                                       />
@@ -479,15 +508,16 @@ export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
                               content={conversation.message}
                               className='mt-1 mr-1'
                             />
-                            <div className='bg-blue-500 text-white px-3 py-2 rounded-lg text-sm flex-1'>
+                            <div className='bg-primary-500 text-white px-3 py-2 rounded-lg text-sm flex-1'>
                               <MarkdownRenderer
                                 content={conversation.message}
+                                className='[&_*]:text-white [&_h1]:text-white [&_h2]:text-white [&_h3]:text-white [&_p]:text-white [&_li]:text-white [&_ul]:text-white [&_ol]:text-white'
                               />
                             </div>
                             <Avatar
                               icon={<User className='w-4 h-4' />}
                               size='sm'
-                              className='bg-gray-400 flex-shrink-0'
+                              className='bg-content3 text-foreground flex-shrink-0'
                             />
                           </div>
                         </div>
@@ -496,23 +526,23 @@ export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
                         <div className='flex justify-start'>
                           <div className='flex items-start gap-2 max-w-[80%]'>
                             <Avatar
-                              icon={<Bot className='w-4 h-4' />}
+                              icon={<Bot className='w-4 h-4 text-white' />}
                               size='sm'
-                              className='bg-gradient-to-r from-blue-500 to-purple-600 flex-shrink-0'
+                              className='bg-gradient-to-r from-primary-500 to-primary-600 flex-shrink-0'
                             />
                             <div className='space-y-2 flex-1 relative'>
                               {/* Show reasoning if available */}
                               {conversation.reasoning && (
-                                <div className='bg-blue-50 dark:bg-blue-900/20 px-3 py-2 rounded-lg text-xs border-l-2 border-blue-400'>
+                                <div className='bg-primary-50 dark:bg-primary-900/20 px-3 py-2 rounded-lg text-xs border-l-2 border-primary-400'>
                                   <div className='flex items-center gap-1 mb-1'>
-                                    <Bot className='w-3 h-3 text-blue-500' />
-                                    <span className='font-medium text-blue-700 dark:text-blue-300'>
+                                    <Bot className='w-3 h-3 text-primary-500' />
+                                    <span className='font-medium text-primary-700 dark:text-primary-300'>
                                       Reasoning
                                     </span>
                                   </div>
                                   <MarkdownRenderer
                                     content={conversation.reasoning}
-                                    className='text-blue-600 dark:text-blue-200'
+                                    className='text-primary-600 dark:text-primary-200'
                                   />
                                 </div>
                               )}
@@ -525,18 +555,18 @@ export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
                                       (action, index) => (
                                         <div
                                           key={index}
-                                          className='bg-green-50 dark:bg-green-900/20 px-3 py-2 rounded-lg text-xs border-l-2 border-green-400'
+                                          className='bg-success-50 dark:bg-success-900/20 px-3 py-2 rounded-lg text-xs border-l-2 border-success-400'
                                         >
                                           <div className='flex items-center gap-1 mb-1'>
-                                            <Check className='w-3 h-3 text-green-500' />
-                                            <span className='font-medium text-green-700 dark:text-green-300'>
+                                            <Check className='w-3 h-3 text-success-500' />
+                                            <span className='font-medium text-success-700 dark:text-success-300'>
                                               Action:{' '}
                                               {action.type
                                                 .replace('_', ' ')
                                                 .toLowerCase()}
                                             </span>
                                             {action.confidence && (
-                                              <span className='text-green-600 dark:text-green-200 ml-auto'>
+                                              <span className='text-success-600 dark:text-success-200 ml-auto'>
                                                 {action.confidence}% confidence
                                               </span>
                                             )}
@@ -544,7 +574,7 @@ export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
                                           {action.reasoning && (
                                             <MarkdownRenderer
                                               content={action.reasoning}
-                                              className='text-green-600 dark:text-green-200'
+                                              className='text-success-600 dark:text-success-200'
                                             />
                                           )}
                                         </div>
@@ -554,7 +584,7 @@ export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
                                 )}
 
                               {/* Main response with markdown */}
-                              <div className='bg-gray-100 dark:bg-gray-800 px-3 py-2 rounded-lg text-sm'>
+                              <div className='bg-content2 px-3 py-2 rounded-lg text-sm border border-divider'>
                                 <MarkdownRenderer
                                   content={conversation.response}
                                 />
@@ -571,7 +601,7 @@ export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
                           </div>
                         </div>
 
-                        <div className='text-xs text-gray-400 text-center'>
+                        <div className='text-xs text-foreground-500 text-center'>
                           {formatTimestamp(conversation.timestamp)}
                         </div>
                       </motion.div>
@@ -585,10 +615,10 @@ export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
 
           {/* Suggestions */}
           {suggestions.length > 0 && (
-            <div className='border-t border-gray-200 dark:border-gray-700 p-3'>
+            <div className='border-t border-divider p-3 bg-content2 shadow-sm'>
               <div className='flex items-center gap-2 mb-2'>
                 <Lightbulb className='w-4 h-4 text-yellow-500' />
-                <span className='text-xs font-medium text-gray-600 dark:text-gray-400'>
+                <span className='text-xs font-medium text-foreground-600'>
                   Suggestions
                 </span>
               </div>
@@ -633,7 +663,7 @@ export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
           )}
 
           {/* Input */}
-          <div className='border-t border-gray-200 dark:border-gray-700 p-4'>
+          <div className='border-t border-divider p-4 bg-content2 shadow-sm'>
             <div className='flex gap-2'>
               <Input
                 ref={inputRef}
@@ -643,6 +673,11 @@ export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
                 onKeyDown={handleKeyDown}
                 size='sm'
                 className='flex-1'
+                classNames={{
+                  input: 'bg-content1 text-foreground',
+                  inputWrapper:
+                    'bg-content1 border-divider data-[hover=true]:bg-content1 data-[focus=true]:bg-content1 data-[focus=true]:border-primary-500',
+                }}
                 disabled={!isInitialized || isLoading}
               />
               <Button
@@ -651,6 +686,11 @@ export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
                 color='primary'
                 onPress={handleSendMessage}
                 disabled={!message.trim() || !isInitialized || isLoading}
+                className={`min-w-8 h-8 ${
+                  !message.trim() || !isInitialized || isLoading
+                    ? 'opacity-50 bg-content3 text-foreground-500'
+                    : 'bg-primary-500 hover:bg-primary-600 text-white shadow-md'
+                }`}
               >
                 <Send className='w-4 h-4' />
               </Button>
@@ -668,7 +708,7 @@ export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
         <ModalContent>
           <ModalHeader>Setup Kira AI</ModalHeader>
           <ModalBody>
-            <p className='text-sm text-gray-600 mb-4'>
+            <p className='text-sm text-foreground-600 mb-4'>
               To use Kira AI, you need to provide a Google API key for Gemini.
             </p>
             <Input
@@ -678,14 +718,14 @@ export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
               onChange={e => setApiKey(e.target.value)}
               type='password'
             />
-            <p className='text-xs text-gray-500 mt-2'>
+            <p className='text-xs text-foreground-500 mt-2'>
               Your API key is stored locally and never shared. You can get a
               free API key from{' '}
               <a
                 href='https://makersuite.google.com/app/apikey'
                 target='_blank'
                 rel='noopener noreferrer'
-                className='text-blue-500 hover:underline'
+                className='text-primary-500 hover:underline'
               >
                 Google AI Studio
               </a>

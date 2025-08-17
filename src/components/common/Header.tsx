@@ -11,6 +11,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { useTimerContext } from '../../contexts/TimerContext';
+import { useTranslation } from '../../hooks/useTranslation';
 import { SessionHistoryModal } from '../timer/SessionHistory';
 
 interface HeaderProps {
@@ -32,6 +33,7 @@ export const Header: React.FC<HeaderProps> = ({
     handleTimerPause,
     handleTimerStop,
   } = useTimerContext();
+  const { t } = useTranslation();
 
   const [showSessionLogs, setShowSessionLogs] = useState(false);
 
@@ -69,13 +71,14 @@ export const Header: React.FC<HeaderProps> = ({
     }
 
     const confirmed = window.confirm(
-      'Are you sure you want to clear all database data? This action cannot be undone.\n\n' +
-        'This will clear:\n' +
-        '- All tasks and projects\n' +
-        '- Timer sessions and history\n' +
-        '- User preferences\n' +
-        '- All other application data\n\n' +
-        'The application will restart after clearing.'
+      t('common.clearDatabaseConfirm') ||
+        'Are you sure you want to clear all database data? This action cannot be undone.\n\n' +
+          'This will clear:\n' +
+          '- All tasks and projects\n' +
+          '- Timer sessions and history\n' +
+          '- User preferences\n' +
+          '- All other application data\n\n' +
+          'The application will restart after clearing.'
     );
 
     if (confirmed) {
@@ -113,60 +116,60 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <header className='flex items-center justify-between px-6 py-4 border-b border-gray-700/30 glass-effect'>
+    <header className='flex items-center justify-between px-6 py-4 border-b border-divider bg-content1 shadow-sm'>
       <div className='flex items-center gap-3'>
-        <div className='w-8 h-8 bg-linear-to-br from-primary-500 to-accent-emerald rounded-lg flex items-center justify-center'>
+        <div className='w-8 h-8 bg-gradient-to-br from-primary-500 to-primary-600 rounded-lg flex items-center justify-center shadow-sm'>
           <CheckCircle className='w-5 h-5 text-white' />
         </div>
-        <h1 className='text-xl font-bold text-gray-100'>KiraPilot</h1>
+        <h1 className='text-xl font-bold text-foreground'>KiraPilot</h1>
 
         {/* Timer Display and Controls */}
         {hasActiveTimer && activeTask && (
-          <div className='flex items-center gap-2 ml-4 px-3 py-1 bg-gray-800/50 rounded-lg border border-gray-600/30'>
+          <div className='flex items-center gap-2 ml-4 px-3 py-2 bg-content2 rounded-lg border border-divider shadow-sm'>
             <div className='flex items-center gap-1'>
               {isRunning ? (
                 <div className='flex items-center gap-1'>
                   <div className='w-2 h-2 bg-green-500 rounded-full animate-pulse' />
-                  <Clock className='w-4 h-4 text-green-400' />
+                  <Clock className='w-4 h-4 text-green-500' />
                 </div>
               ) : (
                 <div className='flex items-center gap-1'>
-                  <div className='w-2 h-2 bg-yellow-500 rounded-full' />
-                  <Pause className='w-4 h-4 text-yellow-400' />
+                  <div className='w-2 h-2 bg-orange-500 rounded-full' />
+                  <Pause className='w-4 h-4 text-orange-500' />
                 </div>
               )}
             </div>
-            <span className='text-sm font-mono text-gray-300'>
+            <span className='text-sm font-mono text-foreground font-medium'>
               {formatElapsedTime(elapsedTime)}
             </span>
-            <span className='text-xs text-gray-400 max-w-24 truncate'>
+            <span className='text-xs text-foreground-600 max-w-24 truncate'>
               {activeTask.title}
             </span>
 
             {/* Timer Controls */}
-            <div className='flex items-center gap-1 ml-2'>
+            <div className='flex items-center gap-1 ml-2 pl-2 border-l border-divider'>
               <button
                 onClick={handleTimerControl}
-                className={`p-1 rounded transition-colors ${
+                className={`p-1.5 rounded-md transition-all duration-200 ${
                   isRunning
-                    ? 'text-yellow-400 hover:text-yellow-300 hover:bg-yellow-500/20'
-                    : 'text-green-400 hover:text-green-300 hover:bg-green-500/20'
+                    ? 'text-orange-500 hover:text-orange-600 hover:bg-orange-500/10'
+                    : 'text-green-500 hover:text-green-600 hover:bg-green-500/10'
                 }`}
-                title={isRunning ? 'Pause timer' : 'Resume timer'}
+                title={isRunning ? t('timer.pause') : t('timer.start')}
               >
                 {isRunning ? (
-                  <Pause className='w-3 h-3' />
+                  <Pause className='w-3.5 h-3.5' />
                 ) : (
-                  <Play className='w-3 h-3' />
+                  <Play className='w-3.5 h-3.5' />
                 )}
               </button>
 
               <button
                 onClick={handleStopTimer}
-                className='p-1 rounded text-red-400 hover:text-red-300 hover:bg-red-500/20 transition-colors'
-                title='Stop timer'
+                className='p-1.5 rounded-md text-red-500 hover:text-red-600 hover:bg-red-500/10 transition-all duration-200'
+                title={t('timer.stop')}
               >
-                <Square className='w-3 h-3' />
+                <Square className='w-3.5 h-3.5' />
               </button>
             </div>
           </div>
@@ -175,34 +178,34 @@ export const Header: React.FC<HeaderProps> = ({
 
       <nav className='flex items-center gap-3'>
         {/* Week/Day Toggle */}
-        <div className='flex rounded-lg border border-gray-500/50 overflow-hidden bg-gray-800/30'>
+        <div className='flex rounded-lg border border-divider overflow-hidden bg-content2 shadow-sm'>
           <button
             onClick={() => onViewChange('week')}
-            className={`px-4 py-1 text-sm font-semibold transition-all duration-200 ${
+            className={`px-4 py-2 text-sm font-medium transition-all duration-200 ${
               currentView === 'week'
-                ? 'bg-primary-600 text-white shadow-lg'
-                : 'text-gray-300 hover:text-white hover:bg-gray-700/50'
+                ? 'bg-primary-500 text-white shadow-sm'
+                : 'text-foreground-700 hover:text-foreground hover:bg-content3'
             }`}
           >
-            Week
+            {t('nav.week')}
           </button>
           <button
             onClick={() => onViewChange('day')}
-            className={`px-4 py-1 text-sm font-semibold transition-all duration-200 ${
+            className={`px-4 py-2 text-sm font-medium transition-all duration-200 ${
               currentView === 'day'
-                ? 'bg-primary-600 text-white shadow-lg'
-                : 'text-gray-300 hover:text-white hover:bg-gray-700/50'
+                ? 'bg-primary-500 text-white shadow-sm'
+                : 'text-foreground-700 hover:text-foreground hover:bg-content3'
             }`}
           >
-            Day
+            {t('nav.day')}
           </button>
         </div>
 
         {/* Session Logs Button */}
         <button
           onClick={() => setShowSessionLogs(true)}
-          className='p-2 rounded-lg transition-colors text-gray-400 hover:text-gray-300 hover:bg-gray-700/30'
-          title='Session History'
+          className='p-2.5 rounded-lg transition-all duration-200 text-foreground-600 hover:text-foreground hover:bg-content2 border border-transparent hover:border-divider'
+          title={t('timer.sessionHistory') || 'Session History'}
         >
           <History className='w-5 h-5' />
         </button>
@@ -211,8 +214,8 @@ export const Header: React.FC<HeaderProps> = ({
         {import.meta.env.DEV && (
           <button
             onClick={handleClearDatabase}
-            className='p-2 rounded-lg transition-colors text-red-400 hover:text-red-300 hover:bg-red-500/20'
-            title='Clear Database (Dev Only)'
+            className='p-2.5 rounded-lg transition-all duration-200 text-red-500 hover:text-red-600 hover:bg-red-500/10 border border-transparent hover:border-red-500/20'
+            title={t('common.clearDatabase') || 'Clear Database (Dev Only)'}
           >
             <Trash2 className='w-5 h-5' />
           </button>
@@ -220,16 +223,16 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Other Navigation Buttons */}
         {[
-          { icon: BarChart3, label: 'Reports', id: 'reports' },
-          { icon: Settings, label: 'Settings', id: 'settings' },
+          { icon: BarChart3, label: t('nav.reports'), id: 'reports' },
+          { icon: Settings, label: t('nav.settings'), id: 'settings' },
         ].map(({ icon: Icon, label, id }) => (
           <button
             key={id}
             onClick={() => onViewChange(id)}
-            className={`p-2 rounded-lg transition-colors ${
+            className={`p-2.5 rounded-lg transition-all duration-200 border ${
               currentView === id
-                ? 'bg-primary-500/20 text-primary-400'
-                : 'text-gray-400 hover:text-gray-300 hover:bg-gray-700/30'
+                ? 'bg-primary-500/10 text-primary-600 border-primary-500/20'
+                : 'text-foreground-600 hover:text-foreground hover:bg-content2 border-transparent hover:border-divider'
             }`}
             title={label}
           >

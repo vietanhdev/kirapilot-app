@@ -26,7 +26,7 @@ function CodeBlock({ children, className, inline }: CodeBlockProps) {
 
   if (inline) {
     return (
-      <code className='bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded text-sm font-mono'>
+      <code className='bg-content3 px-1.5 py-0.5 rounded text-sm font-mono text-foreground'>
         {children}
       </code>
     );
@@ -34,8 +34,8 @@ function CodeBlock({ children, className, inline }: CodeBlockProps) {
 
   return (
     <div className='relative group'>
-      <div className='flex items-center justify-between bg-gray-100 dark:bg-gray-800 px-3 py-2 rounded-t-lg border-b border-gray-200 dark:border-gray-700'>
-        <span className='text-xs font-medium text-gray-600 dark:text-gray-400'>
+      <div className='flex items-center justify-between bg-content2 px-3 py-2 rounded-t-lg border-b border-divider'>
+        <span className='text-xs font-medium text-foreground-600'>
           {language || 'code'}
         </span>
         <Button
@@ -46,13 +46,13 @@ function CodeBlock({ children, className, inline }: CodeBlockProps) {
           onPress={() => copy(codeContent)}
         >
           {copied ? (
-            <Check className='w-3 h-3 text-green-500' />
+            <Check className='w-3 h-3 text-success-500' />
           ) : (
             <Copy className='w-3 h-3' />
           )}
         </Button>
       </div>
-      <pre className='bg-gray-50 dark:bg-gray-900 p-3 rounded-b-lg overflow-x-auto'>
+      <pre className='bg-content3 p-3 rounded-b-lg overflow-x-auto'>
         <code className={className}>{children}</code>
       </pre>
     </div>
@@ -63,7 +63,7 @@ export const MarkdownRenderer = memo(
   ({ content, className = '' }: MarkdownRendererProps) => {
     return (
       <div
-        className={`prose prose-sm dark:prose-invert max-w-none ${className}`}
+        className={`prose prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground prose-li:text-foreground prose-strong:text-foreground prose-em:text-foreground prose-code:text-foreground prose-pre:text-foreground prose-blockquote:text-foreground prose-a:text-primary-500 ${className}`}
       >
         <ReactMarkdown
           remarkPlugins={[remarkGfm]}
@@ -71,38 +71,38 @@ export const MarkdownRenderer = memo(
           components={{
             code: CodeBlock,
             h1: ({ children }) => (
-              <h1 className='text-lg font-bold mb-2 text-gray-900 dark:text-gray-100'>
+              <h1 className='text-lg font-bold mb-2 text-foreground'>
                 {children}
               </h1>
             ),
             h2: ({ children }) => (
-              <h2 className='text-base font-semibold mb-2 text-gray-900 dark:text-gray-100'>
+              <h2 className='text-base font-semibold mb-2 text-foreground'>
                 {children}
               </h2>
             ),
             h3: ({ children }) => (
-              <h3 className='text-sm font-semibold mb-1 text-gray-900 dark:text-gray-100'>
+              <h3 className='text-sm font-semibold mb-1 text-foreground'>
                 {children}
               </h3>
             ),
             p: ({ children }) => (
-              <p className='mb-2 text-gray-700 dark:text-gray-300 leading-relaxed'>
-                {children}
-              </p>
+              <p className='mb-2 text-foreground leading-relaxed'>{children}</p>
             ),
             ul: ({ children }) => (
-              <ul className='list-disc list-inside mb-2 space-y-1 text-gray-700 dark:text-gray-300'>
+              <ul className='list-disc list-inside mb-2 space-y-1 text-foreground'>
                 {children}
               </ul>
             ),
             ol: ({ children }) => (
-              <ol className='list-decimal list-inside mb-2 space-y-1 text-gray-700 dark:text-gray-300'>
+              <ol className='list-decimal list-inside mb-2 space-y-1 text-foreground'>
                 {children}
               </ol>
             ),
-            li: ({ children }) => <li className='text-sm'>{children}</li>,
+            li: ({ children }) => (
+              <li className='text-sm text-foreground'>{children}</li>
+            ),
             blockquote: ({ children }) => (
-              <blockquote className='border-l-4 border-blue-400 pl-3 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 text-sm italic'>
+              <blockquote className='border-l-4 border-primary-400 pl-3 py-1 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 text-sm italic'>
                 {children}
               </blockquote>
             ),
@@ -111,25 +111,25 @@ export const MarkdownRenderer = memo(
                 href={href}
                 target='_blank'
                 rel='noopener noreferrer'
-                className='text-blue-500 hover:text-blue-600 underline'
+                className='text-primary-500 hover:text-primary-600 underline'
               >
                 {children}
               </a>
             ),
             table: ({ children }) => (
               <div className='overflow-x-auto'>
-                <table className='min-w-full border border-gray-200 dark:border-gray-700 text-sm'>
+                <table className='min-w-full border border-divider text-sm'>
                   {children}
                 </table>
               </div>
             ),
             th: ({ children }) => (
-              <th className='border border-gray-200 dark:border-gray-700 px-2 py-1 bg-gray-100 dark:bg-gray-800 font-semibold text-left'>
+              <th className='border border-divider px-2 py-1 bg-content2 font-semibold text-left text-foreground'>
                 {children}
               </th>
             ),
             td: ({ children }) => (
-              <td className='border border-gray-200 dark:border-gray-700 px-2 py-1'>
+              <td className='border border-divider px-2 py-1 text-foreground'>
                 {children}
               </td>
             ),

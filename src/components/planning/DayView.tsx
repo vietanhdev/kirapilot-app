@@ -271,14 +271,12 @@ export function DayView({
       }}
       onDragEnd={handleDragEnd}
     >
-      <div
-        className={`bg-gray-100 dark:bg-gray-800/50 backdrop-blur-sm rounded-lg ${className}`}
-      >
+      <div className={`bg-content1 backdrop-blur-sm rounded-lg ${className}`}>
         {/* Header */}
-        <div className='p-2 bg-gray-200 dark:bg-gray-700/50 backdrop-blur-sm rounded-t-lg border-b border-gray-300 dark:border-gray-700/30'>
+        <div className='p-2 bg-content2 backdrop-blur-sm rounded-t-lg border-b border-divider'>
           <div className='flex items-center justify-between mb-1'>
             <div className='flex items-center space-x-2'>
-              <span className='text-sm font-medium text-gray-900 dark:text-gray-100'>
+              <span className='text-sm font-medium text-foreground'>
                 {formatDate()}
                 {isToday && (
                   <span className='ml-2 w-2 h-2 bg-primary-500 rounded-full inline-block animate-pulse'></span>
@@ -294,7 +292,7 @@ export function DayView({
                   className='p-1 hover:bg-gray-300 dark:hover:bg-gray-700/50 rounded transition-colors duration-200'
                   title='Previous day'
                 >
-                  <ChevronLeft className='w-4 h-4 text-gray-600 dark:text-gray-400' />
+                  <ChevronLeft className='w-4 h-4 text-foreground-600' />
                 </button>
 
                 <button
@@ -310,7 +308,7 @@ export function DayView({
                   className='p-1 hover:bg-gray-300 dark:hover:bg-gray-700/50 rounded transition-colors duration-200'
                   title='Next day'
                 >
-                  <ChevronRight className='w-4 h-4 text-gray-600 dark:text-gray-400' />
+                  <ChevronRight className='w-4 h-4 text-foreground-600' />
                 </button>
               </div>
             </div>
@@ -320,19 +318,19 @@ export function DayView({
           <div className='flex items-center space-x-4 text-xs'>
             <div className='flex items-center space-x-1'>
               <Clock className='w-3 h-3 text-blue-500' />
-              <span className='text-gray-600 dark:text-gray-400'>
+              <span className='text-foreground-600'>
                 {dayStats.total} total
               </span>
             </div>
             <div className='flex items-center space-x-1'>
               <div className='w-2 h-2 bg-green-500 rounded-full'></div>
-              <span className='text-gray-600 dark:text-gray-400'>
+              <span className='text-foreground-600'>
                 {dayStats.completed} done
               </span>
             </div>
             <div className='flex items-center space-x-1'>
               <div className='w-2 h-2 bg-blue-500 rounded-full'></div>
-              <span className='text-gray-600 dark:text-gray-400'>
+              <span className='text-foreground-600'>
                 {dayStats.inProgress} active
               </span>
             </div>
