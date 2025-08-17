@@ -26,6 +26,10 @@
 
 KiraPilot is a cross-platform productivity application that combines task management, time tracking, and intelligent AI assistance. The app helps users navigate their day with precision through beautiful design and smart automation.
 
+![Screenshot - Dark](./screenshots/dark.png)
+
+![Screenshot - Light](./screenshots/light.png)
+
 ## ✨ Core Features
 
 - **Task Management**: Rich text descriptions, priority levels, dependencies, and week-based planning

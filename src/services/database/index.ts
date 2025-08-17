@@ -345,36 +345,38 @@ export async function executeTransaction<T>(
 
     console.debug('Starting transaction...');
 
-    // Now execute our transaction
-    let transactionStarted = false;
+    // Check if database is still available
+    if (!database) {
+      throw new Error('Database connection not available');
+    }
+
+    // Use explicit transaction with better error handling
+    let transactionActive = false;
 
     try {
       // Start transaction
-      await database.execute('BEGIN TRANSACTION');
-      transactionStarted = true;
+      await database.execute('BEGIN IMMEDIATE TRANSACTION');
+      transactionActive = true;
       console.debug('Transaction started successfully');
 
       // Execute the callback
       const result = await callback(database);
 
       // Commit transaction
-      await database.execute('COMMIT');
+      await database.execute('COMMIT TRANSACTION');
+      transactionActive = false;
       console.debug('Transaction committed successfully');
 
       return result;
     } catch (error) {
-      // Rollback on any error
-      if (transactionStarted) {
+      // Only attempt rollback if transaction was started
+      if (transactionActive) {
         try {
-          await database.execute('ROLLBACK');
+          await database.execute('ROLLBACK TRANSACTION');
           console.debug('Transaction rolled back successfully');
         } catch (rollbackError) {
-          // Only log rollback errors that aren't "no transaction is active"
-          if (
-            !(rollbackError as Error)?.message?.includes(
-              'no transaction is active'
-            )
-          ) {
+          const rollbackMsg = String(rollbackError);
+          if (!rollbackMsg.includes('no transaction is active')) {
             console.warn('Failed to rollback transaction:', rollbackError);
           }
         }
@@ -397,6 +399,49 @@ export async function executeWithoutTransaction<T>(
 ): Promise<T> {
   const database = await getDatabase();
   return await callback(database);
+}
+
+/**
+ * Execute a database operation with mutex serialization but no explicit transaction
+ * This can be used when the plugin handles transactions internally
+ */
+export async function executeWithMutex<T>(
+  callback: (db: Database | MockDatabase) => Promise<T>
+): Promise<T> {
+  const database = await getDatabase();
+
+  // Check if this is a mock database
+  if ('isMock' in database && database.isMock) {
+    return await callback(database);
+  }
+
+  // Wait for any previous operation to complete, then run this one
+  const previousMutex = transactionMutex;
+  let resolveMutex: () => void;
+
+  // Create a new mutex for the next operation
+  transactionMutex = new Promise<void>(resolve => {
+    resolveMutex = resolve;
+  });
+
+  try {
+    // Wait for the previous operation to complete
+    await previousMutex;
+
+    console.debug('Executing database operation with mutex...');
+
+    // Execute the callback without explicit transaction management
+    const result = await callback(database);
+    console.debug('Database operation completed successfully');
+
+    return result;
+  } catch (error) {
+    console.warn('Database operation failed:', error);
+    throw error;
+  } finally {
+    // Always release the mutex to allow next operation
+    resolveMutex!();
+  }
 }
 
 /**

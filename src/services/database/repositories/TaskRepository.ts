@@ -1,5 +1,5 @@
 // Task repository for database operations
-import { getDatabase, executeTransaction } from '../index';
+import { getDatabase, executeTransaction, executeWithMutex } from '../index';
 import {
   Task,
   CreateTaskRequest,
@@ -244,7 +244,7 @@ export class TaskRepository {
       );
     }
 
-    return await executeTransaction(async db => {
+    return await executeWithMutex(async db => {
       // Find existing task using transaction db
       const existingResult = await db.select<DbQueryResult<TaskDbRow>>(
         'SELECT * FROM tasks WHERE id = ?',

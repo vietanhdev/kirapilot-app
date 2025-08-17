@@ -527,7 +527,7 @@ export class ReactAIService {
       }
     }
 
-    return 'Analysis based on ReAct reasoning pattern and current context.';
+    return '';
   }
 
   /**
