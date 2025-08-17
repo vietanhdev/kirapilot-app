@@ -15,6 +15,7 @@ import { Task, TaskStatus, TaskTimerProps } from '../../types';
 import { TaskColumn } from './TaskColumn';
 import { TaskCard } from './TaskCard';
 import { TaskModal } from './TaskModal';
+import { useResponsiveColumnWidth } from '../../hooks';
 import {
   ChevronLeft,
   ChevronRight,
@@ -22,6 +23,7 @@ import {
   ArrowRight,
   Archive,
   Clock,
+  AlertTriangle,
 } from 'lucide-react';
 
 interface DayViewProps {
@@ -42,6 +44,7 @@ interface DayViewProps {
   onViewTimeHistory?: (task: Task) => void;
   getTaskTimerProps?: (task: Task) => TaskTimerProps;
   className?: string;
+  columnHeight?: number;
 }
 
 export function DayView({
@@ -57,6 +60,7 @@ export function DayView({
   onViewTimeHistory,
   getTaskTimerProps,
   className = '',
+  columnHeight,
 }: DayViewProps) {
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [, setTaskModalColumn] = useState<string>('');
@@ -97,6 +101,7 @@ export function DayView({
     });
 
     const backlog: Task[] = [];
+    const overdue: Task[] = [];
     const todayTasks: Task[] = [];
     const next: Task[] = [];
 
@@ -116,9 +121,8 @@ export function DayView({
         selectedDay: selectedDay.toISOString(),
         actualToday: actualToday.toISOString(),
         isExactMatch: scheduledDate.getTime() === selectedDay.getTime(),
-        isOverdueSchedule:
-          selectedDay.getTime() === actualToday.getTime() &&
-          scheduledDate < actualToday,
+        isOverdue:
+          scheduledDate < actualToday && task.status !== TaskStatus.COMPLETED,
         isFuture: scheduledDate > selectedDay,
         status: task.status,
       });
@@ -128,21 +132,41 @@ export function DayView({
         console.log(`Task "${task.title}" -> today (exact schedule match)`);
         todayTasks.push(task);
       }
+      // Overdue tasks (scheduled before actual today and not completed)
+      else if (
+        scheduledDate < actualToday &&
+        task.status !== TaskStatus.COMPLETED
+      ) {
+        console.log(
+          `Task "${task.title}" -> overdue (past due and not completed)`
+        );
+        overdue.push(task);
+      }
       // Future scheduled tasks (relative to selected day) go to "next" column
       else if (scheduledDate > selectedDay) {
         console.log(`Task "${task.title}" -> next (future schedule)`);
         next.push(task);
       }
-      // Past scheduled tasks are ignored in day view (they belong to their specific dates)
+      // Completed past tasks are ignored in day view
       else {
         console.log(
-          `Task "${task.title}" -> ignored (past scheduled date: ${scheduledDate.toISOString()})`
+          `Task "${task.title}" -> ignored (completed or past scheduled date: ${scheduledDate.toISOString()})`
         );
       }
     });
 
     const result = {
       backlog: backlog.sort((a, b) => (a.priority || 0) - (b.priority || 0)),
+      overdue: overdue.sort((a, b) => {
+        // Sort overdue tasks by how overdue they are (oldest first)
+        if (a.scheduledDate && b.scheduledDate) {
+          return (
+            new Date(a.scheduledDate).getTime() -
+            new Date(b.scheduledDate).getTime()
+          );
+        }
+        return (a.priority || 0) - (b.priority || 0);
+      }),
       today: todayTasks.sort((a, b) => (a.priority || 0) - (b.priority || 0)),
       next: next.sort((a, b) => {
         if (a.scheduledDate && b.scheduledDate) {
@@ -157,15 +181,49 @@ export function DayView({
 
     console.log('DayView categorization result:', {
       backlog: result.backlog.length,
+      overdue: result.overdue.length,
       today: result.today.length,
       next: result.next.length,
       backlogTasks: result.backlog.map(t => t.title),
+      overdueTasks: result.overdue.map(t => t.title),
       todayTasks: result.today.map(t => t.title),
       nextTasks: result.next.map(t => t.title),
     });
 
     return result;
   }, [tasks, selectedDate]);
+
+  // Calculate day statistics
+  const dayStats = useMemo(() => {
+    const total = Object.values(taskCategories).reduce(
+      (sum, categoryTasks) => sum + categoryTasks.length,
+      0
+    );
+    const completed = Object.values(taskCategories).reduce(
+      (sum, categoryTasks) =>
+        sum +
+        categoryTasks.filter(t => t.status === TaskStatus.COMPLETED).length,
+      0
+    );
+    const inProgress = Object.values(taskCategories).reduce(
+      (sum, categoryTasks) =>
+        sum +
+        categoryTasks.filter(t => t.status === TaskStatus.IN_PROGRESS).length,
+      0
+    );
+    const overdue = taskCategories.overdue?.length || 0;
+
+    return { total, completed, inProgress, overdue };
+  }, [taskCategories]);
+
+  // Calculate responsive column widths - 4 columns total (Backlog, Overdue, Today, Tomorrow/Future)
+  const totalColumns = 4;
+  const { columnWidth } = useResponsiveColumnWidth(totalColumns, {
+    minWidth: 280,
+    maxWidth: 400,
+    gap: 12, // gap-3 in Tailwind
+    padding: 24, // p-3 * 2 sides
+  });
 
   const formatDate = () => {
     const options: Intl.DateTimeFormatOptions = {
@@ -186,7 +244,25 @@ export function DayView({
   const handleAddTask = (column: string, date?: Date) => {
     console.log('Add task clicked for column:', column, 'date:', date);
     setTaskModalColumn(column);
-    setTaskModalDate(date || selectedDate);
+
+    // Set appropriate default date based on column
+    let defaultDate = date;
+    if (!defaultDate) {
+      if (column.toLowerCase() === 'overdue') {
+        // For overdue column, default to yesterday
+        defaultDate = new Date(selectedDate);
+        defaultDate.setDate(defaultDate.getDate() - 1);
+      } else if (column.toLowerCase() === 'next tasks') {
+        // For next tasks column, default to tomorrow
+        defaultDate = new Date(selectedDate);
+        defaultDate.setDate(defaultDate.getDate() + 1);
+      } else {
+        // For other columns, use selected date
+        defaultDate = selectedDate;
+      }
+    }
+
+    setTaskModalDate(defaultDate);
     setShowTaskModal(true);
   };
 
@@ -216,6 +292,10 @@ export function DayView({
       if (toColumn === 'backlog') {
         // Moving to backlog - remove scheduled date (backlog = no scheduled date)
         newDate = undefined;
+      } else if (toColumn === 'overdue') {
+        // Moving to overdue - set to yesterday (or keep existing if already overdue)
+        newDate = new Date(selectedDate);
+        newDate.setDate(newDate.getDate() - 1);
       } else if (toColumn === 'today') {
         // Moving to today - set to selected date
         newDate = new Date(selectedDate);
@@ -238,28 +318,6 @@ export function DayView({
 
     setDraggedTask(null);
   };
-
-  // Calculate day statistics
-  const dayStats = useMemo(() => {
-    const total = Object.values(taskCategories).reduce(
-      (sum, categoryTasks) => sum + categoryTasks.length,
-      0
-    );
-    const completed = Object.values(taskCategories).reduce(
-      (sum, categoryTasks) =>
-        sum +
-        categoryTasks.filter(t => t.status === TaskStatus.COMPLETED).length,
-      0
-    );
-    const inProgress = Object.values(taskCategories).reduce(
-      (sum, categoryTasks) =>
-        sum +
-        categoryTasks.filter(t => t.status === TaskStatus.IN_PROGRESS).length,
-      0
-    );
-
-    return { total, completed, inProgress };
-  }, [taskCategories]);
 
   return (
     <DndContext
@@ -334,6 +392,14 @@ export function DayView({
                 {dayStats.inProgress} active
               </span>
             </div>
+            {dayStats.overdue > 0 && (
+              <div className='flex items-center space-x-1'>
+                <div className='w-2 h-2 bg-red-500 rounded-full'></div>
+                <span className='text-foreground-600'>
+                  {dayStats.overdue} overdue
+                </span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -347,8 +413,33 @@ export function DayView({
               count={taskCategories.backlog.length}
               color='blue'
               onAddTask={() => handleAddTask('Backlog')}
+              columnHeight={columnHeight}
+              columnWidth={columnWidth}
             >
               {taskCategories.backlog.map(task => (
+                <TaskCard
+                  key={task.id}
+                  task={task}
+                  onEdit={updates => onInlineEdit?.(task.id, updates)}
+                  onStatusChange={status => onTaskStatusChange(task, status)}
+                  onDelete={onTaskDelete}
+                  onViewTimeHistory={onViewTimeHistory}
+                  {...(getTaskTimerProps?.(task) || {})}
+                />
+              ))}
+            </TaskColumn>
+
+            {/* Overdue Column */}
+            <TaskColumn
+              title='Overdue'
+              icon={AlertTriangle}
+              count={taskCategories.overdue.length}
+              color='red'
+              onAddTask={() => handleAddTask('Overdue')}
+              columnHeight={columnHeight}
+              columnWidth={columnWidth}
+            >
+              {taskCategories.overdue.map(task => (
                 <TaskCard
                   key={task.id}
                   task={task}
@@ -369,6 +460,8 @@ export function DayView({
               color='gray'
               isToday={true}
               onAddTask={() => handleAddTask('Today', selectedDate)}
+              columnHeight={columnHeight}
+              columnWidth={columnWidth}
             >
               {taskCategories.today.map(task => (
                 <TaskCard
@@ -390,6 +483,8 @@ export function DayView({
               count={taskCategories.next.length}
               color='purple'
               onAddTask={() => handleAddTask('Next Tasks')}
+              columnHeight={columnHeight}
+              columnWidth={columnWidth}
             >
               {taskCategories.next.map(task => (
                 <TaskCard

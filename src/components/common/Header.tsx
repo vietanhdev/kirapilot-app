@@ -7,7 +7,6 @@ import {
   Play,
   Square,
   History,
-  Trash2,
 } from 'lucide-react';
 import { useTimerContext } from '../../contexts/TimerContext';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -64,60 +63,14 @@ export const Header: React.FC<HeaderProps> = ({
     }
   };
 
-  const handleClearDatabase = async () => {
-    if (!import.meta.env.DEV) {
-      return;
-    }
-
-    const confirmed = window.confirm(
-      t('common.clearDatabaseConfirm') ||
-        'Are you sure you want to clear all database data? This action cannot be undone.\n\n' +
-          'This will clear:\n' +
-          '- All tasks and projects\n' +
-          '- Timer sessions and history\n' +
-          '- User preferences\n' +
-          '- All other application data\n\n' +
-          'The application will restart after clearing.'
-    );
-
-    if (confirmed) {
-      try {
-        // First try to clear the actual SQLite database
-        try {
-          const { resetDatabase } = await import(
-            '../../services/database/utils'
-          );
-          await resetDatabase();
-          console.log('SQLite database cleared successfully');
-        } catch (sqliteError) {
-          console.warn(
-            'SQLite database clear failed, trying mock database:',
-            sqliteError
-          );
-
-          // Fallback to clearing localStorage (mock database)
-          const { resetDatabase: resetMockDatabase } = await import(
-            '../../utils/resetDatabase'
-          );
-          resetMockDatabase();
-          console.log('Mock database cleared successfully');
-        }
-
-        // Force application restart to reinitialize everything
-        if (typeof window !== 'undefined') {
-          window.location.reload();
-        }
-      } catch (error) {
-        console.error('Failed to clear database:', error);
-        alert('Failed to clear database. Check console for details.');
-      }
-    }
-  };
-
   return (
     <header className='flex items-center justify-between px-6 py-4 border-b border-divider bg-content1 shadow-sm'>
       <div className='flex items-center gap-3'>
-        <img src='/app-icon.png' alt='KiraPilot' className='w-10 h-10' />
+        <img
+          src='/app-icon.png'
+          alt='KiraPilot'
+          className='w-10 h-10 rounded-lg   '
+        />
         <h1 className='text-xl font-bold text-foreground'>KiraPilot</h1>
 
         {/* Timer Display and Controls */}
@@ -206,17 +159,6 @@ export const Header: React.FC<HeaderProps> = ({
         >
           <History className='w-5 h-5' />
         </button>
-
-        {/* Development Clear Database Button */}
-        {import.meta.env.DEV && (
-          <button
-            onClick={handleClearDatabase}
-            className='p-2.5 rounded-lg transition-all duration-200 text-red-500 hover:text-red-600 hover:bg-red-500/10 border border-transparent hover:border-red-500/20'
-            title={t('common.clearDatabase') || 'Clear Database (Dev Only)'}
-          >
-            <Trash2 className='w-5 h-5' />
-          </button>
-        )}
 
         {/* Other Navigation Buttons */}
         {[

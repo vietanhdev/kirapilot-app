@@ -16,6 +16,7 @@ import { TaskColumn } from './TaskColumn';
 import { TaskCard } from './TaskCard';
 import { TaskModal } from './TaskModal';
 import { useTranslation } from '../../hooks/useTranslation';
+import { useResponsiveColumnWidth } from '../../hooks';
 import {
   ChevronLeft,
   ChevronRight,
@@ -41,6 +42,7 @@ interface WeekViewProps {
   onTaskDelete?: (task: Task) => void;
   onViewTimeHistory?: (task: Task) => void;
   getTaskTimerProps?: (task: Task) => TaskTimerProps;
+  columnHeight?: number;
 }
 
 export function WeekView({
@@ -55,6 +57,7 @@ export function WeekView({
   onTaskDelete,
   onViewTimeHistory,
   getTaskTimerProps,
+  columnHeight,
 }: WeekViewProps) {
   const { t } = useTranslation();
   const [showTaskModal, setShowTaskModal] = useState(false);
@@ -137,6 +140,15 @@ export function WeekView({
     }
     return days;
   }, [weekStart]);
+
+  // Calculate responsive column widths - 7 day columns + 1 backlog + 1 upcoming = 9 columns total
+  const totalColumns = 9;
+  const { columnWidth } = useResponsiveColumnWidth(totalColumns, {
+    minWidth: 260,
+    maxWidth: 360,
+    gap: 8, // gap-2 in Tailwind
+    padding: 16, // p-2 * 2 sides
+  });
 
   // Get tasks for specific day (that day + overdue scheduled tasks if it's today)
   const getTasksForDay = (date: Date) => {
@@ -388,6 +400,8 @@ export function WeekView({
               count={backlogTasks.length}
               color='blue'
               onAddTask={() => handleAddTask('Backlog')}
+              columnHeight={columnHeight}
+              columnWidth={columnWidth}
             >
               {backlogTasks.map(task => (
                 <TaskCard
@@ -415,6 +429,8 @@ export function WeekView({
                   isToday={day.isToday}
                   onAddTask={() => handleAddTask(day.shortName, day.date)}
                   className={day.isToday ? 'today-column' : ''}
+                  columnHeight={columnHeight}
+                  columnWidth={columnWidth}
                 >
                   {dayTasks.map(task => (
                     <TaskCard
@@ -440,6 +456,8 @@ export function WeekView({
               count={upcomingTasks.length}
               color='purple'
               onAddTask={() => handleAddTask('Upcoming')}
+              columnHeight={columnHeight}
+              columnWidth={columnWidth}
             >
               {upcomingTasks.map(task => (
                 <TaskCard

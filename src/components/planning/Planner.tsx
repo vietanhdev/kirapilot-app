@@ -14,6 +14,41 @@ export function Planner({ viewMode = 'week' }: PlanningScreenProps) {
   const { isInitialized } = useDatabase();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [currentWeek, setCurrentWeek] = useState(new Date());
+  const [windowSize, setWindowSize] = useState({
+    width: window.innerWidth,
+    height: window.innerHeight,
+  });
+
+  // Track window size changes
+  useEffect(() => {
+    const handleResize = () => {
+      setWindowSize({
+        width: window.innerWidth,
+        height: window.innerHeight,
+      });
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Calculate dynamic column height based on window size
+  const getColumnHeight = () => {
+    const { width, height } = windowSize;
+    const isSmallWindow = width < 1024 || height < 768; // lg breakpoint for width, reasonable height threshold
+
+    // Reserve space for header (~120px) and padding (~48px)
+    const reservedSpace = 168;
+    const availableHeight = height - reservedSpace;
+
+    if (isSmallWindow) {
+      // Fill window on small screens (minimum 300px, maximum available height)
+      return Math.max(300, Math.min(availableHeight, height * 0.9));
+    } else {
+      // Use 3/4 of available height on larger screens (minimum 400px)
+      return Math.max(400, availableHeight * 0.75);
+    }
+  };
 
   // Load tasks from database on mount
   useEffect(() => {
@@ -193,23 +228,61 @@ export function Planner({ viewMode = 'week' }: PlanningScreenProps) {
     if (isInitialized) {
       try {
         console.debug('Updating task in database:', task.id);
+
+        // Add a small delay to avoid transaction conflicts
+        await new Promise(resolve => setTimeout(resolve, 50));
+
         const taskRepo = getTaskRepository();
-        await taskRepo.update(task.id, {
-          status,
-        });
-        console.log(
-          'Task status updated in database:',
-          task.title,
-          'to',
-          status
-        );
-      } catch (error) {
+
+        // Retry logic for transaction conflicts
+        let retryCount = 0;
+        const maxRetries = 3;
+
+        while (retryCount < maxRetries) {
+          try {
+            await taskRepo.update(task.id, {
+              status,
+            });
+            console.log(
+              'Task status updated in database:',
+              task.title,
+              'to',
+              status
+            );
+            break; // Success, exit retry loop
+          } catch (retryError: any) {
+            retryCount++;
+            console.warn(`Attempt ${retryCount} failed:`, retryError?.message);
+
+            if (
+              retryError?.message?.includes('no transaction is active') &&
+              retryCount < maxRetries
+            ) {
+              console.log(`Retrying in ${retryCount * 100}ms...`);
+              await new Promise(resolve =>
+                setTimeout(resolve, retryCount * 100)
+              );
+              continue;
+            }
+
+            // If it's not a transaction error or we've exhausted retries, throw
+            throw retryError;
+          }
+        }
+      } catch (error: any) {
         console.error('Failed to update task status in database:', error);
         console.error('Error details:', error);
+        console.error('Error type:', typeof error);
+        console.error('Error message:', error?.message);
+        console.error('Error stack:', error?.stack);
+
         // Revert local state if database update failed
         setTasks(prev => prev.map(t => (t.id === task.id ? task : t)));
-        // Show user-friendly error message if needed
-        // You could add a toast notification here
+
+        // Show user-friendly error message
+        alert(
+          `Failed to update task status: ${error?.message || 'Unknown error'}. Please try again.`
+        );
       }
     }
   };
@@ -233,7 +306,7 @@ export function Planner({ viewMode = 'week' }: PlanningScreenProps) {
   };
 
   return (
-    <div className='flex-1 p-6'>
+    <div className='p-6 min-h-full'>
       {/* Weekly Planning Interface */}
       <WeeklyPlan
         tasks={tasks}
@@ -245,6 +318,7 @@ export function Planner({ viewMode = 'week' }: PlanningScreenProps) {
         onTaskStatusChange={handleTaskStatusChange}
         onTaskDelete={handleTaskDelete}
         viewMode={viewMode}
+        columnHeight={getColumnHeight()}
       />
     </div>
   );
