@@ -250,12 +250,16 @@ export function Planner({ viewMode = 'week' }: PlanningScreenProps) {
               status
             );
             break; // Success, exit retry loop
-          } catch (retryError: any) {
+          } catch (retryError: unknown) {
             retryCount++;
-            console.warn(`Attempt ${retryCount} failed:`, retryError?.message);
+            const errorMessage =
+              retryError instanceof Error
+                ? retryError.message
+                : String(retryError);
+            console.warn(`Attempt ${retryCount} failed:`, errorMessage);
 
             if (
-              retryError?.message?.includes('no transaction is active') &&
+              errorMessage.includes('no transaction is active') &&
               retryCount < maxRetries
             ) {
               console.log(`Retrying in ${retryCount * 100}ms...`);
@@ -269,19 +273,22 @@ export function Planner({ viewMode = 'week' }: PlanningScreenProps) {
             throw retryError;
           }
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('Failed to update task status in database:', error);
         console.error('Error details:', error);
         console.error('Error type:', typeof error);
-        console.error('Error message:', error?.message);
-        console.error('Error stack:', error?.stack);
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        const errorStack = error instanceof Error ? error.stack : undefined;
+        console.error('Error message:', errorMessage);
+        console.error('Error stack:', errorStack);
 
         // Revert local state if database update failed
         setTasks(prev => prev.map(t => (t.id === task.id ? task : t)));
 
         // Show user-friendly error message
         alert(
-          `Failed to update task status: ${error?.message || 'Unknown error'}. Please try again.`
+          `Failed to update task status: ${errorMessage || 'Unknown error'}. Please try again.`
         );
       }
     }
