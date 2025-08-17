@@ -1,141 +1,186 @@
-# KiraPilot: Navigate your day with precision, powered by Kira AI
+<p align="center">
+  <img alt="KiraPilot" style="width: 128px; height: 128px;" src="app-icon.png"/>
+  <h1 align="center">🚀 KiraPilot 🚀</h1>
+  <p align="center">Navigate your day with precision, powered by intelligent AI assistance!</p>
+</p>
 
-## Core Vision
-"A beautifully designed, native-feeling productivity app with an intelligent AI companion that helps you take control of your time and tasks"
+<p align="center">
+  <a href="https://github.com/vietanhdev/kirapilot-app/blob/main/LICENSE">
+    <img src="https://img.shields.io/github/license/vietanhdev/kirapilot-app.svg" alt="License"/>
+  </a>
+  <a href="https://github.com/vietanhdev/kirapilot-app/issues">
+    <img src="https://img.shields.io/github/issues/vietanhdev/kirapilot-app.svg" alt="Open Issues"/>
+  </a>
+  <a href="https://github.com/vietanhdev/kirapilot-app/releases">
+    <img src="https://img.shields.io/github/v/release/vietanhdev/kirapilot-app.svg" alt="Latest Release"/>
+  </a>
+  <a href="https://github.com/vietanhdev/kirapilot-app/stargazers">
+    <img src="https://img.shields.io/github/stars/vietanhdev/kirapilot-app.svg" alt="GitHub Stars"/>
+  </a>
+  <a href="https://twitter.com/vietanhdev">
+    <img src="https://img.shields.io/badge/+Follow-vietanhdev-blue" alt="Follow"/>
+  </a>
+</p>
 
-## Technical Stack
-- **Frontend**: React 20+ + TypeScript
-- **Backend**: Tauri (Rust)
-- **Styling**: Tailwind CSS with custom animations
+---
+
+KiraPilot is a cross-platform productivity application that combines task management, time tracking, and intelligent AI assistance. The app helps users navigate their day with precision through beautiful design and smart automation.
+
+## ✨ Core Features
+
+- **Task Management**: Rich text descriptions, priority levels, dependencies, and week-based planning
+- **Time Tracking**: Built-in timer with session notes and productivity analytics
+- **Pattern Recognition**: Productivity analytics and automatic scheduling suggestions
+- **AI Assistant**: Natural language interface with tool access to all app features
+
+## 🚀 Technology Stack
+
+- **Frontend**: React 19+ with TypeScript
+- **Backend**: Tauri v2 (Rust)
+- **Build Tool**: Vite 7+ with HMR
+- **Database**: SQLite via Tauri SQL plugin
+- **Styling**: Tailwind CSS 4+ with HeroUI components
 - **Icons**: Lucide React
-- **Build Tool**: Vite
-- **Database**: Local SQLite with optional Supabase sync
-- **API Layer**: NestJS for cloud synchronization
-- **AI Engine**: Local small LLM with optional cloud-based model
-- **Platforms**: macOS, Windows, Linux, iOS, Android
+- **Animations**: Framer Motion
+- **Rich Text**: Tiptap editor
+- **Validation**: Zod schemas
 
-## Key Features
+## 🛠️ Development
 
-### 1. Command Center Dashboard
-- Task overview with status indicators
-- Real-time energy and focus metrics
-- Weekly planning interface with drag-and-drop
-- Context-aware suggestions based on time, location, and patterns
+### Prerequisites
 
-### 2. Task Management System
-- Rich text editor for detailed task descriptions
-- Week-based planning with visual timeline
-- Priority flags with intelligent sorting
-- Task dependencies and relationships
+- Node.js (LTS version)
+- Rust (latest stable)
 
-### 3. Time Tracking Engine
-- Built-in timer with start/pause/reset
-- Time visualization with beautiful charts
-- Session notes for context capturing
-- Automatic time-boxing suggestions
+### Getting Started
 
-### 4. Focus Environment
-- Distraction blocking during deep work sessions
-- Dynamic workspace based on task context
-- Background noise/music integration
-- Focus metrics and session replay
+```bash
+# Install dependencies
+npm ci
 
-### 5. Pattern Recognition
-- Productivity analytics across days/weeks
-- Personal energy pattern detection
-- Automatic scheduling suggestions
-- Habit correlation analysis
+# Start development server
+npm run dev
 
-### 6. Kira AI Assistant
-- Natural language interface for app control
-- Tool-using AI with access to all app features
-- Context-aware suggestions and insights
-- Proactive notifications and reminders
-
-## AI Use Cases and Examples
-
-### Task Creation and Management
-```
-User: "I need to prepare the quarterly report by next Friday and gather input from the marketing team by Wednesday"
-
-Kira AI: "I've created two tasks for you:
-1. 'Gather input from marketing team' due this Wednesday at 5pm
-2. 'Prepare quarterly report' due next Friday at 5pm
-
-I've also added a dependency so the report task will be flagged if you don't complete the marketing input task first. Should I schedule time blocks for these on your calendar?"
+# Start Tauri app in development mode
+npm run tauri dev
 ```
 
-### Focus Session Management
-```
-User: "I want to focus on the presentation draft for 45 minutes"
+### Code Quality
 
-Kira AI: "Starting a 45-minute focus session for 'Create presentation draft'. 
-[TIMER VISUALIZATION]
+```bash
+# Linting and formatting
+npm run lint              # ESLint check
+npm run lint:fix          # ESLint auto-fix
+npm run format           # Prettier format
+npm run type-check       # TypeScript check
 
-I'll block notifications during this time. Based on your past focus patterns, you typically take a short break after 25 minutes. Would you like me to remind you when you reach that point?"
-```
+# Testing
+npm test                 # Run Jest tests
+npm run test:watch       # Jest in watch mode
+npm run test:coverage    # Generate coverage report
 
-### Productivity Insights
-```
-User: "When am I most productive during the week?"
-
-Kira AI: "Based on your completed tasks over the past month, you're most productive on:
-1. Tuesday mornings (9-11am): 87% task completion rate
-2. Thursday afternoons (2-4pm): 82% task completion rate
-
-[PRODUCTIVITY CHART]
-
-Your energy levels tend to dip after lunch (1-2pm) each day. Would you like me to schedule your deep work tasks during your peak productivity times?"
+# Building
+npm run build            # Build frontend
+npm run tauri build      # Build Tauri application
 ```
 
-### Proactive Suggestions
+## 🏗️ Project Structure
+
 ```
-[AI initiates conversation at 9:15am]
-
-Kira AI: "Good morning! I notice you have 3 high-priority tasks today, including the client proposal due at 3pm. Based on your calendar, you have a 2-hour meeting block from 11am-1pm.
-
-Would you like to start working on the proposal now? You historically complete similar tasks in about 90 minutes, and your focus score is typically highest in the morning."
+src/
+├── components/           # React components by feature
+│   ├── common/          # Shared UI components
+│   ├── planning/        # Task planning and scheduling
+│   ├── timer/           # Time tracking and session management
+│   ├── ai/              # AI assistant components
+│   └── TitleBar.tsx     # Custom window title bar
+├── services/            # Business logic and external integrations
+│   ├── database/        # Database layer with repositories
+│   └── notifications/   # System notifications
+├── contexts/            # React context providers
+├── hooks/               # Custom React hooks
+├── types/               # TypeScript type definitions
+├── utils/               # Pure utility functions
+└── App.tsx             # Main application component
 ```
 
-## AI Assistant Design Philosophy
+## 🤖 AI Assistant
 
-### Contextual Intelligence
-- Kira understands your current state (location, time, energy)
-- Adapts recommendations based on past behavior patterns
-- Learns your productivity rhythms and preferences
-- Offers just-in-time suggestions without being intrusive
+KiraPilot features an intelligent AI assistant that provides:
 
-### Tool-Based Architecture
-- Kira has direct access to all app functionality
-- Can create tasks, schedule focus sessions, analyze data
-- Works seamlessly between conversation and direct actions
-- Extends capabilities through integrations with other services
+- **Natural Language Interface**: Conversational chat for app control
+- **Tool Integration**: Direct access to all app functionality
+- **Context Awareness**: Adapts recommendations based on patterns
+- **Privacy-First**: Local data processing with optional cloud features
 
-### Privacy-First Design
-- Local processing for sensitive information
-- Optional cloud connectivity with clear user control
-- Transparent AI operation with explainable suggestions
-- No data sharing with third parties
+### Example Interactions
 
-## User Experience
+**Task Management**
 
-### Natural Interface
-- Conversational chat feels like texting a helpful assistant
-- Voice input for hands-free operation
-- Suggestion chips for common actions
-- Smart defaults based on user patterns
+```
+User: "I need to prepare the quarterly report by next Friday"
+Kira: "I've created 'Prepare quarterly report' due next Friday at 5pm.
+Based on similar tasks, this typically takes 2-3 hours.
+Should I schedule a time block for this?"
+```
 
-### Adaptive Presentation
-- Minimal UI that expands contextually when needed
-- Different views based on task context
-- Subtle animations guide user attention
-- Beautiful visualizations of complex data
+**Productivity Insights**
 
-### Cross-Platform Cohesion
-- Consistent experience across devices
-- Smooth transitions between desktop and mobile
-- Responsive design adapts to available screen space
-- Native feeling on each platform
+```
+User: "When am I most productive?"
+Kira: "Based on your completed tasks, you're most productive:
+• Tuesday mornings (9-11am): 87% completion rate
+• Thursday afternoons (2-4pm): 82% completion rate
+Would you like me to schedule deep work during these times?"
+```
 
-KiraPilot transforms the traditional productivity app paradigm by integrating a powerful AI assistant that works alongside you, helping you manage your tasks, time, and focus in a way that feels natural and effortless, while respecting your privacy and adapting to your unique working patterns.
+## 🎯 Target Platforms
 
+Desktop-first application built with Tauri for native performance on:
+
+- macOS
+- Windows
+- Linux
+
+## 🔒 Privacy & Data
+
+- **Local-First**: SQLite database with offline-first approach
+- **Optional Sync**: Cloud synchronization with user control
+- **Data Security**: Encryption for sensitive information
+- **Transparent AI**: Clear visibility into AI operations and suggestions
+
+## 📝 Development Philosophy
+
+- Privacy-first with local data storage
+- Beautiful, native-feeling interface with smooth animations
+- Contextual intelligence that adapts to user patterns
+- Minimal UI that expands when needed
+- Supportive, not authoritative AI assistance
+
+## 🧪 Using Kiro for Coding
+
+This project is developed using [Kiro](https://kiro.ai), an AI-powered coding assistant that helps with:
+
+- Code generation and refactoring
+- Architecture decisions and best practices
+- Testing and documentation
+- Bug fixes and optimizations
+
+The `.kiro/` directory contains our project steering documents that guide development decisions and ensure consistency across the codebase.
+
+## 📚 Documentation
+
+- [Development Setup](docs/DEVELOPMENT.md) - Complete development environment setup
+- [Project Structure](docs/PROJECT_STRUCTURE.md) - Architecture and organization guide
+- [Testing Strategy](docs/TESTING.md) - Testing approach and guidelines
+
+## 🤝 Contributing
+
+1. Follow the code style defined in our ESLint and Prettier configurations
+2. Run `npm run lint` and `npm run build` before submitting changes
+3. Ensure all tests pass and maintain test coverage
+4. Update documentation for significant changes
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
