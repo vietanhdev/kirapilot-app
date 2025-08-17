@@ -1,13 +1,56 @@
-name: Release
+name: Release Build
 
 on:
   push:
     tags:
       - 'v*'
-  workflow_dispatch:
 
 jobs:
-  release:
+  test:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies (ubuntu only)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: 'npm'
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Run TypeScript type checking
+        run: npm run type-check
+
+      - name: Run linting
+        run: npm run lint
+
+      - name: Run formatting check
+        run: npm run format:check
+
+      - name: Run frontend tests
+        run: npm run test:coverage
+
+      - name: Build frontend
+        run: npm run build
+
+  build:
+    needs: test
     permissions:
       contents: write
     strategy:
@@ -53,44 +96,18 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
-      - name: Build and release
+      - name: Build app
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Uncomment the following lines if you want to enable code signing
-          # APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          # APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          # APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-          # APPLE_ID: ${{ secrets.APPLE_ID }}
-          # APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-          # APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          # TAURI_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
-          # TAURI_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
         with:
-          tagName: ${{ github.ref_name }}
-          releaseName: 'KiraPilot v__VERSION__'
-          releaseBody: |
-            ## What's Changed
-            
-            See the [full changelog](https://github.com/${{ github.repository }}/compare/v__PREV_VERSION__...${{ github.ref_name }}) for details.
-            
-            ## Installation
-            
-            ### Windows
-            - Download the `.msi` installer for easy installation
-            - Or use the `.exe` portable version
-            
-            ### macOS
-            - Download the `.dmg` file for Intel Macs (x86_64)
-            - Download the `.dmg` file for Apple Silicon Macs (aarch64)
-            
-            ### Linux
-            - Download the `.AppImage` for universal compatibility
-            - Or use the `.deb` package for Debian/Ubuntu systems
-            
-            ## Security Notes
-            
-            KiraPilot stores all data locally on your device. No personal information is sent to external services except for AI requests (which you can disable in settings).
-          releaseDraft: true
-          prerelease: false
-          args: ${{ matrix.args }} 
+          args: ${{ matrix.args }}
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: kirapilot-${{ matrix.platform }}-${{ matrix.args && matrix.args || 'default' }}
+          path: |
+            src-tauri/target/release/bundle/
+            src-tauri/target/*/release/bundle/
+          retention-days: 30 
