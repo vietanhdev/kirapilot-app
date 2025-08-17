@@ -737,9 +737,11 @@ export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
               Cancel
             </Button>
             <Button
-              color='primary'
+              color='success'
+              variant='solid'
               onPress={handleSetupApiKey}
-              disabled={!apiKey.trim()}
+              isDisabled={!apiKey.trim()}
+              className='bg-green-600 text-white hover:bg-green-700 disabled:bg-gray-400 disabled:text-gray-200'
             >
               Save & Connect
             </Button>

@@ -20,7 +20,7 @@ function AppContent() {
 
   return (
     <div
-      className={`${resolvedTheme} text-foreground bg-background h-screen flex flex-col overflow-hidden`}
+      className={`${resolvedTheme} text-foreground bg-background app-content`}
     >
       {/* Custom Title Bar */}
       <TitleBar />
@@ -28,8 +28,8 @@ function AppContent() {
       {/* Header with Timer Integration */}
       <Header currentView={currentView} onViewChange={setCurrentView} />
 
-      {/* Main Content */}
-      <main className='flex-1 flex flex-col overflow-hidden'>
+      {/* Main Content - Now scrollable */}
+      <main className='app-main-content'>
         {(currentView === 'week' || currentView === 'day') && (
           <Planner viewMode={currentView as 'week' | 'day'} />
         )}

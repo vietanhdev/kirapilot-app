@@ -23,6 +23,7 @@ interface WeeklyPlanProps {
   onTaskDelete?: (task: Task) => void;
   viewMode?: 'week' | 'day';
   className?: string;
+  columnHeight?: number;
 }
 
 export function WeeklyPlan({
@@ -36,6 +37,7 @@ export function WeeklyPlan({
   onTaskDelete,
   viewMode: initialViewMode = 'week',
   className = '',
+  columnHeight,
 }: WeeklyPlanProps) {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<'week' | 'day'>(initialViewMode);
@@ -130,6 +132,7 @@ export function WeeklyPlan({
           onTaskDelete={handleTaskDelete}
           onViewTimeHistory={handleViewTimeHistory}
           getTaskTimerProps={getTaskTimerProps}
+          columnHeight={columnHeight}
         />
       ) : (
         <DayView
@@ -144,6 +147,7 @@ export function WeeklyPlan({
           onTaskDelete={handleTaskDelete}
           onViewTimeHistory={handleViewTimeHistory}
           getTaskTimerProps={getTaskTimerProps}
+          columnHeight={columnHeight}
         />
       )}
 

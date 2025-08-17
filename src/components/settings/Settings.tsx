@@ -87,7 +87,7 @@ export const Settings: React.FC<SettingsProps> = ({ className = '' }) => {
   }
 
   return (
-    <div className={`flex-1 p-6 max-w-4xl mx-auto ${className}`}>
+    <div className={`p-6 max-w-4xl mx-auto min-h-full ${className}`}>
       <div className='mb-6'>
         <div className='flex items-center justify-between'>
           <div>

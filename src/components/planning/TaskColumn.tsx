@@ -18,6 +18,8 @@ interface TaskColumnProps {
   onAddTask: () => void;
   children: ReactNode;
   className?: string;
+  columnHeight?: number;
+  columnWidth?: number; // New prop for responsive width
 }
 
 export function TaskColumn({
@@ -30,6 +32,8 @@ export function TaskColumn({
   onAddTask,
   children,
   className = '',
+  columnHeight,
+  columnWidth,
 }: TaskColumnProps) {
   const { isOver, setNodeRef } = useDroppable({
     id: title.toLowerCase(),
@@ -114,15 +118,21 @@ export function TaskColumn({
 
   const colorClasses = getColorClasses();
 
+  // Determine width classes or inline style
+  const widthStyle = columnWidth ? { width: `${columnWidth}px` } : undefined;
+  const widthClass = columnWidth ? '' : 'w-96'; // Fallback to original width if no columnWidth provided
+
   return (
     <div
       className={`
-        shrink-0 w-64 bg-white dark:bg-gray-800/30 rounded-lg border transition-all duration-200
+        shrink-0 bg-white dark:bg-gray-800/30 rounded-lg border transition-all duration-200
         ${isOver ? 'border-primary-400 bg-primary-500/10 scale-[1.02]' : colorClasses.border}
         ${isToday ? 'border-primary-500/50 shadow-lg shadow-primary-500/10' : ''}
         hover:shadow-md backdrop-blur-sm
+        ${widthClass}
         ${className}
       `}
+      style={widthStyle}
     >
       {/* Column Header */}
       <div className={`p-2.5 border-b ${colorClasses.header} rounded-t-lg`}>
@@ -179,12 +189,16 @@ export function TaskColumn({
       <div
         ref={setNodeRef}
         className={`
-          min-h-[400px] max-h-[500px] overflow-y-auto p-2 space-y-2 transition-all duration-300
+          overflow-y-auto p-2 space-y-2 transition-all duration-300
           scrollbar-thin scrollbar-thumb-gray-400 dark:scrollbar-thumb-gray-600 
           scrollbar-track-gray-100 dark:scrollbar-track-gray-800
           hover:scrollbar-thumb-gray-500 dark:hover:scrollbar-thumb-gray-500
           ${isOver ? 'bg-primary-50 dark:bg-primary-900/20 scale-[0.98]' : ''}
         `}
+        style={{
+          height: columnHeight ? `${columnHeight}px` : '400px',
+          minHeight: '300px',
+        }}
       >
         <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
           {children}

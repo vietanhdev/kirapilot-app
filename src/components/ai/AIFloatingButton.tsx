@@ -56,7 +56,7 @@ export function AIFloatingButton({ className = '' }: AIFloatingButtonProps) {
     <>
       <Tooltip content={getTooltipText()} placement='left'>
         <div
-          className={`fixed bottom-8 right-8 z-40 bg-primary-500 rounded-lg ${className}`}
+          className={`fixed bottom-8 right-8 z-40 bg-primary-500 rounded-xl ${className}`}
         >
           <motion.div
             whileHover={{ scale: 1.1 }}

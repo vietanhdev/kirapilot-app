@@ -8,12 +8,28 @@
 @source '../node_modules/@heroui/theme/dist/**/*.{js,ts,jsx,tsx}';
 @custom-variant dark (&:is(.dark *));
 
-/* Prevent scrollbars in frameless mode */
+/* App layout styles - allow scrolling within the app container */
 html,
 body,
 #root {
   height: 100%;
   overflow: hidden;
+  /* Keep overflow hidden on root elements for app container management */
+}
+
+/* Ensure app content can scroll properly */
+.app-content {
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-main-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0; /* Important for flex child scrolling */
 }
 
 @utility task-card {

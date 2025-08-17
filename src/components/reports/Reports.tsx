@@ -317,7 +317,7 @@ export function Reports() {
 
   if (loading) {
     return (
-      <div className='flex-1 flex items-center justify-center'>
+      <div className='flex items-center justify-center min-h-full'>
         <div className='text-center'>
           <Activity className='w-8 h-8 text-blue-500 mx-auto mb-2 animate-spin' />
           <p className='text-foreground-600'>{t('reports.loading')}</p>
@@ -327,7 +327,7 @@ export function Reports() {
   }
 
   return (
-    <div className='flex-1 p-6 overflow-auto'>
+    <div className='p-6 min-h-full'>
       {/* Header */}
       <div className='flex justify-between items-center mb-6'>
         <div>
@@ -479,7 +479,7 @@ export function Reports() {
                   dataKey='hour'
                   stroke='#9CA3AF'
                   fontSize={12}
-                  tickFormatter={hour => `${hour}:00`}
+                  tickFormatter={value => `${value}:00`}
                 />
                 <YAxis stroke='#9CA3AF' fontSize={12} />
                 <Tooltip
@@ -489,100 +489,327 @@ export function Reports() {
                     borderRadius: '8px',
                     color: '#F9FAFB',
                   }}
-                  labelFormatter={hour => `${hour}:00`}
+                  labelFormatter={value => `${value}:00`}
+                  formatter={(value: number) => [`${value}%`, 'Productivity']}
                 />
                 <Line
                   type='monotone'
-                  dataKey='sessions'
+                  dataKey='productivity'
                   stroke='#10B981'
-                  strokeWidth={2}
+                  strokeWidth={3}
                   dot={{ fill: '#10B981', strokeWidth: 2, r: 4 }}
+                  activeDot={{ r: 6, stroke: '#10B981', strokeWidth: 2 }}
                 />
               </LineChart>
             </ResponsiveContainer>
           </CardBody>
         </Card>
 
-        {/* Task Time Distribution */}
+        {/* Task Performance Dashboard - Replaced pie chart */}
         <Card className='bg-content1 border-divider'>
           <CardHeader className='pb-2'>
             <div className='flex items-center gap-2'>
-              <PieChartIcon className='w-5 h-5 text-purple-500' />
+              <Target className='w-5 h-5 text-purple-500' />
               <h3 className='text-lg font-semibold text-foreground'>
-                Top Tasks
+                Task Performance
               </h3>
             </div>
           </CardHeader>
           <CardBody className='pt-0'>
-            <ResponsiveContainer width='100%' height={300}>
-              <PieChart>
-                <Pie
-                  data={taskTimeData.slice(0, 5)}
-                  cx='50%'
-                  cy='50%'
-                  labelLine={false}
-                  label={(props: PieLabelRenderProps) => {
-                    const data = props.payload as TaskTimeData;
-                    const taskTitle = data?.taskTitle || '';
-                    return `${taskTitle.slice(0, 15)}${taskTitle.length > 15 ? '...' : ''}`;
-                  }}
-                  outerRadius={80}
-                  fill='#8884d8'
-                  dataKey='totalTime'
-                >
-                  {taskTimeData.slice(0, 5).map((_, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={COLORS[index % COLORS.length]}
-                    />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#1F2937',
-                    border: '1px solid #374151',
-                    borderRadius: '8px',
-                    color: '#F9FAFB',
-                  }}
-                  formatter={(value: number) => [formatTime(value), 'Time']}
-                />
-              </PieChart>
-            </ResponsiveContainer>
+            {taskTimeData.length === 0 ? (
+              <div className='text-center py-12'>
+                <Activity className='w-12 h-12 text-foreground-400 mx-auto mb-3' />
+                <p className='text-foreground-600 mb-2'>
+                  No task data available
+                </p>
+                <p className='text-sm text-foreground-500'>
+                  Start working on tasks to see performance insights
+                </p>
+              </div>
+            ) : (
+              <div className='space-y-4'>
+                {/* Performance Summary */}
+                <div className='grid grid-cols-3 gap-4 p-4 bg-content2 rounded-lg'>
+                  <div className='text-center'>
+                    <div className='text-2xl font-bold text-purple-500'>
+                      {taskTimeData.length}
+                    </div>
+                    <div className='text-xs text-foreground-600'>
+                      Active Tasks
+                    </div>
+                  </div>
+                  <div className='text-center'>
+                    <div className='text-2xl font-bold text-green-500'>
+                      {Math.round(
+                        taskTimeData.reduce(
+                          (sum, task) => sum + task.productivity,
+                          0
+                        ) / taskTimeData.length
+                      )}
+                      %
+                    </div>
+                    <div className='text-xs text-foreground-600'>Avg Focus</div>
+                  </div>
+                  <div className='text-center'>
+                    <div className='text-2xl font-bold text-blue-500'>
+                      {formatTime(
+                        taskTimeData.reduce(
+                          (sum, task) => sum + task.totalTime,
+                          0
+                        )
+                      )}
+                    </div>
+                    <div className='text-xs text-foreground-600'>
+                      Total Time
+                    </div>
+                  </div>
+                </div>
+
+                {/* Top Performing Tasks List */}
+                <div className='space-y-2'>
+                  <h4 className='text-sm font-medium text-foreground mb-3'>
+                    Top Performing Tasks
+                  </h4>
+                  {taskTimeData.slice(0, 5).map((task, index) => {
+                    const maxTime = Math.max(
+                      ...taskTimeData.map(t => t.totalTime)
+                    );
+                    const timePercentage =
+                      maxTime > 0 ? (task.totalTime / maxTime) * 100 : 0;
+
+                    return (
+                      <div key={task.taskTitle} className='group'>
+                        <div className='flex items-center justify-between mb-1'>
+                          <div className='flex items-center gap-2 flex-1 min-w-0'>
+                            <div
+                              className={`w-3 h-3 rounded-full flex-shrink-0 ${
+                                index === 0
+                                  ? 'bg-yellow-500'
+                                  : index === 1
+                                    ? 'bg-gray-400'
+                                    : index === 2
+                                      ? 'bg-orange-600'
+                                      : 'bg-purple-400'
+                              }`}
+                            />
+                            <span className='text-sm text-foreground truncate font-medium'>
+                              {task.taskTitle}
+                            </span>
+                          </div>
+                          <div className='flex items-center gap-3 flex-shrink-0'>
+                            <span className='text-xs text-foreground-600'>
+                              {formatTime(task.totalTime)}
+                            </span>
+                            <div
+                              className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                task.productivity >= 80
+                                  ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                                  : task.productivity >= 60
+                                    ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+                                    : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                              }`}
+                            >
+                              {task.productivity}%
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Progress bar for time */}
+                        <div className='w-full bg-content3 rounded-full h-2 mb-1'>
+                          <div
+                            className={`h-2 rounded-full transition-all duration-500 ${
+                              index === 0
+                                ? 'bg-yellow-500'
+                                : index === 1
+                                  ? 'bg-gray-400'
+                                  : index === 2
+                                    ? 'bg-orange-600'
+                                    : 'bg-purple-400'
+                            }`}
+                            style={{ width: `${Math.max(timePercentage, 5)}%` }}
+                          />
+                        </div>
+
+                        {/* Session count */}
+                        <div className='text-xs text-foreground-500'>
+                          {task.sessions} session
+                          {task.sessions !== 1 ? 's' : ''}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Show more tasks if available */}
+                {taskTimeData.length > 5 && (
+                  <div className='text-center pt-2'>
+                    <button className='text-sm text-purple-500 hover:text-purple-600 font-medium'>
+                      View all {taskTimeData.length} tasks →
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </CardBody>
         </Card>
 
-        {/* Productivity Trends */}
+        {/* Enhanced Productivity Trends */}
         <Card className='bg-content1 border-divider'>
           <CardHeader className='pb-2'>
-            <div className='flex items-center gap-2'>
-              <Activity className='w-5 h-5 text-orange-500' />
-              <h3 className='text-lg font-semibold text-foreground'>
-                Productivity Trend
-              </h3>
+            <div className='flex items-center justify-between'>
+              <div className='flex items-center gap-2'>
+                <Activity className='w-5 h-5 text-orange-500' />
+                <h3 className='text-lg font-semibold text-foreground'>
+                  Productivity Trends
+                </h3>
+              </div>
+              {dailyData.length > 0 && (
+                <div className='flex items-center gap-2'>
+                  <div className='flex items-center gap-1'>
+                    <div className='w-2 h-2 bg-orange-500 rounded-full'></div>
+                    <span className='text-xs text-foreground-600'>
+                      Daily Focus
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
           </CardHeader>
           <CardBody className='pt-0'>
-            <ResponsiveContainer width='100%' height={300}>
-              <BarChart data={dailyData}>
-                <CartesianGrid strokeDasharray='3 3' stroke='#374151' />
-                <XAxis dataKey='date' stroke='#9CA3AF' fontSize={12} />
-                <YAxis stroke='#9CA3AF' fontSize={12} />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#1F2937',
-                    border: '1px solid #374151',
-                    borderRadius: '8px',
-                    color: '#F9FAFB',
-                  }}
-                  formatter={(value: number) => [`${value}%`, 'Productivity']}
-                />
-                <Bar
-                  dataKey='productivity'
-                  fill='#F59E0B'
-                  radius={[4, 4, 0, 0]}
-                />
-              </BarChart>
-            </ResponsiveContainer>
+            {dailyData.length === 0 ? (
+              <div className='text-center py-12'>
+                <TrendingUp className='w-12 h-12 text-foreground-400 mx-auto mb-3' />
+                <p className='text-foreground-600 mb-2'>No productivity data</p>
+                <p className='text-sm text-foreground-500'>
+                  Complete some work sessions to see trends
+                </p>
+              </div>
+            ) : (
+              <div className='space-y-4'>
+                {/* Productivity Summary */}
+                <div className='grid grid-cols-3 gap-4 p-3 bg-content2 rounded-lg'>
+                  <div className='text-center'>
+                    <div className='text-xl font-bold text-orange-500'>
+                      {Math.max(...dailyData.map(d => d.productivity))}%
+                    </div>
+                    <div className='text-xs text-foreground-600'>Best Day</div>
+                  </div>
+                  <div className='text-center'>
+                    <div className='text-xl font-bold text-green-500'>
+                      {Math.round(
+                        dailyData.reduce((sum, d) => sum + d.productivity, 0) /
+                          dailyData.length
+                      )}
+                      %
+                    </div>
+                    <div className='text-xs text-foreground-600'>Average</div>
+                  </div>
+                  <div className='text-center'>
+                    <div className='text-xl font-bold text-blue-500'>
+                      {dailyData.filter(d => d.productivity >= 80).length}
+                    </div>
+                    <div className='text-xs text-foreground-600'>High Days</div>
+                  </div>
+                </div>
+
+                {/* Mini Chart */}
+                <ResponsiveContainer width='100%' height={180}>
+                  <BarChart
+                    data={dailyData}
+                    margin={{ top: 10, right: 10, left: 10, bottom: 5 }}
+                  >
+                    <CartesianGrid
+                      strokeDasharray='3 3'
+                      stroke='#374151'
+                      opacity={0.3}
+                    />
+                    <XAxis
+                      dataKey='date'
+                      stroke='#9CA3AF'
+                      fontSize={11}
+                      tick={{ fontSize: 11 }}
+                      interval={0}
+                      angle={-45}
+                      textAnchor='end'
+                      height={60}
+                    />
+                    <YAxis
+                      stroke='#9CA3AF'
+                      fontSize={11}
+                      domain={[0, 100]}
+                      tick={{ fontSize: 11 }}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: '#1F2937',
+                        border: '1px solid #374151',
+                        borderRadius: '8px',
+                        color: '#F9FAFB',
+                        fontSize: '12px',
+                      }}
+                      formatter={(value: number, name: string) => [
+                        `${value}%`,
+                        name === 'productivity' ? 'Focus Score' : name,
+                      ]}
+                      labelFormatter={label => `Date: ${label}`}
+                    />
+                    <Bar
+                      dataKey='productivity'
+                      fill='#F59E0B'
+                      radius={[2, 2, 0, 0]}
+                      name='productivity'
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+
+                {/* Trend Insights */}
+                <div className='space-y-2'>
+                  <h4 className='text-sm font-medium text-foreground'>
+                    Recent Performance
+                  </h4>
+                  {dailyData
+                    .slice(-3)
+                    .reverse()
+                    .map((day, index) => (
+                      <div
+                        key={day.date}
+                        className='flex items-center justify-between p-2 bg-content2 rounded-lg'
+                      >
+                        <div className='flex items-center gap-2'>
+                          <div
+                            className={`w-2 h-2 rounded-full ${
+                              day.productivity >= 80
+                                ? 'bg-green-500'
+                                : day.productivity >= 60
+                                  ? 'bg-yellow-500'
+                                  : 'bg-red-500'
+                            }`}
+                          />
+                          <span className='text-sm text-foreground'>
+                            {day.date}
+                          </span>
+                        </div>
+                        <div className='flex items-center gap-3'>
+                          <span className='text-xs text-foreground-600'>
+                            {formatTime(day.hours)}
+                          </span>
+                          <span
+                            className={`text-xs font-medium px-2 py-1 rounded-full ${
+                              day.productivity >= 80
+                                ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                                : day.productivity >= 60
+                                  ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+                                  : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                            }`}
+                          >
+                            {day.productivity}%
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
           </CardBody>
         </Card>
       </div>
