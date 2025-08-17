@@ -36,21 +36,9 @@ import { useAI } from '../../contexts/AIContext';
 import { usePrivacy } from '../../contexts/PrivacyContext';
 import { resetDatabase } from '../../utils/resetDatabase';
 import { forceClearData } from '../../utils/clearOldData';
-import {
-  Task,
-  TaskStatus,
-  Priority,
-  TimerSession,
-  CompletedSession,
-  TimerBreak,
-  DistractionLevel,
-} from '../../types';
+import { Task, TaskStatus, Priority, DistractionLevel } from '../../types';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useDatabase } from '../../hooks/useDatabase';
-import {
-  getTaskRepository,
-  getTimeTrackingRepository,
-} from '../../services/database/repositories';
 
 interface DataManagementProps {
   className?: string;
@@ -518,19 +506,6 @@ export const DataManagement: React.FC<DataManagementProps> = ({
         ],
       };
 
-      const statuses = [
-        TaskStatus.PENDING,
-        TaskStatus.IN_PROGRESS,
-        TaskStatus.COMPLETED,
-        TaskStatus.CANCELLED,
-      ];
-      const priorities = [
-        Priority.LOW,
-        Priority.MEDIUM,
-        Priority.HIGH,
-        Priority.URGENT,
-      ];
-
       // Enhanced status distribution for more realistic data
       const getRandomStatus = () => {
         const rand = Math.random();
@@ -782,7 +757,7 @@ export const DataManagement: React.FC<DataManagementProps> = ({
 
           try {
             // Verify time_sessions table exists
-            const tableExists = await db.select<any[]>(
+            const tableExists = await db.select<Array<{ name: string }>>(
               "SELECT name FROM sqlite_master WHERE type='table' AND name='time_sessions'"
             );
             console.log('Time sessions table exists:', tableExists.length > 0);
@@ -839,10 +814,7 @@ export const DataManagement: React.FC<DataManagementProps> = ({
                     totalSessions: number
                   ) => {
                     const taskAge = Date.now() - task.createdAt.getTime();
-                    const maxSessionAge = Math.min(
-                      taskAge,
-                      30 * 24 * 60 * 60 * 1000
-                    ); // Max 30 days ago
+                    Math.min(taskAge, 30 * 24 * 60 * 60 * 1000); // Max 30 days ago
 
                     // Distribute sessions across the task's lifetime
                     const sessionSlot = sessionIndex / totalSessions;
@@ -858,7 +830,7 @@ export const DataManagement: React.FC<DataManagementProps> = ({
                   // Calculate session duration based on task and session characteristics
                   calculateSessionDuration: (
                     task: Task,
-                    sessionIndex: number,
+                    _sessionIndex: number,
                     totalSessions: number
                   ) => {
                     const baseDuration = task.actualTime / totalSessions; // Distribute actual time
@@ -1080,7 +1052,7 @@ export const DataManagement: React.FC<DataManagementProps> = ({
                     );
 
                     // Insert session directly into time_sessions table
-                    const result = await db.execute(
+                    await db.execute(
                       `INSERT INTO time_sessions (
                         id, task_id, start_time, end_time, paused_time,
                         is_active, notes, breaks, created_at
@@ -1137,7 +1109,16 @@ export const DataManagement: React.FC<DataManagementProps> = ({
 
             // Show sample of created sessions for debugging
             if (savedTimeSessions > 0) {
-              const sampleSessions = await db.select<any[]>(
+              const sampleSessions = await db.select<
+                Array<{
+                  id: string;
+                  task_id: string;
+                  start_time: string;
+                  end_time: string | null;
+                  is_active: number;
+                  notes: string;
+                }>
+              >(
                 'SELECT id, task_id, start_time, end_time, is_active, notes FROM time_sessions ORDER BY created_at DESC LIMIT 5'
               );
               console.log('Sample of created sessions:', sampleSessions);

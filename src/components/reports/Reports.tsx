@@ -4,9 +4,6 @@ import {
   Bar,
   LineChart,
   Line,
-  PieChart,
-  Pie,
-  Cell,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -14,7 +11,6 @@ import {
   ResponsiveContainer,
   Area,
   AreaChart,
-  PieLabelRenderProps,
 } from 'recharts';
 import {
   Clock,
@@ -23,7 +19,6 @@ import {
   Calendar,
   Activity,
   BarChart3,
-  PieChart as PieChartIcon,
   Timer,
   Zap,
 } from 'lucide-react';
@@ -65,8 +60,6 @@ interface TaskTimeData {
   sessions: number;
   productivity: number;
 }
-
-const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff7300', '#00ff00'];
 
 export function Reports() {
   const { database } = useDatabase();
@@ -770,7 +763,7 @@ export function Reports() {
                   {dailyData
                     .slice(-3)
                     .reverse()
-                    .map((day, index) => (
+                    .map(day => (
                       <div
                         key={day.date}
                         className='flex items-center justify-between p-2 bg-content2 rounded-lg'
