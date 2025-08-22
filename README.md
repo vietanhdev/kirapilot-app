@@ -4,6 +4,8 @@
   <p align="center">Navigate your day with precision, powered by intelligent AI assistance!</p>
 </p>
 
+**WIP Warning:** This is a work-in-progress. APIs and data will be changed a lot in the future.
+
 <p align="center">
   <a href="https://github.com/vietanhdev/kirapilot-app/blob/main/LICENSE">
     <img src="https://img.shields.io/github/license/vietanhdev/kirapilot-app.svg" alt="License"/>
