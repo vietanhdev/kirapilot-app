@@ -6,6 +6,10 @@ import { Priority, TaskStatus } from '../types';
  * Format duration in milliseconds to human readable string
  */
 export function formatDuration(ms: number): string {
+  if (!ms || isNaN(ms) || ms < 0) {
+    return '0s';
+  }
+
   const seconds = Math.floor(ms / 1000);
   const minutes = Math.floor(seconds / 60);
   const hours = Math.floor(minutes / 60);

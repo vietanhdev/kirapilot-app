@@ -1,57 +1,57 @@
-// Repository exports
-export { TaskRepository } from './TaskRepository';
-export { TimeTrackingRepository } from './TimeTrackingRepository';
-export { FocusRepository } from './FocusRepository';
-export { PatternRepository } from './PatternRepository';
+// SeaORM-based service exports and singleton instances
+import { TaskService } from './TaskService';
+import { TimeTrackingService } from './TimeTrackingService';
+import { FocusService } from './FocusService';
+import { PatternService } from './PatternService';
 
-// Import types for singletons
-import { TaskRepository } from './TaskRepository';
-import { TimeTrackingRepository } from './TimeTrackingRepository';
-import { FocusRepository } from './FocusRepository';
-import { PatternRepository } from './PatternRepository';
+// Singleton instances
+let taskService: TaskService | null = null;
+let timeTrackingService: TimeTrackingService | null = null;
+let focusService: FocusService | null = null;
+let patternService: PatternService | null = null;
 
-// Repository instances (singletons)
-let taskRepository: TaskRepository | null = null;
-let timeTrackingRepository: TimeTrackingRepository | null = null;
-let focusRepository: FocusRepository | null = null;
-let patternRepository: PatternRepository | null = null;
+// Export services
+export { TaskService } from './TaskService';
+export { TimeTrackingService } from './TimeTrackingService';
+export { FocusService } from './FocusService';
+export { PatternService } from './PatternService';
 
 /**
- * Get TaskRepository instance
+ * Get TaskService instance (replaces TaskRepository)
  */
-export function getTaskRepository(): TaskRepository {
-  if (!taskRepository) {
-    taskRepository = new TaskRepository();
+export function getTaskRepository(): TaskService {
+  if (!taskService) {
+    taskService = new TaskService();
   }
-  return taskRepository;
+  return taskService;
 }
 
 /**
- * Get TimeTrackingRepository instance
+ * Get TimeTrackingService instance (replaces TimeTrackingRepository)
  */
-export function getTimeTrackingRepository(): TimeTrackingRepository {
-  if (!timeTrackingRepository) {
-    timeTrackingRepository = new TimeTrackingRepository();
+export function getTimeTrackingRepository(): TimeTrackingService {
+  if (!timeTrackingService) {
+    timeTrackingService = new TimeTrackingService();
   }
-  return timeTrackingRepository;
+  return timeTrackingService;
 }
 
 /**
- * Get FocusRepository instance
+ * Get FocusService instance (replaces FocusRepository)
  */
-export function getFocusRepository(): FocusRepository {
-  if (!focusRepository) {
-    focusRepository = new FocusRepository();
+export function getFocusRepository(): FocusService {
+  if (!focusService) {
+    focusService = new FocusService();
   }
-  return focusRepository;
+  return focusService;
 }
 
 /**
- * Get PatternRepository instance
+ * Get PatternService instance (replaces PatternRepository)
  */
-export function getPatternRepository(): PatternRepository {
-  if (!patternRepository) {
-    patternRepository = new PatternRepository();
+export function getPatternRepository(): PatternService {
+  if (!patternService) {
+    patternService = new PatternService();
   }
-  return patternRepository;
+  return patternService;
 }

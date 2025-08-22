@@ -353,7 +353,7 @@ export function TaskModal({
                   placeholder='Add tag...'
                   value={newTag}
                   onChange={e => setNewTag(e.target.value)}
-                  onKeyPress={e =>
+                  onKeyDown={e =>
                     e.key === 'Enter' && (e.preventDefault(), addTag())
                   }
                   size='sm'

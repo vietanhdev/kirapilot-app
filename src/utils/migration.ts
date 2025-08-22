@@ -31,8 +31,6 @@ export function migrateId(oldId: string): string {
     return generateId();
   }
 
-  // If it's neither format, generate a new UUID
-  console.warn(`Unknown ID format: ${oldId}, generating new UUID`);
   return generateId();
 }
 

@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { Task, TaskStatus } from '../../types';
 import { useDatabase } from '../../hooks/useDatabase';
 import { getTaskRepository } from '../../services/database/repositories';
-import { getSampleTasks } from '../../services/database/mockDatabase';
+// Mock data removed - using SeaORM backend now
 import { WeeklyPlan } from './WeeklyPlan';
 
 interface PlanningScreenProps {
@@ -62,14 +62,14 @@ export function Planner({ viewMode = 'week' }: PlanningScreenProps) {
         } else {
           // Clear and reinitialize sample data for testing
           localStorage.removeItem('kirapilot-mock-db');
-          const sampleTasks = getSampleTasks();
+          const sampleTasks: Task[] = [];
           setTasks(sampleTasks);
         }
       } catch (error) {
         console.error('Failed to load tasks:', error);
         // Clear and reinitialize sample data on error
         localStorage.removeItem('kirapilot-mock-db');
-        const fallbackTasks = getSampleTasks();
+        const fallbackTasks: Task[] = [];
         setTasks(fallbackTasks);
       }
     };

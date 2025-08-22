@@ -24,4 +24,14 @@ tauri-plugin-notification = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tauri-plugin-sql = { version = "2", features = ["sqlite"] }
+# SeaORM dependencies
+sea-orm = { version = "1.1", features = ["sqlx-sqlite", "runtime-tokio-rustls", "macros", "with-chrono", "with-uuid"] }
+sea-orm-migration = { version = "1.1" }
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1.0", features = ["v4", "serde"] }
+tokio = { version = "1.0", features = ["full"] }
+anyhow = "1.0"
+
+[dev-dependencies]
+tempfile = "3.0"
 

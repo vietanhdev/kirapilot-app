@@ -8,7 +8,7 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import { TimerSession, SessionStatistics } from '../../types';
-import { TimeTrackingRepository } from '../../services/database/repositories/TimeTrackingRepository';
+import { TimeTrackingService } from '../../services/database/repositories/TimeTrackingService';
 import { useDatabaseOperation } from '../../hooks/useDatabase';
 import {
   Modal,
@@ -45,7 +45,7 @@ export const SessionHistoryModal: React.FC<SessionHistoryModalProps> = ({
   const [statistics, setStatistics] = useState<SessionStatistics | null>(null);
 
   const { execute, isLoading, error } = useDatabaseOperation();
-  const timeTrackingRepo = new TimeTrackingRepository();
+  const timeTrackingRepo = new TimeTrackingService();
 
   // Load sessions and statistics
   useEffect(() => {
@@ -87,10 +87,47 @@ export const SessionHistoryModal: React.FC<SessionHistoryModalProps> = ({
       const limitedSessions = sessionsData.slice(0, limit);
       setSessions(limitedSessions);
 
-      // Load statistics
+      // Load statistics for the same period as sessions
       if (!taskId) {
-        const stats = await timeTrackingRepo.getStatistics();
-        setStatistics(stats);
+        const endDate = new Date();
+        let startDate = new Date();
+
+        switch (selectedPeriod) {
+          case 'today':
+            startDate.setHours(0, 0, 0, 0);
+            break;
+          case 'week':
+            startDate.setDate(startDate.getDate() - 7);
+            break;
+          case 'month':
+            startDate.setMonth(startDate.getMonth() - 1);
+            break;
+          case 'all':
+            startDate = new Date(0); // Beginning of time
+            break;
+        }
+
+        try {
+          const stats = await timeTrackingRepo.getStatistics(
+            startDate,
+            endDate
+          );
+          console.log('Session statistics:', stats); // Debug log
+          setStatistics(stats);
+        } catch (error) {
+          console.error('Failed to load statistics:', error);
+          // Set default statistics on error
+          setStatistics({
+            totalSessions: 0,
+            totalTime: 0,
+            totalWorkTime: 0,
+            totalBreakTime: 0,
+            averageSessionLength: 0,
+            averageProductivity: 0,
+            mostProductiveHour: 9,
+            sessionsPerDay: {},
+          });
+        }
       }
 
       // Load task information if needed
@@ -111,6 +148,10 @@ export const SessionHistoryModal: React.FC<SessionHistoryModalProps> = ({
   };
 
   const formatDuration = (milliseconds: number): string => {
+    if (!milliseconds || isNaN(milliseconds) || milliseconds < 0) {
+      return '0m';
+    }
+
     const totalMinutes = Math.floor(milliseconds / (1000 * 60));
     const hours = Math.floor(totalMinutes / 60);
     const minutes = totalMinutes % 60;
@@ -236,7 +277,10 @@ export const SessionHistoryModal: React.FC<SessionHistoryModalProps> = ({
                   </div>
                   <div className='text-center'>
                     <div className='text-lg font-bold text-warning'>
-                      {Math.round(statistics.averageProductivity)}%
+                      {isNaN(statistics.averageProductivity)
+                        ? '0'
+                        : Math.round(statistics.averageProductivity)}
+                      %
                     </div>
                     <div className='text-xs text-default-400'>Productivity</div>
                   </div>

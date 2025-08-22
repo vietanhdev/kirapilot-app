@@ -1,21 +1,13 @@
 // Debug utilities for database issues
-import { getDatabase } from '../services/database';
+// Database debugging utilities for SeaORM backend
 
 /**
  * Check if there are any active timer sessions
  */
 export async function checkActiveTimerSessions(): Promise<void> {
   try {
-    const db = await getDatabase();
-    const activeSessions = await db.select<Record<string, unknown>[]>(
-      'SELECT * FROM time_sessions WHERE is_active = ?',
-      [true]
-    );
-
-    console.log('Active timer sessions:', activeSessions.length);
-    activeSessions.forEach(session => {
-      console.log(`- Session ${session.id} for task ${session.task_id}`);
-    });
+    // Active timer session checking is now handled by the SeaORM backend
+    console.log('Active timer session checking moved to SeaORM backend');
   } catch (error) {
     console.error('Error checking active sessions:', error);
   }
@@ -26,13 +18,8 @@ export async function checkActiveTimerSessions(): Promise<void> {
  */
 export async function forceStopAllTimers(): Promise<void> {
   try {
-    const db = await getDatabase();
-    const result = await db.execute(
-      'UPDATE time_sessions SET is_active = ?, end_time = ? WHERE is_active = ?',
-      [false, new Date().toISOString(), true]
-    );
-
-    console.log('Force stopped all active timers:', result);
+    // Force stopping timers is now handled by the SeaORM backend
+    console.log('Force stopping timers functionality moved to SeaORM backend');
   } catch (error) {
     console.error('Error force stopping timers:', error);
   }
@@ -43,9 +30,8 @@ export async function forceStopAllTimers(): Promise<void> {
  */
 export async function clearAllTimerData(): Promise<void> {
   try {
-    const db = await getDatabase();
-    const result = await db.execute('DELETE FROM time_sessions');
-    console.log('Cleared all timer data:', result);
+    // Clearing timer data is now handled by the SeaORM backend
+    console.log('Clearing timer data functionality moved to SeaORM backend');
   } catch (error) {
     console.error('Error clearing timer data:', error);
   }

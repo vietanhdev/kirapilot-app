@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { Clock, Calendar, Coffee, Play } from 'lucide-react';
 import { Task, TimerSession } from '../../types';
-import { TimeTrackingRepository } from '../../services/database/repositories/TimeTrackingRepository';
+import { TimeTrackingService } from '../../services/database/repositories/TimeTrackingService';
 import {
   Modal,
   ModalContent,
@@ -38,7 +38,7 @@ export function TimeHistoryModal({
     setError(null);
 
     try {
-      const timeTrackingRepo = new TimeTrackingRepository();
+      const timeTrackingRepo = new TimeTrackingService();
       const taskSessions = await timeTrackingRepo.getByTask(task.id);
       setSessions(taskSessions);
     } catch (err) {
@@ -51,6 +51,10 @@ export function TimeHistoryModal({
   };
 
   const formatDuration = (milliseconds: number): string => {
+    if (!milliseconds || isNaN(milliseconds) || milliseconds < 0) {
+      return '0m';
+    }
+
     const totalMinutes = Math.floor(milliseconds / (1000 * 60));
     const hours = Math.floor(totalMinutes / 60);
     const minutes = totalMinutes % 60;

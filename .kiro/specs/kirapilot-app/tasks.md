@@ -164,15 +164,19 @@
 
 ## 2. Milestone 2: Improvements
 
-- [ ] 8. Migrate to SeaORM for enhanced database operations
-- [ ] 8.1 Set up SeaORM dependencies and configuration
+- Improve database architecture
+- Improve language support
+- Clean up & add tests
+
+- [-] 8. Migrate to SeaORM for enhanced database operations
+- [x] 8.1 Set up SeaORM dependencies and configuration
   - Add SeaORM dependencies to Cargo.toml (sea-orm, sea-orm-migration, sea-orm-cli)
   - Configure database connection with SeaORM connection pooling
   - Set up migration system and create initial migration structure
   - Create database connection management service with proper error handling
   - _Requirements: 7.1, 7.2, 7.5_
 
-- [ ] 8.2 Create SeaORM entities for all data models
+- [x] 8.2 Create SeaORM entities for all data models
   - Define Task entity with proper relationships and constraints
   - Create TaskDependency entity with foreign key relationships
   - Implement TimeSession entity with task relationships
@@ -181,7 +185,7 @@
   - Generate and test all entity relationships and constraints
   - _Requirements: 7.2, 7.3_
 
-- [ ] 8.3 Implement SeaORM-based repository layer
+- [x] 8.3 Implement SeaORM-based repository layer
   - Refactor TaskRepository to use SeaORM entities and query builder
   - Update TimeTrackingRepository with async SeaORM operations
   - Migrate FocusRepository to use SeaORM relationships
@@ -190,7 +194,7 @@
   - Add comprehensive unit tests for all repository operations
   - _Requirements: 7.1, 7.4, 7.6_
 
-- [ ] 8.4 Create and run database migrations
+- [x] 8.4 Create and run database migrations
   - Create migration for tasks table with proper indexes
   - Add migration for task_dependencies with foreign key constraints
   - Create time_sessions migration with task relationships
@@ -199,7 +203,7 @@
   - Test migration rollback and forward compatibility
   - _Requirements: 7.3, 7.5_
 
-- [ ] 8.5 Update Tauri commands to use SeaORM repositories
+- [x] 8.5 Update Tauri commands to use SeaORM repositories
   - Refactor all task-related Tauri commands to use new SeaORM repositories
   - Update time tracking commands with async SeaORM operations
   - Migrate AI interaction commands to use SeaORM entities
@@ -208,7 +212,7 @@
   - Test all Tauri commands with new SeaORM backend
   - _Requirements: 7.1, 7.4, 7.6_
 
-- [ ] 8.6 Remove legacy database code and finalize migration
+- [x] 8.6 Remove legacy database code and finalize migration
   - Remove old SQL-based repository implementations
   - Clean up legacy database utilities and connection management
   - Update all tests to work with SeaORM entities

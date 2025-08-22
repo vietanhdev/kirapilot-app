@@ -78,12 +78,21 @@ interface CreateTaskInput {
   priority?: number;
   timeEstimate?: number;
   dueDate?: string;
+  scheduledDate?: string;
   tags?: string[];
 }
 
 const createTaskTool = tool(
   async (input: CreateTaskInput) => {
-    const { title, description, priority, timeEstimate, dueDate, tags } = input;
+    const {
+      title,
+      description,
+      priority,
+      timeEstimate,
+      dueDate,
+      scheduledDate,
+      tags,
+    } = input;
     try {
       const taskRepo = getTaskRepository();
       const task = await taskRepo.create({
@@ -92,6 +101,7 @@ const createTaskTool = tool(
         priority: priority ?? Priority.MEDIUM,
         timeEstimate: timeEstimate ?? 60,
         dueDate: dueDate ? new Date(dueDate) : undefined,
+        scheduledDate: scheduledDate ? new Date(scheduledDate) : undefined,
         tags: tags ?? [],
       });
       const response: { success: true; task: TaskResponse } = {
@@ -131,6 +141,12 @@ const createTaskTool = tool(
         .string()
         .optional()
         .describe('Due date in ISO format (YYYY-MM-DD)'),
+      scheduledDate: z
+        .string()
+        .optional()
+        .describe(
+          'Scheduled date when task should be worked on in ISO format (YYYY-MM-DD)'
+        ),
       tags: z
         .array(z.string())
         .optional()

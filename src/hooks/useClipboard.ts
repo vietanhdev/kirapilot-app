@@ -16,8 +16,7 @@ export function useClipboard(timeout = 2000): UseClipboardReturn {
         setCopied(true);
         setTimeout(() => setCopied(false), timeout);
         return true;
-      } catch (error) {
-        console.error('Failed to copy to clipboard:', error);
+      } catch {
         setCopied(false);
         return false;
       }

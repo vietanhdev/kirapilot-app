@@ -1,11 +1,8 @@
-// Database context provider for React
+// Database context provider for React (SeaORM backend)
 import { createContext, useContext, ReactNode } from 'react';
 import { useDatabase } from '../../hooks/useDatabase';
-import Database from '@tauri-apps/plugin-sql';
-import { MockDatabase } from './mockDatabase';
 
 interface DatabaseContextType {
-  database: Database | MockDatabase | null;
   isInitialized: boolean;
   isLoading: boolean;
   error: string | null;
@@ -22,7 +19,6 @@ interface DatabaseContextType {
     tableCount: number;
     lastMigration?: string;
   }>;
-  close: () => Promise<void>;
 }
 
 const DatabaseContext = createContext<DatabaseContextType | undefined>(

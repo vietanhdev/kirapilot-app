@@ -21,6 +21,7 @@ import {
   History,
 } from 'lucide-react';
 import { TaskModal } from './TaskModal';
+import { ConfirmationDialog } from '../common';
 
 interface PlanningTaskCardProps {
   task: Task;
@@ -58,6 +59,7 @@ export function TaskCard({
   const [isTimerOperationPending, setIsTimerOperationPending] = useState(false);
   const [isStatusChangePending, setIsStatusChangePending] = useState(false);
   const [notesText, setNotesText] = useState(task.description || '');
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useDraggable({
@@ -155,10 +157,19 @@ export function TaskCard({
 
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (
-      onDelete &&
-      confirm(`Are you sure you want to delete "${task.title}"?`)
-    ) {
+    e.preventDefault();
+
+    if (!onDelete) {
+      console.warn('No onDelete handler provided for task:', task.title);
+      return;
+    }
+
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (onDelete) {
+      console.log('Deleting task:', task.title);
       onDelete(task);
     }
   };
@@ -204,6 +215,13 @@ export function TaskCard({
         ${!isOverdue && !isCompleted && !isTimerActive && !(isEditModalOpen || isEditingNotes) ? 'border-l-divider' : ''}
         ${className}
       `}
+      onMouseDown={e => {
+        // Allow button clicks to work by not preventing default on buttons
+        const target = e.target as HTMLElement;
+        if (target.closest('button')) {
+          e.stopPropagation();
+        }
+      }}
     >
       {/* Notes Editing Modal */}
       {isEditingNotes && (
@@ -481,10 +499,20 @@ export function TaskCard({
                 {onDelete && (
                   <button
                     onClick={handleDelete}
-                    onMouseDown={e => e.stopPropagation()}
-                    onPointerDown={e => e.stopPropagation()}
-                    className='p-1.5 rounded transition-all duration-200 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 opacity-60 hover:opacity-100'
+                    onMouseDown={e => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                    }}
+                    onPointerDown={e => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                    }}
+                    onTouchStart={e => {
+                      e.stopPropagation();
+                    }}
+                    className='p-1.5 rounded transition-all duration-200 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 opacity-60 hover:opacity-100 cursor-pointer'
                     title={t('tasks.delete')}
+                    type='button'
                   >
                     <Trash2 className='w-3 h-3' />
                   </button>
@@ -501,6 +529,18 @@ export function TaskCard({
         onClose={() => setIsEditModalOpen(false)}
         onUpdateTask={handleSave}
         task={task}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmationDialog
+        isOpen={isDeleteDialogOpen}
+        onClose={() => setIsDeleteDialogOpen(false)}
+        onConfirm={handleConfirmDelete}
+        title='Delete Task'
+        message={`Are you sure you want to delete "${task.title}"? This action cannot be undone.`}
+        confirmText='Delete'
+        cancelText='Cancel'
+        variant='danger'
       />
     </div>
   );

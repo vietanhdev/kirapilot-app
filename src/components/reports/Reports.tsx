@@ -26,8 +26,8 @@ import { Card, CardBody, CardHeader } from '@heroui/react';
 import { useDatabase } from '../../hooks/useDatabase';
 import { useTranslation } from '../../hooks/useTranslation';
 import { TimerSession, Task } from '../../types';
-import { TimeTrackingRepository } from '../../services/database/repositories/TimeTrackingRepository';
-import { TaskRepository } from '../../services/database/repositories/TaskRepository';
+import { TimeTrackingService } from '../../services/database/repositories/TimeTrackingService';
+import { TaskService } from '../../services/database/repositories/TaskService';
 
 interface TimeStats {
   totalHours: number;
@@ -62,7 +62,7 @@ interface TaskTimeData {
 }
 
 export function Reports() {
-  const { database } = useDatabase();
+  const { isInitialized } = useDatabase();
   const { t } = useTranslation();
   const [timeRange, setTimeRange] = useState<'week' | 'month' | 'quarter'>(
     'week'
@@ -75,7 +75,7 @@ export function Reports() {
 
   useEffect(() => {
     loadAnalyticsData();
-  }, [timeRange, database]);
+  }, [timeRange, isInitialized]);
 
   const getDateRange = () => {
     const endDate = new Date();
@@ -97,12 +97,12 @@ export function Reports() {
   };
 
   const loadAnalyticsData = async () => {
-    if (!database) {
+    if (!isInitialized) {
       return;
     }
 
-    const timeTrackingRepository = new TimeTrackingRepository();
-    const taskRepository = new TaskRepository();
+    const timeTrackingRepository = new TimeTrackingService();
+    const taskRepository = new TaskService();
 
     setLoading(true);
     try {
@@ -131,7 +131,7 @@ export function Reports() {
       );
       const taskMap = new Map(
         tasks
-          .filter((task): task is Task => task !== null)
+          .filter((task: Task | null): task is Task => task !== null)
           .map((task: Task) => [task.id, task])
       );
 
@@ -286,7 +286,9 @@ export function Reports() {
 
       const taskTimeArray: TaskTimeData[] = Array.from(taskTimeMap.entries())
         .map(([taskId, data]) => ({
-          taskTitle: taskMap.get(taskId)?.title || `Task ${taskId.slice(0, 8)}`,
+          taskTitle:
+            (taskMap.get(taskId) as Task)?.title ||
+            `Task ${taskId.slice(0, 8)}`,
           totalTime: Math.round(data.totalTime * 10) / 10,
           sessions: data.sessions,
           productivity: Math.round(data.productivity),

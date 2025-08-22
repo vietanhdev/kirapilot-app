@@ -1,15 +1,8 @@
-// React hook for database management
+// React hook for database management (SeaORM backend)
 import { useState, useEffect, useCallback } from 'react';
-import {
-  initializeDatabase,
-  checkDatabaseHealth,
-  closeDatabase,
-} from '../services/database';
-import Database from '@tauri-apps/plugin-sql';
-import { MockDatabase } from '../services/database/mockDatabase';
+import { initializeDatabase, checkDatabaseHealth } from '../services/database';
 
 interface DatabaseState {
-  database: Database | MockDatabase | null;
   isInitialized: boolean;
   isLoading: boolean;
   error: string | null;
@@ -26,7 +19,6 @@ interface DatabaseState {
  */
 export function useDatabase() {
   const [state, setState] = useState<DatabaseState>({
-    database: null,
     isInitialized: false,
     isLoading: true,
     error: null,
@@ -37,18 +29,17 @@ export function useDatabase() {
     try {
       setState(prev => ({ ...prev, isLoading: true, error: null }));
 
-      const db = await initializeDatabase();
+      await initializeDatabase();
       const health = await checkDatabaseHealth();
 
       setState(prev => ({
         ...prev,
-        database: db,
         isInitialized: true,
         isLoading: false,
         health,
       }));
 
-      console.log('Database initialized successfully');
+      console.log('Database initialized successfully via SeaORM backend');
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown database error';
@@ -80,9 +71,8 @@ export function useDatabase() {
 
   const close = useCallback(async () => {
     try {
-      await closeDatabase();
+      // Database connection is managed by Rust backend, just reset state
       setState({
-        database: null,
         isInitialized: false,
         isLoading: false,
         error: null,
@@ -117,14 +107,12 @@ export function useDatabase() {
   }, [state.isInitialized, checkHealth]);
 
   return {
-    database: state.database,
     isInitialized: state.isInitialized,
     isLoading: state.isLoading,
     error: state.error,
     health: state.health,
     initialize,
     checkHealth,
-    close,
   };
 }
 
