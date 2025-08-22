@@ -86,8 +86,42 @@ sequenceDiagram
 ### Platform-Specific Architecture
 
 - **Desktop (macOS, Windows, Linux)**: Tauri + React frontend with Rust backend
-- **Local Storage**: SQLite database with file system for all user data
+- **Local Storage**: SQLite database with SeaORM for type-safe database operations
 - **AI Integration**: Optional cloud LLM APIs with local fallback processing
+
+### SeaORM Integration Architecture
+
+```mermaid
+graph TB
+    subgraph "Rust Backend"
+        A[Tauri Commands]
+        B[Service Layer]
+        C[SeaORM Entities]
+        D[Migration System]
+        E[Connection Pool]
+    end
+
+    subgraph "Database Layer"
+        F[SQLite Database]
+        G[Schema Migrations]
+    end
+
+    A --> B
+    B --> C
+    C --> E
+    E --> F
+    D --> G
+    G --> F
+```
+
+#### SeaORM Benefits
+
+1. **Type Safety**: Compile-time guarantees for database operations
+2. **Async Operations**: Non-blocking database queries for better performance
+3. **Automatic Migrations**: Version-controlled schema changes
+4. **Relationship Management**: Automatic handling of foreign keys and joins
+5. **Query Builder**: Flexible, composable query construction
+6. **Connection Pooling**: Efficient database connection management
 
 ## Components and Interfaces
 
@@ -133,6 +167,78 @@ interface TaskManager {
   deleteTask(id: string): Promise<void>;
   getDependencies(taskId: string): Task[];
   validateDependencies(taskId: string): ValidationResult;
+}
+```
+
+#### SeaORM Repository Pattern
+
+```rust
+use sea_orm::*;
+
+pub struct TaskRepository {
+    db: DatabaseConnection,
+}
+
+impl TaskRepository {
+    pub async fn create_task(&self, task_data: CreateTaskRequest) -> Result<task::Model, DbErr> {
+        let task = task::ActiveModel {
+            id: Set(Uuid::new_v4().to_string()),
+            title: Set(task_data.title),
+            description: Set(task_data.description),
+            priority: Set(task_data.priority),
+            status: Set("pending".to_string()),
+            due_date: Set(task_data.due_date),
+            scheduled_date: Set(task_data.scheduled_date),
+            created_at: Set(Utc::now().naive_utc()),
+            updated_at: Set(Utc::now().naive_utc()),
+        };
+
+        task.insert(&self.db).await
+    }
+
+    pub async fn find_with_dependencies(&self, task_id: &str) -> Result<(task::Model, Vec<task::Model>), DbErr> {
+        let task = task::Entity::find_by_id(task_id)
+            .one(&self.db)
+            .await?
+            .ok_or(DbErr::RecordNotFound("Task not found".to_string()))?;
+
+        let dependencies = task
+            .find_related(task_dependency::Entity)
+            .find_also_related(task::Entity)
+            .all(&self.db)
+            .await?
+            .into_iter()
+            .filter_map(|(_, dep_task)| dep_task)
+            .collect();
+
+        Ok((task, dependencies))
+    }
+
+    pub async fn update_task(&self, id: &str, updates: UpdateTaskRequest) -> Result<task::Model, DbErr> {
+        let task = task::Entity::find_by_id(id)
+            .one(&self.db)
+            .await?
+            .ok_or(DbErr::RecordNotFound("Task not found".to_string()))?;
+
+        let mut task: task::ActiveModel = task.into();
+
+        if let Some(title) = updates.title {
+            task.title = Set(title);
+        }
+        if let Some(description) = updates.description {
+            task.description = Set(Some(description));
+        }
+        if let Some(priority) = updates.priority {
+            task.priority = Set(priority);
+        }
+        if let Some(status) = updates.status {
+            task.status = Set(status);
+        }
+
+        task.updated_at = Set(Utc::now().naive_utc());
+
+        task.update(&self.db).await
+    }
 }
 ```
 
@@ -210,48 +316,109 @@ interface AIAction {
 
 ### Data Models
 
-#### Core Data Schema
+#### SeaORM Entity Definitions
 
-```sql
--- Tasks table
-CREATE TABLE tasks (
-    id TEXT PRIMARY KEY,
-    title TEXT NOT NULL,
-    description TEXT,
-    priority INTEGER DEFAULT 0,
-    status TEXT DEFAULT 'pending',
-    due_date DATETIME,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
+The application uses SeaORM for type-safe, async database operations with automatic migrations and relationship management.
 
--- Task dependencies
-CREATE TABLE task_dependencies (
-    id TEXT PRIMARY KEY,
-    task_id TEXT REFERENCES tasks(id),
-    depends_on_id TEXT REFERENCES tasks(id),
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
+```rust
+// Task entity
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
+#[sea_orm(table_name = "tasks")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: String,
+    pub title: String,
+    pub description: Option<String>,
+    pub priority: i32,
+    pub status: String,
+    pub due_date: Option<DateTime>,
+    pub scheduled_date: Option<DateTime>,
+    pub created_at: DateTime,
+    pub updated_at: DateTime,
+}
 
--- Time tracking sessions
-CREATE TABLE time_sessions (
-    id TEXT PRIMARY KEY,
-    task_id TEXT REFERENCES tasks(id),
-    start_time DATETIME NOT NULL,
-    end_time DATETIME,
-    paused_duration INTEGER DEFAULT 0,
-    notes TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
+#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+pub enum Relation {
+    #[sea_orm(has_many = "super::task_dependency::Entity")]
+    TaskDependencies,
+    #[sea_orm(has_many = "super::time_session::Entity")]
+    TimeSessions,
+}
 
--- AI interactions and suggestions
-CREATE TABLE ai_interactions (
-    id TEXT PRIMARY KEY,
-    message TEXT NOT NULL,
-    response TEXT NOT NULL,
-    action_taken TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
+// Task dependency entity
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
+#[sea_orm(table_name = "task_dependencies")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: String,
+    pub task_id: String,
+    pub depends_on_id: String,
+    pub created_at: DateTime,
+}
+
+// Time session entity
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
+#[sea_orm(table_name = "time_sessions")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: String,
+    pub task_id: String,
+    pub start_time: DateTime,
+    pub end_time: Option<DateTime>,
+    pub paused_duration: i32,
+    pub notes: Option<String>,
+    pub created_at: DateTime,
+}
+
+// AI interaction entity
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
+#[sea_orm(table_name = "ai_interactions")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: String,
+    pub message: String,
+    pub response: String,
+    pub action_taken: Option<String>,
+    pub created_at: DateTime,
+}
+```
+
+#### SeaORM Migration System
+
+```rust
+use sea_orm_migration::prelude::*;
+
+#[derive(DeriveMigrationName)]
+pub struct Migration;
+
+#[async_trait::async_trait]
+impl MigrationTrait for Migration {
+    async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+        manager
+            .create_table(
+                Table::create()
+                    .table(Tasks::Table)
+                    .if_not_exists()
+                    .col(ColumnDef::new(Tasks::Id).string().not_null().primary_key())
+                    .col(ColumnDef::new(Tasks::Title).string().not_null())
+                    .col(ColumnDef::new(Tasks::Description).text())
+                    .col(ColumnDef::new(Tasks::Priority).integer().default(0))
+                    .col(ColumnDef::new(Tasks::Status).string().default("pending"))
+                    .col(ColumnDef::new(Tasks::DueDate).timestamp())
+                    .col(ColumnDef::new(Tasks::ScheduledDate).timestamp())
+                    .col(ColumnDef::new(Tasks::CreatedAt).timestamp().default(Expr::current_timestamp()))
+                    .col(ColumnDef::new(Tasks::UpdatedAt).timestamp().default(Expr::current_timestamp()))
+                    .to_owned(),
+            )
+            .await
+    }
+
+    async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+        manager
+            .drop_table(Table::drop().table(Tasks::Table).to_owned())
+            .await
+    }
+}
 ```
 
 #### State Management Architecture
