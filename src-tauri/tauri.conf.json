@@ -10,6 +10,7 @@
     "frontendDist": "../dist"
   },
   "app": {
+    "macOSPrivateApi": true,
     "windows": [
       {
         "title": "KiraPilot - AI-Powered Productivity",
@@ -23,7 +24,8 @@
         "minimizable": true,
         "closable": true,
         "decorations": false,
-        "transparent": false,
+        "transparent": true,
+        "shadow": true,
         "fullscreen": false,
         "focus": true,
         "visible": true,

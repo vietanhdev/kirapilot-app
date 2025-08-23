@@ -14,12 +14,14 @@ import { Header } from './components/common/Header';
 import { AIFloatingButton } from './components/ai/AIFloatingButton';
 import TitleBar from './components/TitleBar';
 import { useTheme } from './hooks/useTheme';
+import { useWindowState } from './hooks/useWindowState';
 import './App.css';
 
 function AppContent() {
   const [currentView, setCurrentView] = useState('week');
   const [viewParams, setViewParams] = useState<Record<string, unknown>>({});
   const { resolvedTheme } = useTheme();
+  const { isMaximized } = useWindowState();
 
   const handleViewChange = (view: string, params?: Record<string, unknown>) => {
     setCurrentView(view);
@@ -36,7 +38,9 @@ function AppContent() {
       onViewChange={handleViewChange}
     >
       <div
-        className={`${resolvedTheme} text-foreground bg-background app-content`}
+        className={`${resolvedTheme} text-foreground bg-background app-content ${
+          isMaximized ? '' : 'rounded-xl overflow-hidden'
+        }`}
       >
         {/* Custom Title Bar */}
         <TitleBar />

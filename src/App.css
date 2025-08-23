@@ -15,6 +15,7 @@ body,
   height: 100%;
   overflow: hidden;
   /* Keep overflow hidden on root elements for app container management */
+  background: transparent;
 }
 
 /* Ensure app content can scroll properly */
@@ -23,24 +24,64 @@ body,
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  position: relative;
+}
+
+/* Rounded window styling - only when not maximized */
+.app-content.rounded-xl {
+  border-radius: 12px;
+  box-shadow:
+    0 20px 25px -5px rgba(0, 0, 0, 0.1),
+    0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* Window dragging support */
+[data-tauri-drag-region],
+.drag-region {
+  -webkit-app-region: drag !important;
+  cursor: move;
+}
+
+/* Prevent dragging on interactive elements */
+button,
+input,
+textarea,
+select,
+.no-drag-region,
+.no-drag-region * {
+  -webkit-app-region: no-drag !important;
+  cursor: default;
+}
+
+/* Add a transparent border effect for rounded windows */
+.app-content.rounded-xl::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 12px;
+  padding: 1px;
+  background: transparent;
+  pointer-events: none;
+  z-index: -1;
 }
 
 .app-main-content {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  min-height: 0; /* Important for flex child scrolling */
+  min-height: 0;
+  /* Important for flex child scrolling */
 }
 
 @utility task-card {
-  @apply bg-content2 backdrop-blur-sm rounded-lg border border-divider p-3 mb-3 
-           hover:bg-content3 transition-all duration-200 cursor-pointer
-           hover:border-primary-500/30 hover:shadow-lg;
+  @apply bg-content2 backdrop-blur-sm rounded-lg border border-divider p-3 mb-3 hover:bg-content3 transition-all duration-200 cursor-pointer hover:border-primary-500/30 hover:shadow-lg;
 }
 
 @utility timer-display {
-  @apply font-mono text-lg font-semibold bg-gradient-to-r from-green-500 to-green-600 
-           bg-clip-text text-transparent;
+  @apply font-mono text-lg font-semibold bg-gradient-to-r from-green-500 to-green-600 bg-clip-text text-transparent;
 }
 
 @utility gradient-border {
@@ -66,6 +107,7 @@ body,
   0% {
     background-position: -200% 0;
   }
+
   100% {
     background-position: 200% 0;
   }
@@ -86,6 +128,7 @@ body,
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -96,6 +139,7 @@ body,
     transform: translateY(-10px);
     opacity: 0;
   }
+
   to {
     transform: translateY(0);
     opacity: 1;
@@ -131,38 +175,38 @@ body,
 
 /* For Webkit browsers (Chrome, Safari, Edge) */
 .week-scroller::-webkit-scrollbar {
-  height: 16px; /* Make it bigger */
-  margin-top: 8px; /* Separate from content */
+  height: 16px;
+  /* Make it bigger */
+  margin-top: 8px;
+  /* Separate from content */
 }
 
 .week-scroller::-webkit-scrollbar-track {
   background: transparent;
   border-radius: 10px;
-  margin: 0 8px; /* Add margins for separation */
+  margin: 0 8px;
+  /* Add margins for separation */
 }
 
 .week-scroller::-webkit-scrollbar-thumb {
-  background: linear-gradient(90deg, #10b981, #059669); /* Green gradient */
+  background: linear-gradient(90deg, #10b981, #059669);
+  /* Green gradient */
   border-radius: 10px;
-  border: 2px solid transparent; /* Creates separation */
+  border: 2px solid transparent;
+  /* Creates separation */
   background-clip: padding-box;
-  min-width: 40px; /* Minimum thumb size */
+  min-width: 40px;
+  /* Minimum thumb size */
 }
 
 .week-scroller::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(
-    90deg,
-    #059669,
-    #047857
-  ); /* Darker green on hover */
+  background: linear-gradient(90deg, #059669, #047857);
+  /* Darker green on hover */
 }
 
 .week-scroller::-webkit-scrollbar-thumb:active {
-  background: linear-gradient(
-    90deg,
-    #047857,
-    #065f46
-  ); /* Even darker when active */
+  background: linear-gradient(90deg, #047857, #065f46);
+  /* Even darker when active */
 }
 
 /* Add some space above the scrollbar */

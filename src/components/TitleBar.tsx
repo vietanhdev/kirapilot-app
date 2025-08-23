@@ -1,23 +1,9 @@
-import { useState, useEffect } from 'react';
 import { Minus, X, Maximize2, Minimize2 } from 'lucide-react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
+import { useWindowState } from '../hooks/useWindowState';
 
 export default function TitleBar() {
-  const [isMaximized, setIsMaximized] = useState(false);
-
-  useEffect(() => {
-    const checkMaximized = async () => {
-      try {
-        const appWindow = getCurrentWindow();
-        const maximized = await appWindow.isMaximized();
-        setIsMaximized(maximized);
-      } catch (error) {
-        console.error('Error checking maximized state:', error);
-      }
-    };
-
-    checkMaximized();
-  }, []);
+  const { isMaximized, toggleMaximize } = useWindowState();
 
   const handleMinimize = async () => {
     try {
@@ -28,18 +14,8 @@ export default function TitleBar() {
     }
   };
 
-  const handleMaximize = async () => {
-    try {
-      const appWindow = getCurrentWindow();
-      if (isMaximized) {
-        await appWindow.unmaximize();
-      } else {
-        await appWindow.maximize();
-      }
-      setIsMaximized(!isMaximized);
-    } catch (error) {
-      console.error('Error maximizing window:', error);
-    }
+  const handleMaximize = () => {
+    toggleMaximize();
   };
 
   const handleClose = async () => {
@@ -52,18 +28,24 @@ export default function TitleBar() {
   };
 
   return (
-    <div className='flex items-center justify-between h-8 bg-content2 border-b border-divider select-none shadow-sm'>
+    <div
+      className={`flex items-center justify-between h-8 bg-content2 border-b border-divider select-none shadow-sm ${
+        isMaximized ? '' : 'rounded-t-xl'
+      }`}
+    >
       {/* Draggable area */}
       <div
         data-tauri-drag-region
-        className='flex-1 h-full flex items-center px-4'
+        className='flex-1 h-full flex items-center px-4 cursor-move drag-region'
         onDoubleClick={handleMaximize}
       >
-        <span className='text-sm font-medium text-foreground-600'>&nbsp;</span>
+        <span className='text-sm font-medium text-foreground-600'>
+          KiraPilot
+        </span>
       </div>
 
       {/* Window controls */}
-      <div className='flex items-center h-full'>
+      <div className='flex items-center h-full no-drag-region'>
         <button
           onClick={handleMinimize}
           className='h-full px-4 hover:bg-content3 transition-colors duration-150 flex items-center justify-center group'
