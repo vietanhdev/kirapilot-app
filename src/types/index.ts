@@ -290,6 +290,7 @@ export interface UserPreferences {
     toolPermissions: boolean;
     responseStyle: 'concise' | 'balanced' | 'detailed';
     suggestionFrequency: 'minimal' | 'moderate' | 'frequent';
+    geminiApiKey?: string;
   };
   taskSettings: {
     defaultPriority: Priority;

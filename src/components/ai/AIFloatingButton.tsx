@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Button, Badge, Tooltip } from '@heroui/react';
 import { Bot, MessageCircle, Sparkles } from 'lucide-react';
 import { useAI } from '../../contexts/AIContext';
+import { useNavigation } from '../../contexts/NavigationContext';
 import { useTranslation } from '../../hooks/useTranslation';
 import { ChatUI } from './ChatUI';
 
@@ -13,6 +14,7 @@ interface AIFloatingButtonProps {
 export function AIFloatingButton({ className = '' }: AIFloatingButtonProps) {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const { isInitialized, suggestions, isLoading, error } = useAI();
+  const { navigateTo } = useNavigation();
   const { t } = useTranslation();
 
   const activeSuggestions = suggestions.filter(
@@ -49,6 +51,11 @@ export function AIFloatingButton({ className = '' }: AIFloatingButtonProps) {
   };
 
   const handleToggleChat = () => {
+    if (!isInitialized) {
+      // Navigate to settings AI tab if AI is not initialized
+      navigateTo('settings', { tab: 'ai' });
+      return;
+    }
     setIsChatOpen(!isChatOpen);
   };
 

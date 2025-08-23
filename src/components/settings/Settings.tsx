@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Tabs,
   Tab,
@@ -8,8 +8,8 @@ import {
   Select,
   SelectItem,
   Input,
-  Slider,
   Divider,
+  Button,
 } from '@heroui/react';
 import {
   Settings as SettingsIcon,
@@ -17,20 +17,26 @@ import {
   Shield,
   Bot,
   Clock,
-  CheckSquare,
   Info,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
-import { DistractionLevel, Priority } from '../../types';
+
 import { useSettings } from '../../contexts/SettingsContext';
 import { useTranslation } from '../../hooks/useTranslation';
 import { languages } from '../../i18n';
 import { DataManagement } from './DataManagement';
+import { useAI } from '../../contexts/AIContext';
 
 interface SettingsProps {
   className?: string;
+  initialTab?: string;
 }
 
-export const Settings: React.FC<SettingsProps> = ({ className = '' }) => {
+export const Settings: React.FC<SettingsProps> = ({
+  className = '',
+  initialTab = 'general',
+}) => {
   const {
     preferences,
     updatePreference,
@@ -40,19 +46,16 @@ export const Settings: React.FC<SettingsProps> = ({ className = '' }) => {
     error,
   } = useSettings();
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState('general');
+  const { reinitializeAI } = useAI();
+  const [activeTab, setActiveTab] = useState(initialTab);
+  const [showApiKey, setShowApiKey] = useState(false);
 
-  const getNotificationLabel = (key: string): string => {
-    const notificationLabels: Record<string, string> = {
-      breakReminders: t('notifications.breakReminders'),
-      taskDeadlines: t('notifications.taskDeadlines'),
-      dailySummary: t('notifications.dailySummary'),
-      weeklyReview: t('notifications.weeklyReview'),
-    };
-    return (
-      notificationLabels[key] || key.replace(/([A-Z])/g, ' $1').toLowerCase()
-    );
-  };
+  // Update active tab when initialTab prop changes
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
 
   const handlePreferenceChange = <K extends keyof typeof preferences>(
     key: K,
@@ -67,6 +70,26 @@ export const Settings: React.FC<SettingsProps> = ({ className = '' }) => {
     value: unknown
   ) => {
     updateNestedPreference(parentKey, childKey, value);
+  };
+
+  const handleApiKeyChange = async (apiKey: string) => {
+    const trimmedKey = apiKey.trim();
+
+    try {
+      // Update preferences first
+      handleNestedPreferenceChange(
+        'aiSettings',
+        'geminiApiKey',
+        trimmedKey || undefined
+      );
+
+      // Reinitialize AI service to pick up the new API key
+      setTimeout(() => {
+        reinitializeAI();
+      }, 100); // Small delay to ensure preferences are saved
+    } catch (error) {
+      console.error('Failed to update API key:', error);
+    }
   };
 
   const resetToDefaults = () => {
@@ -97,13 +120,14 @@ export const Settings: React.FC<SettingsProps> = ({ className = '' }) => {
             <p className='text-foreground-600'>{t('settings.subtitle')}</p>
           </div>
           <div className='flex items-center gap-3'>
-            <button
-              onClick={resetToDefaults}
-              className='px-4 py-2 text-sm bg-content3 hover:bg-danger/10 text-foreground hover:text-danger border border-divider hover:border-danger/30 rounded-lg transition-all duration-200 font-medium'
-              disabled={isLoading}
+            <Button
+              onPress={resetToDefaults}
+              variant='bordered'
+              size='sm'
+              isDisabled={isLoading}
             >
               {t('settings.resetToDefaults')}
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -134,24 +158,24 @@ export const Settings: React.FC<SettingsProps> = ({ className = '' }) => {
               title={
                 <div className='flex items-center space-x-2'>
                   <User className='w-4 h-4' />
-                  <span>{t('settings.general')}</span>
+                  <span>General</span>
                 </div>
               }
             >
               <div className='p-6 space-y-6'>
                 <div>
                   <h3 className='text-lg font-semibold text-foreground mb-4'>
-                    {t('settings.general.appPreferences')}
+                    Appearance
                   </h3>
 
                   <div className='space-y-4'>
                     <div className='flex items-center justify-between'>
                       <div>
                         <label className='text-sm font-medium text-foreground'>
-                          {t('settings.general.theme')}
+                          Theme
                         </label>
                         <p className='text-xs text-foreground-600'>
-                          {t('settings.general.themeDescription')}
+                          Choose your preferred color scheme
                         </p>
                       </div>
                       <Select
@@ -165,24 +189,26 @@ export const Settings: React.FC<SettingsProps> = ({ className = '' }) => {
                         }}
                         className='w-32'
                         size='sm'
+                        aria-label='Theme selection'
                         classNames={{
                           trigger:
                             'bg-content2 border-divider data-[hover=true]:bg-content3',
+                          value: 'text-foreground',
                         }}
                       >
-                        <SelectItem key='light'>{t('theme.light')}</SelectItem>
-                        <SelectItem key='dark'>{t('theme.dark')}</SelectItem>
-                        <SelectItem key='auto'>{t('theme.auto')}</SelectItem>
+                        <SelectItem key='light'>Light</SelectItem>
+                        <SelectItem key='dark'>Dark</SelectItem>
+                        <SelectItem key='auto'>Auto</SelectItem>
                       </Select>
                     </div>
 
                     <div className='flex items-center justify-between'>
                       <div>
                         <label className='text-sm font-medium text-foreground'>
-                          {t('settings.general.language')}
+                          Language
                         </label>
                         <p className='text-xs text-foreground-600'>
-                          {t('settings.general.languageDescription')}
+                          Select your preferred language
                         </p>
                       </div>
                       <Select
@@ -193,9 +219,11 @@ export const Settings: React.FC<SettingsProps> = ({ className = '' }) => {
                         }}
                         className='w-32'
                         size='sm'
+                        aria-label='Language selection'
                         classNames={{
                           trigger:
                             'bg-content2 border-divider data-[hover=true]:bg-content3',
+                          value: 'text-foreground',
                         }}
                       >
                         {Object.entries(languages).map(([code, name]) => (
@@ -210,13 +238,13 @@ export const Settings: React.FC<SettingsProps> = ({ className = '' }) => {
 
                 <div>
                   <h3 className='text-lg font-semibold text-foreground mb-4'>
-                    {t('settings.general.workingHours')}
+                    Working Hours
                   </h3>
 
                   <div className='grid grid-cols-2 gap-4'>
                     <div>
                       <label className='text-sm font-medium text-foreground block mb-2'>
-                        {t('settings.general.startTime')}
+                        Start Time
                       </label>
                       <Input
                         type='time'
@@ -228,17 +256,17 @@ export const Settings: React.FC<SettingsProps> = ({ className = '' }) => {
                             e.target.value
                           )
                         }
-                        className='w-full'
+                        size='sm'
                         classNames={{
-                          input: 'bg-content2 text-foreground',
+                          input: 'text-foreground',
                           inputWrapper:
-                            'bg-content2 border-divider data-[hover=true]:bg-content3 data-[focus=true]:bg-content3 data-[focus=true]:border-primary-500',
+                            'bg-content2 border-divider data-[hover=true]:bg-content3 group-data-[focus=true]:bg-content2',
                         }}
                       />
                     </div>
                     <div>
                       <label className='text-sm font-medium text-foreground block mb-2'>
-                        {t('settings.general.endTime')}
+                        End Time
                       </label>
                       <Input
                         type='time'
@@ -250,66 +278,16 @@ export const Settings: React.FC<SettingsProps> = ({ className = '' }) => {
                             e.target.value
                           )
                         }
-                        className='w-full'
+                        size='sm'
                         classNames={{
-                          input: 'bg-content2 text-foreground',
+                          input: 'text-foreground',
                           inputWrapper:
-                            'bg-content2 border-divider data-[hover=true]:bg-content3 data-[focus=true]:bg-content3 data-[focus=true]:border-primary-500',
+                            'bg-content2 border-divider data-[hover=true]:bg-content3 group-data-[focus=true]:bg-content2',
                         }}
                       />
                     </div>
                   </div>
                 </div>
-
-                <Divider className='bg-divider' />
-
-                <div>
-                  <h3 className='text-lg font-semibold text-foreground mb-4'>
-                    {t('settings.general.notifications')}
-                  </h3>
-
-                  <div className='space-y-3'>
-                    {Object.entries(preferences.notifications).map(
-                      ([key, value]) => (
-                        <div
-                          key={key}
-                          className='flex items-center justify-between'
-                        >
-                          <div>
-                            <label className='text-sm font-medium text-foreground'>
-                              {getNotificationLabel(key)}
-                            </label>
-                          </div>
-                          <Switch
-                            isSelected={value}
-                            onValueChange={checked =>
-                              handleNestedPreferenceChange(
-                                'notifications',
-                                key,
-                                checked
-                              )
-                            }
-                            size='sm'
-                          />
-                        </div>
-                      )
-                    )}
-                  </div>
-                </div>
-              </div>
-            </Tab>
-
-            <Tab
-              key='privacy'
-              title={
-                <div className='flex items-center space-x-2'>
-                  <Shield className='w-4 h-4' />
-                  <span>Privacy & Security</span>
-                </div>
-              }
-            >
-              <div className='p-6'>
-                <DataManagement />
               </div>
             </Tab>
 
@@ -318,14 +296,76 @@ export const Settings: React.FC<SettingsProps> = ({ className = '' }) => {
               title={
                 <div className='flex items-center space-x-2'>
                   <Bot className='w-4 h-4' />
-                  <span>{t('settings.ai')}</span>
+                  <span>AI Assistant</span>
                 </div>
               }
             >
               <div className='p-6 space-y-6'>
                 <div>
                   <h3 className='text-lg font-semibold text-foreground mb-4'>
-                    Kira AI Settings
+                    API Configuration
+                  </h3>
+
+                  <div className='space-y-4'>
+                    <div>
+                      <label className='text-sm font-medium text-foreground block mb-2'>
+                        Gemini API Key
+                      </label>
+                      <p className='text-xs text-foreground-600 mb-3'>
+                        Enter your Google Gemini API key to enable AI features.
+                        Get your key from{' '}
+                        <a
+                          href='https://aistudio.google.com/app/apikey'
+                          target='_blank'
+                          rel='noopener noreferrer'
+                          className='text-primary-500 hover:text-primary-600 underline'
+                        >
+                          Google AI Studio
+                        </a>
+                      </p>
+                      <div className='relative'>
+                        <Input
+                          type={showApiKey ? 'text' : 'password'}
+                          value={preferences.aiSettings.geminiApiKey || ''}
+                          onValueChange={handleApiKeyChange}
+                          placeholder='Enter your Gemini API key...'
+                          size='sm'
+                          classNames={{
+                            input:
+                              'text-foreground placeholder:text-foreground-500',
+                            inputWrapper:
+                              'bg-content2 border-divider data-[hover=true]:bg-content3 group-data-[focus=true]:bg-content2',
+                          }}
+                          endContent={
+                            <Button
+                              isIconOnly
+                              variant='light'
+                              size='sm'
+                              onPress={() => setShowApiKey(!showApiKey)}
+                            >
+                              {showApiKey ? (
+                                <EyeOff className='w-4 h-4' />
+                              ) : (
+                                <Eye className='w-4 h-4' />
+                              )}
+                            </Button>
+                          }
+                        />
+                      </div>
+                      {preferences.aiSettings.geminiApiKey && (
+                        <p className='text-xs text-success mt-2'>
+                          ✓ API key configured
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <Divider className='bg-divider' />
+
+                <div>
+                  <h3 className='text-lg font-semibold text-foreground mb-4'>
+                    AI Behavior
                   </h3>
 
                   <div className='space-y-4'>
@@ -335,7 +375,7 @@ export const Settings: React.FC<SettingsProps> = ({ className = '' }) => {
                           Conversation History
                         </label>
                         <p className='text-xs text-foreground-600'>
-                          Keep chat history for context
+                          Keep chat history for better context
                         </p>
                       </div>
                       <Switch
@@ -354,10 +394,10 @@ export const Settings: React.FC<SettingsProps> = ({ className = '' }) => {
                     <div className='flex items-center justify-between'>
                       <div>
                         <label className='text-sm font-medium text-foreground'>
-                          Auto-suggestions
+                          Auto Suggestions
                         </label>
                         <p className='text-xs text-foreground-600'>
-                          Receive proactive productivity suggestions
+                          Show AI suggestions automatically
                         </p>
                       </div>
                       <Switch
@@ -394,17 +434,7 @@ export const Settings: React.FC<SettingsProps> = ({ className = '' }) => {
                         size='sm'
                       />
                     </div>
-                  </div>
-                </div>
 
-                <Divider className='bg-divider' />
-
-                <div>
-                  <h3 className='text-lg font-semibold text-foreground mb-4'>
-                    Response Preferences
-                  </h3>
-
-                  <div className='space-y-4'>
                     <div>
                       <label className='text-sm font-medium text-foreground block mb-2'>
                         Response Style
@@ -422,11 +452,12 @@ export const Settings: React.FC<SettingsProps> = ({ className = '' }) => {
                             style
                           );
                         }}
-                        className='w-full'
                         size='sm'
+                        aria-label='AI response style selection'
                         classNames={{
                           trigger:
                             'bg-content2 border-divider data-[hover=true]:bg-content3',
+                          value: 'text-foreground',
                         }}
                       >
                         <SelectItem key='concise'>Concise</SelectItem>
@@ -454,11 +485,12 @@ export const Settings: React.FC<SettingsProps> = ({ className = '' }) => {
                             frequency
                           );
                         }}
-                        className='w-full'
                         size='sm'
+                        aria-label='AI suggestion frequency selection'
                         classNames={{
                           trigger:
                             'bg-content2 border-divider data-[hover=true]:bg-content3',
+                          value: 'text-foreground',
                         }}
                       >
                         <SelectItem key='minimal'>Minimal</SelectItem>
@@ -483,7 +515,7 @@ export const Settings: React.FC<SettingsProps> = ({ className = '' }) => {
               <div className='p-6 space-y-6'>
                 <div>
                   <h3 className='text-lg font-semibold text-foreground mb-4'>
-                    Timer Preferences
+                    Timer Settings
                   </h3>
 
                   <div className='space-y-6'>
@@ -492,26 +524,25 @@ export const Settings: React.FC<SettingsProps> = ({ className = '' }) => {
                         Default Session Length:{' '}
                         {preferences.focusPreferences.defaultDuration} minutes
                       </label>
-                      <Slider
-                        value={[preferences.focusPreferences.defaultDuration]}
-                        onChange={(value: number | number[]) => {
-                          const numValue = Array.isArray(value)
-                            ? value[0]
-                            : value;
+                      <Input
+                        type='number'
+                        value={preferences.focusPreferences.defaultDuration.toString()}
+                        onChange={e => {
+                          const value = parseInt(e.target.value) || 25;
                           handleNestedPreferenceChange(
                             'focusPreferences',
                             'defaultDuration',
-                            numValue
+                            Math.max(5, Math.min(120, value))
                           );
                         }}
-                        minValue={5}
-                        maxValue={120}
-                        step={5}
-                        className='w-full'
+                        min={5}
+                        max={120}
+                        size='sm'
+                        className='w-24'
                         classNames={{
-                          track: 'bg-content3',
-                          filler: 'bg-primary-500',
-                          thumb: 'bg-primary-500 border-primary-500',
+                          input: 'text-foreground',
+                          inputWrapper:
+                            'bg-content2 border-divider data-[hover=true]:bg-content3 group-data-[focus=true]:bg-content2',
                         }}
                       />
                     </div>
@@ -521,169 +552,25 @@ export const Settings: React.FC<SettingsProps> = ({ className = '' }) => {
                         Break Interval:{' '}
                         {preferences.breakPreferences.breakInterval} minutes
                       </label>
-                      <Slider
-                        value={[preferences.breakPreferences.breakInterval]}
-                        onChange={(value: number | number[]) => {
-                          const numValue = Array.isArray(value)
-                            ? value[0]
-                            : value;
+                      <Input
+                        type='number'
+                        value={preferences.breakPreferences.breakInterval.toString()}
+                        onChange={e => {
+                          const value = parseInt(e.target.value) || 25;
                           handleNestedPreferenceChange(
                             'breakPreferences',
                             'breakInterval',
-                            numValue
+                            Math.max(15, Math.min(60, value))
                           );
                         }}
-                        minValue={15}
-                        maxValue={60}
-                        step={5}
-                        className='w-full'
-                        classNames={{
-                          track: 'bg-content3',
-                          filler: 'bg-primary-500',
-                          thumb: 'bg-primary-500 border-primary-500',
-                        }}
-                      />
-                    </div>
-
-                    <div>
-                      <label className='text-sm font-medium text-foreground block mb-2'>
-                        Short Break Duration:{' '}
-                        {preferences.breakPreferences.shortBreakDuration}{' '}
-                        minutes
-                      </label>
-                      <Slider
-                        value={[
-                          preferences.breakPreferences.shortBreakDuration,
-                        ]}
-                        onChange={(value: number | number[]) => {
-                          const numValue = Array.isArray(value)
-                            ? value[0]
-                            : value;
-                          handleNestedPreferenceChange(
-                            'breakPreferences',
-                            'shortBreakDuration',
-                            numValue
-                          );
-                        }}
-                        minValue={3}
-                        maxValue={15}
-                        step={1}
-                        className='w-full'
-                        classNames={{
-                          track: 'bg-content3',
-                          filler: 'bg-primary-500',
-                          thumb: 'bg-primary-500 border-primary-500',
-                        }}
-                      />
-                    </div>
-
-                    <div>
-                      <label className='text-sm font-medium text-foreground block mb-2'>
-                        Long Break Duration:{' '}
-                        {preferences.breakPreferences.longBreakDuration} minutes
-                      </label>
-                      <Slider
-                        value={[preferences.breakPreferences.longBreakDuration]}
-                        onChange={(value: number | number[]) => {
-                          const numValue = Array.isArray(value)
-                            ? value[0]
-                            : value;
-                          handleNestedPreferenceChange(
-                            'breakPreferences',
-                            'longBreakDuration',
-                            numValue
-                          );
-                        }}
-                        minValue={10}
-                        maxValue={30}
-                        step={5}
-                        className='w-full'
-                        classNames={{
-                          track: 'bg-content3',
-                          filler: 'bg-primary-500',
-                          thumb: 'bg-primary-500 border-primary-500',
-                        }}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <Divider className='bg-divider' />
-
-                <div>
-                  <h3 className='text-lg font-semibold text-foreground mb-4'>
-                    Focus Settings
-                  </h3>
-
-                  <div className='space-y-4'>
-                    <div>
-                      <label className='text-sm font-medium text-foreground block mb-2'>
-                        Distraction Level
-                      </label>
-                      <Select
-                        selectedKeys={[
-                          preferences.focusPreferences.distractionLevel,
-                        ]}
-                        onSelectionChange={keys => {
-                          const level = Array.from(keys)[0] as DistractionLevel;
-                          handleNestedPreferenceChange(
-                            'focusPreferences',
-                            'distractionLevel',
-                            level
-                          );
-                        }}
-                        className='w-full'
+                        min={15}
+                        max={60}
                         size='sm'
+                        className='w-24'
                         classNames={{
-                          trigger:
-                            'bg-content2 border-divider data-[hover=true]:bg-content3',
-                        }}
-                      >
-                        <SelectItem key={DistractionLevel.NONE}>
-                          None
-                        </SelectItem>
-                        <SelectItem key={DistractionLevel.MINIMAL}>
-                          Minimal
-                        </SelectItem>
-                        <SelectItem key={DistractionLevel.MODERATE}>
-                          Moderate
-                        </SelectItem>
-                        <SelectItem key={DistractionLevel.FULL}>
-                          Full
-                        </SelectItem>
-                      </Select>
-                    </div>
-
-                    <div>
-                      <label className='text-sm font-medium text-foreground block mb-2'>
-                        Background Audio Volume:{' '}
-                        {preferences.focusPreferences.backgroundAudio.volume}%
-                      </label>
-                      <Slider
-                        value={[
-                          preferences.focusPreferences.backgroundAudio.volume,
-                        ]}
-                        onChange={(value: number | number[]) => {
-                          const numValue = Array.isArray(value)
-                            ? value[0]
-                            : value;
-                          handleNestedPreferenceChange(
-                            'focusPreferences',
-                            'backgroundAudio',
-                            {
-                              ...preferences.focusPreferences.backgroundAudio,
-                              volume: numValue,
-                            }
-                          );
-                        }}
-                        minValue={0}
-                        maxValue={100}
-                        step={5}
-                        className='w-full'
-                        classNames={{
-                          track: 'bg-content3',
-                          filler: 'bg-primary-500',
-                          thumb: 'bg-primary-500 border-primary-500',
+                          input: 'text-foreground',
+                          inputWrapper:
+                            'bg-content2 border-divider data-[hover=true]:bg-content3 group-data-[focus=true]:bg-content2',
                         }}
                       />
                     </div>
@@ -693,200 +580,16 @@ export const Settings: React.FC<SettingsProps> = ({ className = '' }) => {
             </Tab>
 
             <Tab
-              key='tasks'
+              key='privacy'
               title={
                 <div className='flex items-center space-x-2'>
-                  <CheckSquare className='w-4 h-4' />
-                  <span>Task Management</span>
+                  <Shield className='w-4 h-4' />
+                  <span>Privacy & Data</span>
                 </div>
               }
             >
-              <div className='p-6 space-y-6'>
-                <div>
-                  <h3 className='text-lg font-semibold text-foreground mb-4'>
-                    Default Settings
-                  </h3>
-
-                  <div className='space-y-4'>
-                    <div className='flex items-center justify-between'>
-                      <div>
-                        <label className='text-sm font-medium text-foreground'>
-                          Default Priority
-                        </label>
-                        <p className='text-xs text-foreground-600'>
-                          Priority level for new tasks
-                        </p>
-                      </div>
-                      <Select
-                        selectedKeys={[
-                          preferences.taskSettings.defaultPriority.toString(),
-                        ]}
-                        onSelectionChange={keys => {
-                          const priority = parseInt(
-                            Array.from(keys)[0] as string
-                          ) as Priority;
-                          handleNestedPreferenceChange(
-                            'taskSettings',
-                            'defaultPriority',
-                            priority
-                          );
-                        }}
-                        className='w-32'
-                        size='sm'
-                        classNames={{
-                          trigger:
-                            'bg-content2 border-divider data-[hover=true]:bg-content3',
-                        }}
-                      >
-                        <SelectItem key={Priority.LOW.toString()}>
-                          Low
-                        </SelectItem>
-                        <SelectItem key={Priority.MEDIUM.toString()}>
-                          Medium
-                        </SelectItem>
-                        <SelectItem key={Priority.HIGH.toString()}>
-                          High
-                        </SelectItem>
-                        <SelectItem key={Priority.URGENT.toString()}>
-                          Urgent
-                        </SelectItem>
-                      </Select>
-                    </div>
-
-                    <div className='flex items-center justify-between'>
-                      <div>
-                        <label className='text-sm font-medium text-foreground'>
-                          Auto-scheduling
-                        </label>
-                        <p className='text-xs text-foreground-600'>
-                          Automatically schedule tasks based on priority
-                        </p>
-                      </div>
-                      <Switch
-                        isSelected={preferences.taskSettings.autoScheduling}
-                        onValueChange={checked =>
-                          handleNestedPreferenceChange(
-                            'taskSettings',
-                            'autoScheduling',
-                            checked
-                          )
-                        }
-                        size='sm'
-                      />
-                    </div>
-
-                    <div className='flex items-center justify-between'>
-                      <div>
-                        <label className='text-sm font-medium text-foreground'>
-                          Smart Dependencies
-                        </label>
-                        <p className='text-xs text-foreground-600'>
-                          Suggest task dependencies automatically
-                        </p>
-                      </div>
-                      <Switch
-                        isSelected={preferences.taskSettings.smartDependencies}
-                        onValueChange={checked =>
-                          handleNestedPreferenceChange(
-                            'taskSettings',
-                            'smartDependencies',
-                            checked
-                          )
-                        }
-                        size='sm'
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <Divider className='bg-divider' />
-
-                <div>
-                  <h3 className='text-lg font-semibold text-foreground mb-4'>
-                    Planning Preferences
-                  </h3>
-
-                  <div className='space-y-4'>
-                    <div className='flex items-center justify-between'>
-                      <div>
-                        <label className='text-sm font-medium text-foreground'>
-                          Week Start Day
-                        </label>
-                        <p className='text-xs text-foreground-600'>
-                          First day of the week in planning view
-                        </p>
-                      </div>
-                      <Select
-                        selectedKeys={[
-                          preferences.taskSettings.weekStartDay.toString(),
-                        ]}
-                        onSelectionChange={keys => {
-                          const day = parseInt(
-                            Array.from(keys)[0] as string
-                          ) as 0 | 1;
-                          handleNestedPreferenceChange(
-                            'taskSettings',
-                            'weekStartDay',
-                            day
-                          );
-                        }}
-                        className='w-32'
-                        size='sm'
-                        classNames={{
-                          trigger:
-                            'bg-content2 border-divider data-[hover=true]:bg-content3',
-                        }}
-                      >
-                        <SelectItem key='0'>Sunday</SelectItem>
-                        <SelectItem key='1'>Monday</SelectItem>
-                      </Select>
-                    </div>
-
-                    <div className='flex items-center justify-between'>
-                      <div>
-                        <label className='text-sm font-medium text-foreground'>
-                          Show Completed Tasks
-                        </label>
-                        <p className='text-xs text-foreground-600'>
-                          Display completed tasks in planning view
-                        </p>
-                      </div>
-                      <Switch
-                        isSelected={preferences.taskSettings.showCompletedTasks}
-                        onValueChange={checked =>
-                          handleNestedPreferenceChange(
-                            'taskSettings',
-                            'showCompletedTasks',
-                            checked
-                          )
-                        }
-                        size='sm'
-                      />
-                    </div>
-
-                    <div className='flex items-center justify-between'>
-                      <div>
-                        <label className='text-sm font-medium text-foreground'>
-                          Compact View
-                        </label>
-                        <p className='text-xs text-foreground-600'>
-                          Use compact layout for task cards
-                        </p>
-                      </div>
-                      <Switch
-                        isSelected={preferences.taskSettings.compactView}
-                        onValueChange={checked =>
-                          handleNestedPreferenceChange(
-                            'taskSettings',
-                            'compactView',
-                            checked
-                          )
-                        }
-                        size='sm'
-                      />
-                    </div>
-                  </div>
-                </div>
+              <div className='p-6'>
+                <DataManagement />
               </div>
             </Tab>
 
@@ -902,7 +605,7 @@ export const Settings: React.FC<SettingsProps> = ({ className = '' }) => {
               <div className='p-6 space-y-6'>
                 <div className='text-center'>
                   <div className='w-16 h-16 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center mx-auto mb-4 shadow-lg'>
-                    <CheckSquare className='w-8 h-8 text-white' />
+                    <Bot className='w-8 h-8 text-white' />
                   </div>
                   <h2 className='text-2xl font-bold text-foreground mb-2'>
                     KiraPilot
@@ -935,28 +638,6 @@ export const Settings: React.FC<SettingsProps> = ({ className = '' }) => {
                       <span className='text-foreground-600'>AI Engine</span>
                       <span className='text-foreground'>Google Gemini</span>
                     </div>
-                    <div className='flex justify-between'>
-                      <span className='text-foreground-600'>Build</span>
-                      <span className='text-foreground'>Development</span>
-                    </div>
-                  </div>
-                </div>
-
-                <Divider className='bg-divider' />
-
-                <div>
-                  <h3 className='text-lg font-semibold text-foreground mb-4'>
-                    Credits
-                  </h3>
-
-                  <div className='space-y-2 text-sm'>
-                    <p className='text-foreground-600'>
-                      Built with React, TypeScript, and Tauri
-                    </p>
-                    <p className='text-foreground-600'>
-                      UI components by HeroUI
-                    </p>
-                    <p className='text-foreground-600'>Icons by Lucide React</p>
                   </div>
                 </div>
 

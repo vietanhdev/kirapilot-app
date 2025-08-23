@@ -33,6 +33,7 @@ interface AIContextType {
   applySuggestion: (suggestionId: string) => Promise<void>;
   analyzePatterns: () => Promise<PatternAnalysis | null>;
   initializeWithApiKey: (apiKey: string) => void;
+  reinitializeAI: () => void;
 }
 
 interface AIConversation {
@@ -72,6 +73,7 @@ export function AIProvider({ children }: AIProviderProps) {
             toolPermissions: true,
             responseStyle: 'balanced',
             suggestionFrequency: 'moderate',
+            geminiApiKey: undefined,
           }
         );
       } catch {
@@ -81,6 +83,7 @@ export function AIProvider({ children }: AIProviderProps) {
           toolPermissions: true,
           responseStyle: 'balanced',
           suggestionFrequency: 'moderate',
+          geminiApiKey: undefined,
         };
       }
     }
@@ -90,6 +93,7 @@ export function AIProvider({ children }: AIProviderProps) {
       toolPermissions: true,
       responseStyle: 'balanced',
       suggestionFrequency: 'moderate',
+      geminiApiKey: undefined,
     };
   };
 
@@ -108,6 +112,22 @@ export function AIProvider({ children }: AIProviderProps) {
 
   useEffect(() => {
     initializeAI();
+
+    // Listen for storage changes to reinitialize when preferences change
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'kirapilot-preferences' && e.newValue !== e.oldValue) {
+        // Small delay to ensure the preferences are fully updated
+        setTimeout(() => {
+          initializeAI();
+        }, 100);
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, []);
 
   const initializeAI = () => {
@@ -116,10 +136,13 @@ export function AIProvider({ children }: AIProviderProps) {
       const service = getReactAIService();
       setAiService(service);
 
-      // Check if API key is available in environment or localStorage
+      // Check if API key is available in environment, settings, or legacy localStorage
+      const preferences = getAIPreferences();
       const apiKey =
         import.meta.env.VITE_GOOGLE_API_KEY ||
-        localStorage.getItem('kira_api_key');
+        preferences.geminiApiKey ||
+        localStorage.getItem('kira_api_key') || // Legacy fallback
+        localStorage.getItem('kirapilot-gemini-api-key'); // Legacy fallback
 
       if (apiKey) {
         service.setApiKey(apiKey);
@@ -142,9 +165,6 @@ export function AIProvider({ children }: AIProviderProps) {
 
   const initializeWithApiKey = (apiKey: string) => {
     try {
-      // Store API key securely (in production, consider more secure storage)
-      localStorage.setItem('kira_api_key', apiKey);
-
       if (aiService) {
         aiService.setApiKey(apiKey);
         setIsInitialized(true);
@@ -162,6 +182,10 @@ export function AIProvider({ children }: AIProviderProps) {
         err instanceof Error ? err.message : 'Failed to initialize AI service'
       );
     }
+  };
+
+  const reinitializeAI = () => {
+    initializeAI();
   };
 
   const sendMessage = async (
@@ -297,6 +321,7 @@ export function AIProvider({ children }: AIProviderProps) {
     applySuggestion,
     analyzePatterns,
     initializeWithApiKey,
+    reinitializeAI,
   };
 
   return <AIContext.Provider value={value}>{children}</AIContext.Provider>;

@@ -54,6 +54,7 @@ const defaultPreferences: UserPreferences = {
     toolPermissions: true,
     responseStyle: 'balanced',
     suggestionFrequency: 'moderate',
+    geminiApiKey: undefined,
   },
   taskSettings: {
     defaultPriority: Priority.MEDIUM,
@@ -95,14 +96,36 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({
 
       // Try to load from localStorage
       const stored = localStorage.getItem('kirapilot-preferences');
+      let mergedPreferences = defaultPreferences;
+
       if (stored) {
         const parsed = JSON.parse(stored);
         // Merge with defaults to ensure all properties exist
-        const mergedPreferences = { ...defaultPreferences, ...parsed };
-        setPreferences(mergedPreferences);
+        mergedPreferences = { ...defaultPreferences, ...parsed };
       }
 
-      // TODO: Load from database when preferences table is implemented
+      // Load API key from separate storage for backward compatibility
+      const storedApiKey = localStorage.getItem('kirapilot-gemini-api-key');
+      if (storedApiKey && !mergedPreferences.aiSettings.geminiApiKey) {
+        mergedPreferences = {
+          ...mergedPreferences,
+          aiSettings: {
+            ...mergedPreferences.aiSettings,
+            geminiApiKey: storedApiKey,
+          },
+        };
+        // Save the migrated preferences
+        localStorage.setItem(
+          'kirapilot-preferences',
+          JSON.stringify(mergedPreferences)
+        );
+        // Remove old storage
+        localStorage.removeItem('kirapilot-gemini-api-key');
+      }
+
+      setPreferences(mergedPreferences);
+
+      // AI service initialization is handled by AIContext
     } catch (err) {
       console.error('Failed to load preferences:', err);
       setError('Failed to load settings');
@@ -211,7 +234,24 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({
           [childKey]: value,
         },
       };
-      await updatePreferences(newPreferences);
+
+      // Update state immediately to prevent race conditions
+      setPreferences(newPreferences);
+
+      // Then persist to storage
+      try {
+        localStorage.setItem(
+          'kirapilot-preferences',
+          JSON.stringify(newPreferences)
+        );
+      } catch (err) {
+        console.error('Failed to save preferences to localStorage:', err);
+        setError(
+          err instanceof Error ? err.message : 'Failed to save settings'
+        );
+        // Revert state on error
+        setPreferences(preferences);
+      }
     }
   };
 

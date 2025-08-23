@@ -220,3 +220,13 @@
   - Update documentation to reflect SeaORM usage
   - Run comprehensive integration tests to ensure functionality
   - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 7.6_
+
+- [x] 9. Refactor Settings tab for improved usability and functionality
+  - Audit current Settings component (978 lines) to identify essential vs non-essential features
+  - Remove unnecessary settings that don't provide clear user value or aren't connected to actual functionality
+  - Streamline the Settings UI to focus only on functional components that users actually need
+  - Add Gemini API key configuration field in the AI settings section for users who want to use Gemini as their LLM provider
+  - Ensure all remaining settings are properly connected to their respective features throughout the application
+  - Test that theme switching, language selection, and other core settings work correctly
+  - Validate that the Gemini API key setting integrates properly with the AI service architecture
+  - _Requirements: 6.1, 6.2, 4.1_

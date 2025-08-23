@@ -15,7 +15,7 @@ import { SessionHistoryModal } from '../timer/SessionHistory';
 
 interface HeaderProps {
   currentView: string;
-  onViewChange: (view: string) => void;
+  onViewChange: (view: string, params?: Record<string, unknown>) => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({

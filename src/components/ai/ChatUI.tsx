@@ -1,19 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  Card,
-  CardBody,
-  Button,
-  Input,
-  Avatar,
-  Chip,
-  Modal,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-  useDisclosure,
-} from '@heroui/react';
+import { Card, CardBody, Button, Input, Avatar, Chip } from '@heroui/react';
 import {
   Send,
   Bot,
@@ -27,7 +14,9 @@ import {
 } from 'lucide-react';
 import { useAI } from '../../contexts/AIContext';
 import { useTimerContext } from '../../contexts/TimerContext';
-import { AppContext, Priority, DistractionLevel } from '../../types';
+import { useNavigation } from '../../contexts/NavigationContext';
+import { useSettings } from '../../contexts/SettingsContext';
+import { AppContext, Priority } from '../../types';
 import { MarkdownRenderer, MessageSkeleton } from '../common';
 import { MessageActions, CollapsibleConversation } from './';
 import { useAutoScroll } from '../../hooks/useAutoScroll';
@@ -40,7 +29,6 @@ interface ChatUIProps {
 
 export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
   const [message, setMessage] = useState('');
-  const [apiKey, setApiKey] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
   const { scrollRef, isAutoScrollPaused, resumeAutoScroll } = useAutoScroll();
 
@@ -53,16 +41,11 @@ export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
     sendMessage,
     dismissSuggestion,
     applySuggestion,
-    initializeWithApiKey,
   } = useAI();
 
   const { activeTask, activeTaskId, hasActiveTimer } = useTimerContext();
-
-  const {
-    isOpen: isApiModalOpen,
-    onOpen: onApiModalOpen,
-    onClose: onApiModalClose,
-  } = useDisclosure();
+  const { navigateTo } = useNavigation();
+  const { preferences } = useSettings();
 
   // Auto-scroll is now handled by the useAutoScroll hook
 
@@ -94,42 +77,7 @@ export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
       dayOfWeek: now.getDay(),
       currentEnergy: 75, // Default energy level
       recentActivity: [],
-      preferences: {
-        workingHours: { start: '09:00', end: '17:00' },
-        breakPreferences: {
-          shortBreakDuration: 5,
-          longBreakDuration: 15,
-          breakInterval: 25,
-        },
-        focusPreferences: {
-          defaultDuration: 25,
-          distractionLevel: DistractionLevel.MINIMAL,
-          backgroundAudio: { type: 'white_noise', volume: 50 },
-        },
-        notifications: {
-          breakReminders: true,
-          taskDeadlines: true,
-          dailySummary: true,
-          weeklyReview: true,
-        },
-        aiSettings: {
-          conversationHistory: true,
-          autoSuggestions: true,
-          toolPermissions: true,
-          responseStyle: 'balanced',
-          suggestionFrequency: 'moderate',
-        },
-        taskSettings: {
-          defaultPriority: Priority.MEDIUM,
-          autoScheduling: false,
-          smartDependencies: true,
-          weekStartDay: 1,
-          showCompletedTasks: true,
-          compactView: false,
-        },
-        theme: 'auto',
-        language: 'en',
-      },
+      preferences,
     };
   };
 
@@ -139,7 +87,7 @@ export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
     }
 
     if (!isInitialized) {
-      onApiModalOpen();
+      handleOpenSettings();
       return;
     }
 
@@ -155,12 +103,9 @@ export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
     }
   };
 
-  const handleSetupApiKey = () => {
-    if (apiKey.trim()) {
-      initializeWithApiKey(apiKey.trim());
-      setApiKey('');
-      onApiModalClose();
-    }
+  const handleOpenSettings = () => {
+    navigateTo('settings', { tab: 'ai' });
+    onClose(); // Close the chat UI when navigating to settings
   };
 
   const formatTimestamp = (date: Date) => {
@@ -236,7 +181,7 @@ export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
                 isIconOnly
                 variant='light'
                 size='sm'
-                onPress={onApiModalOpen}
+                onPress={handleOpenSettings}
                 className='text-foreground-600 hover:text-foreground hover:bg-content3'
               >
                 <Settings className='w-4 h-4' />
@@ -290,9 +235,9 @@ export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
                   size='sm'
                   color='primary'
                   className='mt-2'
-                  onPress={onApiModalOpen}
+                  onPress={handleOpenSettings}
                 >
-                  Setup API Key
+                  Open Settings
                 </Button>
               </div>
             )}
@@ -698,56 +643,6 @@ export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
           </div>
         </CardBody>
       </Card>
-
-      {/* API Key Setup Modal */}
-      <Modal
-        isOpen={isApiModalOpen}
-        onClose={onApiModalClose}
-        placement='center'
-      >
-        <ModalContent>
-          <ModalHeader>Setup Kira AI</ModalHeader>
-          <ModalBody>
-            <p className='text-sm text-foreground-600 mb-4'>
-              To use Kira AI, you need to provide a Google API key for Gemini.
-            </p>
-            <Input
-              label='Google API Key'
-              placeholder='Enter your Google API key'
-              value={apiKey}
-              onChange={e => setApiKey(e.target.value)}
-              type='password'
-            />
-            <p className='text-xs text-foreground-500 mt-2'>
-              Your API key is stored locally and never shared. You can get a
-              free API key from{' '}
-              <a
-                href='https://makersuite.google.com/app/apikey'
-                target='_blank'
-                rel='noopener noreferrer'
-                className='text-primary-500 hover:underline'
-              >
-                Google AI Studio
-              </a>
-              .
-            </p>
-          </ModalBody>
-          <ModalFooter>
-            <Button variant='light' onPress={onApiModalClose}>
-              Cancel
-            </Button>
-            <Button
-              color='success'
-              variant='solid'
-              onPress={handleSetupApiKey}
-              isDisabled={!apiKey.trim()}
-              className='bg-green-600 text-white hover:bg-green-700 disabled:bg-gray-400 disabled:text-gray-200'
-            >
-              Save & Connect
-            </Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
     </>
   );
 }
