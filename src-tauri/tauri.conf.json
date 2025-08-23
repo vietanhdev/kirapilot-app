@@ -55,7 +55,7 @@
     "copyright": "Copyright © 2025 Viet-Anh Nguyen. All rights reserved.",
     "licenseFile": "../LICENSE",
     "homepage": "https://github.com/vietanhdev/KiraPilot",
-    "publisher": "VietAnh Dev",
+    "publisher": "Viet-Anh Nguyen",
     "windows": {
       "certificateThumbprint": null,
       "digestAlgorithm": "sha256",

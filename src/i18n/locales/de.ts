@@ -317,7 +317,14 @@ export const de = {
   'settings.platformValue': 'Desktop (Tauri)',
   'settings.databaseValue': 'SQLite (Lokal)',
   'settings.aiEngineValue': 'Google Gemini',
-  'settings.version': 'Version 0.1.0',
+  'settings.version': (() => {
+    try {
+      const { getFormattedVersion } = require('../../utils/version');
+      return getFormattedVersion();
+    } catch {
+      return 'Version 0.0.10'; // Fallback
+    }
+  })(),
 
   // Data Management
   'dataManagement.title': 'Datenverwaltung',
@@ -404,7 +411,14 @@ export const de = {
   // About Section
   'about.appName': 'KiraPilot',
   'about.appDescription': 'Intelligenter Produktivitätsassistent',
-  'about.version': 'Version 0.1.0',
+  'about.version': (() => {
+    try {
+      const { getFormattedVersion } = require('../../utils/version');
+      return getFormattedVersion();
+    } catch {
+      return 'Version 0.0.10'; // Fallback
+    }
+  })(),
   'about.systemInformation': 'Systeminformationen',
   'about.copyright': '© 2024 KiraPilot. Alle Rechte vorbehalten.',
 

@@ -316,7 +316,14 @@ export const fr = {
   'settings.platformValue': 'Bureau (Tauri)',
   'settings.databaseValue': 'SQLite (Local)',
   'settings.aiEngineValue': 'Google Gemini',
-  'settings.version': 'Version 0.1.0',
+  'settings.version': (() => {
+    try {
+      const { getFormattedVersion } = require('../../utils/version');
+      return getFormattedVersion();
+    } catch {
+      return 'Version 0.0.10'; // Fallback
+    }
+  })(),
 
   // Data Management
   'dataManagement.title': 'Gestion des Données',
@@ -403,9 +410,16 @@ export const fr = {
   // About Section
   'about.appName': 'KiraPilot',
   'about.appDescription': 'Assistant de Productivité Intelligent',
-  'about.version': 'Version 0.1.0',
+  'about.version': (() => {
+    try {
+      const { getFormattedVersion } = require('../../utils/version');
+      return getFormattedVersion();
+    } catch {
+      return 'Version 0.0.10'; // Fallback
+    }
+  })(),
   'about.systemInformation': 'Informations Système',
-  'about.copyright': '© 2024 KiraPilot. Tous droits réservés.',
+  'about.copyright': '© 2025 Viet-Anh Nguyen. Tous droits réservés.',
 
   // Time History Modal
   'timeHistory.title': 'Historique du Temps',

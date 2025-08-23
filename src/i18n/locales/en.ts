@@ -106,7 +106,7 @@ export const en = {
   'settings.about.builtWith': 'Built with React, TypeScript, and Tauri',
   'settings.about.uiComponents': 'UI components by HeroUI',
   'settings.about.icons': 'Icons by Lucide React',
-  'settings.about.copyright': '© 2024 KiraPilot. All rights reserved.',
+  'settings.about.copyright': '© 2025 Viet-Anh Nguyen. All rights reserved.',
 
   // Theme options
   'theme.light': 'Light',
@@ -309,7 +309,14 @@ export const en = {
   'settings.platformValue': 'Desktop (Tauri)',
   'settings.databaseValue': 'SQLite (Local)',
   'settings.aiEngineValue': 'Google Gemini',
-  'settings.version': 'Version 0.1.0',
+  'settings.version': (() => {
+    try {
+      const { getFormattedVersion } = require('../../utils/version');
+      return getFormattedVersion();
+    } catch {
+      return 'Version 0.0.10'; // Fallback
+    }
+  })(),
 
   // Data Management
   'dataManagement.title': 'Data Management',
@@ -395,9 +402,16 @@ export const en = {
   // About Section
   'about.appName': 'KiraPilot',
   'about.appDescription': 'Intelligent Productivity Assistant',
-  'about.version': 'Version 0.1.0',
+  'about.version': (() => {
+    try {
+      const { getFormattedVersion } = require('../../utils/version');
+      return getFormattedVersion();
+    } catch {
+      return 'Version 0.0.10'; // Fallback
+    }
+  })(),
   'about.systemInformation': 'System Information',
-  'about.copyright': '© 2024 KiraPilot. All rights reserved.',
+  'about.copyright': '© 2025 Viet-Anh Nguyen. All rights reserved.',
 
   // Time History Modal
   'timeHistory.title': 'Time History',

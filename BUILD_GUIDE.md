@@ -78,10 +78,17 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 
 The app automatically builds and releases when you push to the `release` branch:
 
-1. Update version in `src-tauri/Cargo.toml`
-2. Update version in `package.json`
-3. Commit changes to `release` branch
-4. GitHub Actions will build for all platforms and create a draft release
+1. Update version using one of these commands:
+   - `npm run version:patch` (for bug fixes: 0.0.10 → 0.0.11)
+   - `npm run version:minor` (for new features: 0.0.10 → 0.1.0)
+   - `npm run version:major` (for breaking changes: 0.0.10 → 1.0.0)
+
+   This automatically syncs versions across package.json, Cargo.toml, and tauri.conf.json
+
+2. Commit changes to `release` branch
+3. GitHub Actions will build for all platforms and create a draft release
+
+**Note**: The version is now automatically synced across all configuration files and dynamically referenced in the UI.
 
 ## Development
 

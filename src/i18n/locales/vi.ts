@@ -108,7 +108,8 @@ export const vi = {
   'settings.about.builtWith': 'Được xây dựng với React, TypeScript và Tauri',
   'settings.about.uiComponents': 'Thành phần UI bởi HeroUI',
   'settings.about.icons': 'Biểu tượng bởi Lucide React',
-  'settings.about.copyright': '© 2024 KiraPilot. Tất cả quyền được bảo lưu.',
+  'settings.about.copyright':
+    '© 2025 Viet-Anh Nguyen. Tất cả quyền được bảo lưu.',
 
   // Theme options
   'theme.light': 'Sáng',

@@ -402,7 +402,7 @@ export const es = {
   'about.appDescription': 'Asistente de Productividad Inteligente',
   'about.version': 'Versión 0.1.0',
   'about.systemInformation': 'Información del Sistema',
-  'about.copyright': '© 2024 KiraPilot. Todos los derechos reservados.',
+  'about.copyright': '© 2025 Viet-Anh Nguyen. Todos los derechos reservados.',
 
   // Time History Modal
   'timeHistory.title': 'Historial de Tiempo',
