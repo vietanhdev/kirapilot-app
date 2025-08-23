@@ -230,3 +230,14 @@
   - Test that theme switching, language selection, and other core settings work correctly
   - Validate that the Gemini API key setting integrates properly with the AI service architecture
   - _Requirements: 6.1, 6.2, 4.1_
+
+- [x] 10. Fix Backup & Restore functionality with proper file handling
+  - Implement export data functionality that creates a zip file containing all user data (tasks, sessions, settings, AI conversations)
+  - Add file dialog integration using Tauri's dialog API to allow users to choose save location for export
+  - Create import data functionality that opens a file dialog to select backup zip files
+  - Implement zip file extraction and data validation for import process
+  - Add progress indicators and error handling for both export and import operations
+  - Create data integrity checks to ensure imported data is valid and compatible
+  - Add user confirmation dialogs before importing data to prevent accidental overwrites
+  - Test backup and restore functionality with various data scenarios and file formats
+  - _Requirements: 6.2, 6.4_

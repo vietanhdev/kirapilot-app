@@ -286,4 +286,20 @@ impl AiRepository {
             .await?;
         Ok(result.rows_affected)
     }
+
+    /// Import an AI interaction from backup data
+    pub async fn import_interaction(&self, interaction: ai_interactions::Model) -> Result<ai_interactions::Model, DbErr> {
+        let active_interaction = ai_interactions::ActiveModel {
+            id: Set(interaction.id),
+            message: Set(interaction.message),
+            response: Set(interaction.response),
+            action_taken: Set(interaction.action_taken),
+            reasoning: Set(interaction.reasoning),
+            tools_used: Set(interaction.tools_used),
+            confidence: Set(interaction.confidence),
+            created_at: Set(interaction.created_at),
+        };
+
+        active_interaction.insert(&*self.db).await
+    }
 }

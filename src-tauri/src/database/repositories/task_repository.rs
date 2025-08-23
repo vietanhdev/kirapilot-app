@@ -369,6 +369,50 @@ impl TaskRepository {
             .await?;
         Ok(result.rows_affected)
     }
+
+    /// Get all task dependencies for backup
+    pub async fn get_all_dependencies(&self) -> Result<Vec<task_dependencies::Model>, DbErr> {
+        task_dependencies::Entity::find()
+            .all(&*self.db)
+            .await
+    }
+
+    /// Import a task from backup data
+    pub async fn import_task(&self, task: tasks::Model) -> Result<tasks::Model, DbErr> {
+        let active_task = tasks::ActiveModel {
+            id: Set(task.id),
+            title: Set(task.title),
+            description: Set(task.description),
+            priority: Set(task.priority),
+            status: Set(task.status),
+            dependencies: Set(task.dependencies),
+            time_estimate: Set(task.time_estimate),
+            actual_time: Set(task.actual_time),
+            due_date: Set(task.due_date),
+            scheduled_date: Set(task.scheduled_date),
+            tags: Set(task.tags),
+            project_id: Set(task.project_id),
+            parent_task_id: Set(task.parent_task_id),
+            subtasks: Set(task.subtasks),
+            completed_at: Set(task.completed_at),
+            created_at: Set(task.created_at),
+            updated_at: Set(task.updated_at),
+        };
+
+        active_task.insert(&*self.db).await
+    }
+
+    /// Import a task dependency from backup data
+    pub async fn import_dependency(&self, dependency: task_dependencies::Model) -> Result<task_dependencies::Model, DbErr> {
+        let active_dependency = task_dependencies::ActiveModel {
+            id: Set(dependency.id),
+            task_id: Set(dependency.task_id),
+            depends_on_id: Set(dependency.depends_on_id),
+            created_at: Set(dependency.created_at),
+        };
+
+        active_dependency.insert(&*self.db).await
+    }
 }
 
 /// Task statistics structure

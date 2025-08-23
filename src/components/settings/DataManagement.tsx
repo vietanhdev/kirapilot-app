@@ -42,17 +42,21 @@ export const DataManagement: React.FC<DataManagementProps> = ({
   const { clearConversation } = useAI();
   const { t } = useTranslation();
 
+  // Utility function for showing messages with fallback to alert
+  const showMessage = async (
+    text: string,
+    options: { title: string; kind: 'info' | 'error' | 'warning' }
+  ) => {
+    try {
+      const { message } = await import('@tauri-apps/plugin-dialog');
+      await message(text, options);
+    } catch {
+      alert(text);
+    }
+  };
+
   // Modal controls
-  const {
-    isOpen: isExportOpen,
-    onOpen: onExportOpen,
-    onClose: onExportClose,
-  } = useDisclosure();
-  const {
-    isOpen: isImportOpen,
-    onOpen: onImportOpen,
-    onClose: onImportClose,
-  } = useDisclosure();
+
   const {
     isOpen: isResetOpen,
     onOpen: onResetOpen,
@@ -69,6 +73,7 @@ export const DataManagement: React.FC<DataManagementProps> = ({
   const [isImporting, setIsImporting] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
   const [importProgress, setImportProgress] = useState(0);
+
   const [showAILogs, setShowAILogs] = useState(false);
   const [isGeneratingMockData, setIsGeneratingMockData] = useState(false);
   const [isClearingData, setIsClearingData] = useState(false);
@@ -85,6 +90,9 @@ export const DataManagement: React.FC<DataManagementProps> = ({
     setIsClearingData(true);
     setShowFinalConfirmation(false);
 
+    // Close the modal immediately to prevent conflicts
+    onResetClose();
+
     try {
       console.log('Calling clear_all_data command...');
       // Use the new clear_all_data Tauri command
@@ -100,21 +108,27 @@ export const DataManagement: React.FC<DataManagementProps> = ({
       // Clear AI conversations
       clearConversation();
 
-      // Show success message
-      alert(
-        `Database cleared successfully!\n\n${result}\n\nThe application will now restart.`
+      // Show success message using Tauri dialog
+      await showMessage(
+        `Database cleared successfully!\n\n${result}\n\nThe application will now restart.`,
+        { title: 'Database Cleared', kind: 'info' }
       );
 
-      // Force application restart to reinitialize everything
-      if (typeof window !== 'undefined') {
-        window.location.reload();
-      }
+      // Add a small delay before reloading to ensure dialog is closed
+      setTimeout(() => {
+        if (typeof window !== 'undefined') {
+          window.location.reload();
+        }
+      }, 500);
     } catch (error) {
       console.error('Failed to clear database:', error);
-      alert(`Failed to clear database: ${error}\n\nCheck console for details.`);
+
+      await showMessage(
+        `Failed to clear database: ${error}\n\nCheck console for details.`,
+        { title: 'Clear Database Failed', kind: 'error' }
+      );
     } finally {
       setIsClearingData(false);
-      onResetClose();
     }
   };
 
@@ -738,10 +752,34 @@ export const DataManagement: React.FC<DataManagementProps> = ({
 
 Perfect for exploring KiraPilot's task management, time tracking, and analytics features!`;
 
-      alert(message);
+      try {
+        const { message: showMessage } = await import(
+          '@tauri-apps/plugin-dialog'
+        );
+        await showMessage(message, {
+          title: 'Mock Data Generated',
+          kind: 'info',
+        });
+      } catch {
+        alert(message);
+      }
     } catch (error) {
       console.error('Failed to generate mock data:', error);
-      alert('Failed to generate mock data. Check console for details.');
+
+      try {
+        const { message: showMessage } = await import(
+          '@tauri-apps/plugin-dialog'
+        );
+        await showMessage(
+          'Failed to generate mock data. Check console for details.',
+          {
+            title: 'Mock Data Generation Failed',
+            kind: 'error',
+          }
+        );
+      } catch {
+        alert('Failed to generate mock data. Check console for details.');
+      }
     } finally {
       setIsGeneratingMockData(false);
     }
@@ -753,49 +791,275 @@ Perfect for exploring KiraPilot's task management, time tracking, and analytics 
       setIsExporting(true);
       setExportProgress(0);
 
-      // Export functionality is now handled by the SeaORM backend
-      console.log('Data export functionality moved to SeaORM backend');
+      // Show file save dialog
+      const { save } = await import('@tauri-apps/plugin-dialog');
+      const filePath = await save({
+        filters: [
+          {
+            name: 'KiraPilot Backup',
+            extensions: ['kpbackup'],
+          },
+          {
+            name: 'ZIP Archive',
+            extensions: ['zip'],
+          },
+        ],
+        defaultPath: `kirapilot-backup-${new Date().toISOString().split('T')[0]}.kpbackup`,
+      });
 
-      // Simulate progress for UI
-      for (let i = 0; i <= 100; i += 10) {
-        setExportProgress(i);
-        await new Promise(resolve => setTimeout(resolve, 100));
+      if (!filePath) {
+        setIsExporting(false);
+        return;
       }
 
-      alert('Data export functionality is now handled by the SeaORM backend');
+      // Update progress
+      setExportProgress(20);
+
+      // Call Tauri command to export data
+      const metadata = await invoke<{
+        version: string;
+        created_at: string;
+        task_count: number;
+        session_count: number;
+        ai_interaction_count: number;
+        dependency_count: number;
+      }>('export_data_to_file', { filePath });
+
+      setExportProgress(100);
+
+      // Use Tauri's message dialog instead of alert
+      const { message } = await import('@tauri-apps/plugin-dialog');
+      await message(
+        `✅ Data exported successfully!\n\n📊 Export Summary:\n• ${metadata.task_count} tasks\n• ${metadata.session_count} time sessions\n• ${metadata.ai_interaction_count} AI conversations\n• ${metadata.dependency_count} task dependencies\n\n📁 Saved to: ${filePath}\n🗓️ Created: ${new Date(metadata.created_at).toLocaleString()}\n📦 Version: ${metadata.version}`,
+        { title: 'Export Successful', kind: 'info' }
+      );
     } catch (error) {
       console.error('Export failed:', error);
-      alert('Failed to export data. Check console for details.');
+
+      // Use Tauri's message dialog for errors too
+      try {
+        const { message } = await import('@tauri-apps/plugin-dialog');
+        await message(`Failed to export data: ${error}`, {
+          title: 'Export Failed',
+          kind: 'error',
+        });
+      } catch {
+        // Fallback to alert if dialog fails
+        alert(`Failed to export data: ${error}`);
+      }
     } finally {
       setIsExporting(false);
       setExportProgress(0);
-      onExportClose();
     }
   };
 
   // Import data function
-  const handleImportData = async (_file: File) => {
+  const handleImportData = async () => {
     try {
       setIsImporting(true);
       setImportProgress(0);
 
-      // Import functionality is now handled by the SeaORM backend
-      console.log('Data import functionality moved to SeaORM backend');
+      // Show file open dialog
+      const { open } = await import('@tauri-apps/plugin-dialog');
+      const filePath = await open({
+        filters: [
+          {
+            name: 'KiraPilot Backup',
+            extensions: ['kpbackup'],
+          },
+          {
+            name: 'ZIP Archive',
+            extensions: ['zip'],
+          },
+        ],
+        multiple: false,
+      });
 
-      // Simulate progress for UI
-      for (let i = 0; i <= 100; i += 10) {
-        setImportProgress(i);
-        await new Promise(resolve => setTimeout(resolve, 100));
+      if (!filePath) {
+        setIsImporting(false);
+        return;
       }
 
-      alert('Data import functionality is now handled by the SeaORM backend');
+      setImportProgress(10);
+
+      // First validate the backup file comprehensively
+      try {
+        const validationResult = await invoke<{
+          is_valid: boolean;
+          errors: string[];
+          warnings: string[];
+          metadata?: {
+            version: string;
+            created_at: string;
+            task_count: number;
+            session_count: number;
+            ai_interaction_count: number;
+            dependency_count: number;
+          };
+        }>('validate_backup_comprehensive', { filePath });
+
+        if (!validationResult.is_valid) {
+          const errorMessage = `❌ Backup validation failed!\n\nErrors:\n${validationResult.errors.join('\n')}`;
+
+          try {
+            const { message } = await import('@tauri-apps/plugin-dialog');
+            await message(errorMessage, {
+              title: 'Invalid Backup',
+              kind: 'error',
+            });
+          } catch {
+            alert(errorMessage);
+          }
+          return;
+        }
+
+        if (!validationResult.metadata) {
+          throw new Error('No metadata found in validation result');
+        }
+
+        const metadata = validationResult.metadata;
+        setImportProgress(30);
+
+        // Show warnings if any
+        if (validationResult.warnings.length > 0) {
+          const warningMessage = `⚠️ Backup validation warnings:\n\n${validationResult.warnings.join('\n')}\n\nDo you want to continue?`;
+
+          const { confirm } = await import('@tauri-apps/plugin-dialog');
+          const shouldContinue = await confirm(warningMessage, {
+            title: 'Validation Warnings',
+            kind: 'warning',
+          });
+
+          if (!shouldContinue) {
+            return;
+          }
+        }
+
+        // Show confirmation dialog using Tauri's confirm dialog
+        const { confirm } = await import('@tauri-apps/plugin-dialog');
+        const shouldProceed = await confirm(
+          `📦 Backup File Validation Successful!\n\n📊 Backup Contents:\n• ${metadata.task_count} tasks\n• ${metadata.session_count} time sessions\n• ${metadata.ai_interaction_count} AI conversations\n• ${metadata.dependency_count} task dependencies\n\n🗓️ Created: ${new Date(metadata.created_at).toLocaleString()}\n📦 Version: ${metadata.version}\n\n⚠️ WARNING: This will replace all your current data!\n\nDo you want to proceed with the import?`,
+          { title: 'Confirm Data Import', kind: 'warning' }
+        );
+
+        if (!shouldProceed) {
+          setIsImporting(false);
+          return;
+        }
+
+        setImportProgress(50);
+
+        // Perform the import with overwrite
+        const importResult = await invoke<{
+          version: string;
+          created_at: string;
+          task_count: number;
+          session_count: number;
+          ai_interaction_count: number;
+          dependency_count: number;
+        }>('import_data_from_file', { filePath, overwrite: true });
+
+        setImportProgress(100);
+
+        // Show success message
+        const { message } = await import('@tauri-apps/plugin-dialog');
+        await message(
+          `✅ Data imported successfully!\n\n📊 Import Summary:\n• ${importResult.task_count} tasks restored\n• ${importResult.session_count} time sessions restored\n• ${importResult.ai_interaction_count} AI conversations restored\n• ${importResult.dependency_count} task dependencies restored\n\nThe application will now refresh to load the imported data.`,
+          { title: 'Import Successful', kind: 'info' }
+        );
+
+        // Refresh the application to load new data
+        if (typeof window !== 'undefined') {
+          window.location.reload();
+        }
+      } catch (validationError) {
+        console.error('Backup validation failed:', validationError);
+
+        try {
+          const { message } = await import('@tauri-apps/plugin-dialog');
+          await message(`Invalid backup file: ${validationError}`, {
+            title: 'Validation Failed',
+            kind: 'error',
+          });
+        } catch {
+          alert(`Invalid backup file: ${validationError}`);
+        }
+      }
     } catch (error) {
       console.error('Import failed:', error);
-      alert('Failed to import data. Check console for details.');
+
+      try {
+        const { message } = await import('@tauri-apps/plugin-dialog');
+        await message(`Failed to import data: ${error}`, {
+          title: 'Import Failed',
+          kind: 'error',
+        });
+      } catch {
+        alert(`Failed to import data: ${error}`);
+      }
     } finally {
       setIsImporting(false);
       setImportProgress(0);
-      onImportClose();
+    }
+  };
+
+  // Test backup function for development
+  const handleTestBackup = async () => {
+    try {
+      // Create a quick backup to desktop for testing
+      const { desktopDir } = await import('@tauri-apps/api/path');
+      const desktop = await desktopDir();
+      const testFilePath = `${desktop}/kirapilot-test-backup-${Date.now()}.kpbackup`;
+
+      const metadata = await invoke<{
+        version: string;
+        created_at: string;
+        task_count: number;
+        session_count: number;
+        ai_interaction_count: number;
+        dependency_count: number;
+      }>('export_data_to_file', { filePath: testFilePath });
+
+      // Validate the backup immediately
+      const validationResult = await invoke<{
+        is_valid: boolean;
+        errors: string[];
+        warnings: string[];
+        metadata?: {
+          version: string;
+          created_at: string;
+          task_count: number;
+          session_count: number;
+          ai_interaction_count: number;
+          dependency_count: number;
+        };
+      }>('validate_backup_comprehensive', { filePath: testFilePath });
+
+      const { message } = await import('@tauri-apps/plugin-dialog');
+
+      if (validationResult.is_valid) {
+        await message(
+          `✅ Test backup created and validated successfully!\n\n📊 Backup Contents:\n• ${metadata.task_count} tasks\n• ${metadata.session_count} time sessions\n• ${metadata.ai_interaction_count} AI conversations\n• ${metadata.dependency_count} task dependencies\n\n📁 Saved to: ${testFilePath}\n\n✅ Validation: PASSED${validationResult.warnings.length > 0 ? `\n\n⚠️ Warnings:\n${validationResult.warnings.join('\n')}` : ''}`,
+          { title: 'Test Backup Successful', kind: 'info' }
+        );
+      } else {
+        await message(
+          `❌ Test backup validation failed!\n\nErrors:\n${validationResult.errors.join('\n')}`,
+          { title: 'Test Backup Failed', kind: 'error' }
+        );
+      }
+    } catch (error) {
+      console.error('Test backup failed:', error);
+
+      try {
+        const { message } = await import('@tauri-apps/plugin-dialog');
+        await message(`Test backup failed: ${error}`, {
+          title: 'Test Failed',
+          kind: 'error',
+        });
+      } catch {
+        alert(`Test backup failed: ${error}`);
+      }
     }
   };
 
@@ -825,26 +1089,103 @@ Perfect for exploring KiraPilot's task management, time tracking, and analytics 
             {t('dataManagement.backupRestoreDescription')}
           </p>
 
-          <div className='flex gap-3'>
-            <Button
-              color='primary'
-              variant='flat'
-              startContent={<Download className='h-4 w-4' />}
-              onPress={onExportOpen}
-              isDisabled={isExporting}
-            >
-              {t('dataManagement.exportData')}
-            </Button>
+          <div className='bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-200 dark:border-blue-800'>
+            <div className='flex items-start gap-2'>
+              <Info className='h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0' />
+              <div className='text-sm'>
+                <p className='font-medium text-blue-900 dark:text-blue-100 mb-1'>
+                  Backup & Restore Information
+                </p>
+                <ul className='text-blue-700 dark:text-blue-300 space-y-1'>
+                  <li>
+                    • Backups include all tasks, time sessions, AI
+                    conversations, and dependencies
+                  </li>
+                  <li>
+                    • Files are saved as compressed ZIP archives with .kpbackup
+                    extension
+                  </li>
+                  <li>
+                    • Import will replace all current data - create a backup
+                    first!
+                  </li>
+                  <li>
+                    • Data integrity is validated before import to ensure
+                    compatibility
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
 
-            <Button
-              color='secondary'
-              variant='flat'
-              startContent={<Upload className='h-4 w-4' />}
-              onPress={onImportOpen}
-              isDisabled={isImporting}
-            >
-              {t('dataManagement.importData')}
-            </Button>
+          <div className='space-y-4'>
+            <div className='flex gap-3'>
+              <Button
+                color='primary'
+                variant='flat'
+                startContent={<Download className='h-4 w-4' />}
+                onPress={handleExportData}
+                isDisabled={isExporting || isImporting}
+                isLoading={isExporting}
+              >
+                {isExporting ? 'Exporting...' : t('dataManagement.exportData')}
+              </Button>
+
+              <Button
+                color='secondary'
+                variant='flat'
+                startContent={<Upload className='h-4 w-4' />}
+                onPress={handleImportData}
+                isDisabled={isImporting || isExporting}
+                isLoading={isImporting}
+              >
+                {isImporting ? 'Importing...' : t('dataManagement.importData')}
+              </Button>
+            </div>
+
+            {/* Export Progress */}
+            {isExporting && exportProgress > 0 && (
+              <div className='space-y-2'>
+                <div className='flex justify-between text-sm'>
+                  <span className='text-gray-600 dark:text-gray-400'>
+                    Exporting data...
+                  </span>
+                  <span className='text-gray-600 dark:text-gray-400'>
+                    {exportProgress}%
+                  </span>
+                </div>
+                <Progress
+                  value={exportProgress}
+                  color='primary'
+                  size='sm'
+                  className='w-full'
+                />
+              </div>
+            )}
+
+            {/* Import Progress */}
+            {isImporting && importProgress > 0 && (
+              <div className='space-y-2'>
+                <div className='flex justify-between text-sm'>
+                  <span className='text-gray-600 dark:text-gray-400'>
+                    {importProgress < 30
+                      ? 'Validating backup...'
+                      : importProgress < 50
+                        ? 'Preparing import...'
+                        : 'Importing data...'}
+                  </span>
+                  <span className='text-gray-600 dark:text-gray-400'>
+                    {importProgress}%
+                  </span>
+                </div>
+                <Progress
+                  value={importProgress}
+                  color='secondary'
+                  size='sm'
+                  className='w-full'
+                />
+              </div>
+            )}
           </div>
         </CardBody>
       </Card>
@@ -863,17 +1204,29 @@ Perfect for exploring KiraPilot's task management, time tracking, and analytics 
             {t('dataManagement.sampleDataDescription')}
           </p>
 
-          <Button
-            color='success'
-            variant='flat'
-            startContent={<Database className='h-4 w-4' />}
-            onPress={generateMockData}
-            isLoading={isGeneratingMockData}
-          >
-            {isGeneratingMockData
-              ? t('dataManagement.generating')
-              : t('dataManagement.generateSampleData')}
-          </Button>
+          <div className='flex gap-3'>
+            <Button
+              color='success'
+              variant='flat'
+              startContent={<Database className='h-4 w-4' />}
+              onPress={generateMockData}
+              isLoading={isGeneratingMockData}
+            >
+              {isGeneratingMockData
+                ? t('dataManagement.generating')
+                : t('dataManagement.generateSampleData')}
+            </Button>
+
+            <Button
+              color='primary'
+              variant='flat'
+              startContent={<Download className='h-4 w-4' />}
+              onPress={handleTestBackup}
+              isDisabled={isExporting || isImporting}
+            >
+              Test Backup
+            </Button>
+          </div>
         </CardBody>
       </Card>
 
@@ -942,78 +1295,6 @@ Perfect for exploring KiraPilot's task management, time tracking, and analytics 
           </Button>
         </CardBody>
       </Card>
-
-      {/* Export Modal */}
-      <Modal isOpen={isExportOpen} onClose={onExportClose}>
-        <ModalContent>
-          <ModalHeader>{t('export.title')}</ModalHeader>
-          <ModalBody>
-            {isExporting ? (
-              <div className='space-y-4'>
-                <p>{t('export.exporting')}</p>
-                <Progress value={exportProgress} className='w-full' />
-              </div>
-            ) : (
-              <p>{t('export.description')}</p>
-            )}
-          </ModalBody>
-          <ModalFooter>
-            <Button
-              variant='light'
-              onPress={onExportClose}
-              isDisabled={isExporting}
-            >
-              {t('common.cancel')}
-            </Button>
-            <Button
-              color='primary'
-              onPress={handleExportData}
-              isLoading={isExporting}
-            >
-              {t('export.export')}
-            </Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
-
-      {/* Import Modal */}
-      <Modal isOpen={isImportOpen} onClose={onImportClose}>
-        <ModalContent>
-          <ModalHeader>{t('import.title')}</ModalHeader>
-          <ModalBody>
-            {isImporting ? (
-              <div className='space-y-4'>
-                <p>{t('import.importing')}</p>
-                <Progress value={importProgress} className='w-full' />
-              </div>
-            ) : (
-              <div className='space-y-4'>
-                <p>{t('import.description')}</p>
-                <input
-                  type='file'
-                  accept='.json'
-                  onChange={e => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      handleImportData(file);
-                    }
-                  }}
-                  className='w-full'
-                />
-              </div>
-            )}
-          </ModalBody>
-          <ModalFooter>
-            <Button
-              variant='light'
-              onPress={onImportClose}
-              isDisabled={isImporting}
-            >
-              {t('common.cancel')}
-            </Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
 
       {/* Reset Modal */}
       <Modal isOpen={isResetOpen} onClose={onResetClose}>

@@ -1,4 +1,5 @@
 mod database;
+mod backup;
 
 use database::migration::{MigrationStatus, MigrationTestResult};
 use database::repositories::{
@@ -9,8 +10,9 @@ use database::repositories::{
 };
 use database::{
     check_database_health, get_database, get_migration_status, initialize_database,
-    reset_migrations, rollback_last_migration, test_migration_compatibility, DatabaseHealth,
+    test_migration_compatibility, DatabaseHealth,
 };
+use backup::{BackupService, BackupMetadata};
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
@@ -752,33 +754,65 @@ async fn test_migration_compatibility_cmd() -> Result<MigrationTestResult, Strin
     }
 }
 
+
+
+// ============================================================================
+// Backup & Restore Commands
+// ============================================================================
+
 #[tauri::command]
-async fn rollback_last_migration_cmd() -> Result<String, String> {
-    #[cfg(debug_assertions)]
-    {
-        match rollback_last_migration().await {
-            Ok(_) => Ok("Last migration rolled back successfully".to_string()),
-            Err(e) => Err(format!("Failed to rollback migration: {}", e)),
-        }
-    }
-    #[cfg(not(debug_assertions))]
-    {
-        Err("Migration rollback is only available in debug builds".to_string())
+async fn export_data_to_file(file_path: String) -> Result<BackupMetadata, String> {
+    let db = get_database()
+        .await
+        .map_err(|e| format!("Database error: {}", e))?;
+    
+    let backup_service = BackupService::new(db);
+    
+    match backup_service.export_data(&file_path).await {
+        Ok(metadata) => Ok(metadata),
+        Err(e) => Err(format!("Failed to export data: {}", e)),
     }
 }
 
 #[tauri::command]
-async fn reset_migrations_cmd() -> Result<String, String> {
-    #[cfg(debug_assertions)]
-    {
-        match reset_migrations().await {
-            Ok(_) => Ok("All migrations reset successfully".to_string()),
-            Err(e) => Err(format!("Failed to reset migrations: {}", e)),
-        }
+async fn import_data_from_file(file_path: String, overwrite: bool) -> Result<BackupMetadata, String> {
+    let db = get_database()
+        .await
+        .map_err(|e| format!("Database error: {}", e))?;
+    
+    let backup_service = BackupService::new(db);
+    
+    match backup_service.import_data(&file_path, overwrite).await {
+        Ok(metadata) => Ok(metadata),
+        Err(e) => Err(format!("Failed to import data: {}", e)),
     }
-    #[cfg(not(debug_assertions))]
-    {
-        Err("Migration reset is only available in debug builds".to_string())
+}
+
+#[tauri::command]
+async fn validate_backup_file(file_path: String) -> Result<BackupMetadata, String> {
+    let db = get_database()
+        .await
+        .map_err(|e| format!("Database error: {}", e))?;
+    
+    let backup_service = BackupService::new(db);
+    
+    match backup_service.validate_backup(&file_path).await {
+        Ok(metadata) => Ok(metadata),
+        Err(e) => Err(format!("Failed to validate backup: {}", e)),
+    }
+}
+
+#[tauri::command]
+async fn validate_backup_comprehensive(file_path: String) -> Result<backup::BackupValidationResult, String> {
+    let db = get_database()
+        .await
+        .map_err(|e| format!("Database error: {}", e))?;
+    
+    let backup_service = BackupService::new(db);
+    
+    match backup_service.validate_backup_comprehensive(&file_path).await {
+        Ok(result) => Ok(result),
+        Err(e) => Err(format!("Failed to validate backup: {}", e)),
     }
 }
 
@@ -788,6 +822,7 @@ pub fn run() {
         .plugin(tauri_plugin_sql::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_dialog::init())
         .setup(|_app| {
             // Initialize database on app startup
             tauri::async_runtime::spawn(async move {
@@ -803,8 +838,6 @@ pub fn run() {
             get_database_health,
             get_migration_status_cmd,
             test_migration_compatibility_cmd,
-            rollback_last_migration_cmd,
-            reset_migrations_cmd,
             // Task Management Commands
             create_task,
             get_task,
@@ -848,7 +881,12 @@ pub fn run() {
             get_recent_ai_interactions,
             clear_old_ai_interactions,
             get_conversation_history,
-            clear_all_data
+            clear_all_data,
+            // Backup & Restore Commands
+            export_data_to_file,
+            import_data_from_file,
+            validate_backup_file,
+            validate_backup_comprehensive
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

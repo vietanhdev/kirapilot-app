@@ -367,4 +367,28 @@ impl TimeTrackingRepository {
             .await?;
         Ok(result.rows_affected)
     }
+
+    /// Get all time sessions for backup
+    pub async fn get_all_sessions(&self) -> Result<Vec<time_sessions::Model>, DbErr> {
+        time_sessions::Entity::find()
+            .all(&*self.db)
+            .await
+    }
+
+    /// Import a time session from backup data
+    pub async fn import_session(&self, session: time_sessions::Model) -> Result<time_sessions::Model, DbErr> {
+        let active_session = time_sessions::ActiveModel {
+            id: Set(session.id),
+            task_id: Set(session.task_id),
+            start_time: Set(session.start_time),
+            end_time: Set(session.end_time),
+            paused_time: Set(session.paused_time),
+            is_active: Set(session.is_active),
+            notes: Set(session.notes),
+            breaks: Set(session.breaks),
+            created_at: Set(session.created_at),
+        };
+
+        active_session.insert(&*self.db).await
+    }
 }
