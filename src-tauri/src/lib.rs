@@ -92,18 +92,18 @@ async fn get_all_tasks(
 
 #[tauri::command]
 async fn get_scheduled_tasks(
-    startDate: String,
-    endDate: String,
+    start_date: String,
+    end_date: String,
 ) -> Result<Vec<serde_json::Value>, String> {
     let db = get_database()
         .await
         .map_err(|e| format!("Database error: {}", e))?;
     let repo = TaskRepository::new(db);
 
-    let start = chrono::DateTime::parse_from_rfc3339(&startDate)
+    let start = chrono::DateTime::parse_from_rfc3339(&start_date)
         .map_err(|e| format!("Invalid start date: {}", e))?
         .with_timezone(&chrono::Utc);
-    let end = chrono::DateTime::parse_from_rfc3339(&endDate)
+    let end = chrono::DateTime::parse_from_rfc3339(&end_date)
         .map_err(|e| format!("Invalid end date: {}", e))?
         .with_timezone(&chrono::Utc);
 
@@ -307,13 +307,13 @@ async fn get_any_active_session() -> Result<Option<serde_json::Value>, String> {
 }
 
 #[tauri::command]
-async fn get_task_sessions(taskId: String) -> Result<Vec<serde_json::Value>, String> {
+async fn get_task_sessions(task_id: String) -> Result<Vec<serde_json::Value>, String> {
     let db = get_database()
         .await
         .map_err(|e| format!("Database error: {}", e))?;
     let repo = TimeTrackingRepository::new(db);
 
-    match repo.find_sessions_for_task(&taskId).await {
+    match repo.find_sessions_for_task(&task_id).await {
         Ok(sessions) => Ok(sessions
             .into_iter()
             .map(|s| serde_json::to_value(s).unwrap_or_default())
@@ -324,18 +324,18 @@ async fn get_task_sessions(taskId: String) -> Result<Vec<serde_json::Value>, Str
 
 #[tauri::command]
 async fn get_sessions_between(
-    startDate: String,
-    endDate: String,
+    start_date: String,
+    end_date: String,
 ) -> Result<Vec<serde_json::Value>, String> {
     let db = get_database()
         .await
         .map_err(|e| format!("Database error: {}", e))?;
     let repo = TimeTrackingRepository::new(db);
 
-    let start = chrono::DateTime::parse_from_rfc3339(&startDate)
+    let start = chrono::DateTime::parse_from_rfc3339(&start_date)
         .map_err(|e| format!("Invalid start date: {}", e))?
         .with_timezone(&chrono::Utc);
-    let end = chrono::DateTime::parse_from_rfc3339(&endDate)
+    let end = chrono::DateTime::parse_from_rfc3339(&end_date)
         .map_err(|e| format!("Invalid end date: {}", e))?
         .with_timezone(&chrono::Utc);
 
@@ -417,16 +417,16 @@ async fn delete_time_session(id: String) -> Result<String, String> {
 }
 
 #[tauri::command]
-async fn get_time_stats(startDate: String, endDate: String) -> Result<TimeStats, String> {
+async fn get_time_stats(start_date: String, end_date: String) -> Result<TimeStats, String> {
     let db = get_database()
         .await
         .map_err(|e| format!("Database error: {}", e))?;
     let repo = TimeTrackingRepository::new(db);
 
-    let start = chrono::DateTime::parse_from_rfc3339(&startDate)
+    let start = chrono::DateTime::parse_from_rfc3339(&start_date)
         .map_err(|e| format!("Invalid start date: {}", e))?
         .with_timezone(&chrono::Utc);
-    let end = chrono::DateTime::parse_from_rfc3339(&endDate)
+    let end = chrono::DateTime::parse_from_rfc3339(&end_date)
         .map_err(|e| format!("Invalid end date: {}", e))?
         .with_timezone(&chrono::Utc);
 
@@ -467,18 +467,18 @@ async fn get_recent_sessions(limit: u64) -> Result<Vec<serde_json::Value>, Strin
 
 #[tauri::command]
 async fn get_sessions_with_tasks(
-    startDate: String,
-    endDate: String,
+    start_date: String,
+    end_date: String,
 ) -> Result<Vec<serde_json::Value>, String> {
     let db = get_database()
         .await
         .map_err(|e| format!("Database error: {}", e))?;
     let repo = TimeTrackingRepository::new(db);
 
-    let start = chrono::DateTime::parse_from_rfc3339(&startDate)
+    let start = chrono::DateTime::parse_from_rfc3339(&start_date)
         .map_err(|e| format!("Invalid start date: {}", e))?
         .with_timezone(&chrono::Utc);
-    let end = chrono::DateTime::parse_from_rfc3339(&endDate)
+    let end = chrono::DateTime::parse_from_rfc3339(&end_date)
         .map_err(|e| format!("Invalid end date: {}", e))?
         .with_timezone(&chrono::Utc);
 
@@ -549,18 +549,18 @@ async fn get_all_ai_interactions(
 
 #[tauri::command]
 async fn get_ai_interactions_between(
-    startDate: String,
-    endDate: String,
+    start_date: String,
+    end_date: String,
 ) -> Result<Vec<serde_json::Value>, String> {
     let db = get_database()
         .await
         .map_err(|e| format!("Database error: {}", e))?;
     let repo = AiRepository::new(db);
 
-    let start = chrono::DateTime::parse_from_rfc3339(&startDate)
+    let start = chrono::DateTime::parse_from_rfc3339(&start_date)
         .map_err(|e| format!("Invalid start date: {}", e))?
         .with_timezone(&chrono::Utc);
-    let end = chrono::DateTime::parse_from_rfc3339(&endDate)
+    let end = chrono::DateTime::parse_from_rfc3339(&end_date)
         .map_err(|e| format!("Invalid end date: {}", e))?
         .with_timezone(&chrono::Utc);
 

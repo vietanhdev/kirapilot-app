@@ -102,6 +102,7 @@ pub async fn rollback_last_migration(db: &DatabaseConnection) -> Result<(), DbEr
 }
 
 /// Rollback multiple migrations (for development/testing)
+#[allow(dead_code)]
 pub async fn rollback_migrations(db: &DatabaseConnection, steps: u32) -> Result<(), DbErr> {
     println!("Rolling back {} migrations...", steps);
 
@@ -126,6 +127,7 @@ pub async fn rollback_migrations(db: &DatabaseConnection, steps: u32) -> Result<
 }
 
 /// Reset all migrations (for development/testing)
+#[allow(dead_code)]
 pub async fn reset_migrations(db: &DatabaseConnection) -> Result<(), DbErr> {
     println!("Resetting all migrations...");
 

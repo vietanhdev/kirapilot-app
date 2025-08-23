@@ -58,10 +58,12 @@ pub struct PatternStats {
 }
 
 /// Pattern repository for SeaORM-based database operations
+#[allow(dead_code)]
 pub struct PatternRepository {
     db: Arc<DatabaseConnection>,
 }
 
+#[allow(dead_code)]
 impl PatternRepository {
     pub fn new(db: Arc<DatabaseConnection>) -> Self {
         Self { db }

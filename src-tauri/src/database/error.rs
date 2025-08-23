@@ -51,6 +51,7 @@ impl From<DbErr> for DatabaseError {
 }
 
 /// Result type alias for database operations
+#[allow(dead_code)]
 pub type DatabaseResult<T> = Result<T, DatabaseError>;
 
 /// Convert DatabaseError to a string for Tauri commands

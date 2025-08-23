@@ -51,6 +51,7 @@ pub async fn get_database() -> Result<Arc<DatabaseConnection>, DbErr> {
 }
 
 /// Close the database connection (for cleanup)
+#[allow(dead_code)]
 pub async fn close_database() -> Result<(), DbErr> {
     // Note: SeaORM connections are automatically closed when dropped
     // This is a placeholder for future cleanup logic if needed
@@ -91,12 +92,14 @@ pub async fn test_migration_compatibility() -> Result<MigrationTestResult, DbErr
 }
 
 /// Rollback last migration (for development/testing)
+#[allow(dead_code)]
 pub async fn rollback_last_migration() -> Result<(), DbErr> {
     let db = get_database().await?;
     migration::rollback_last_migration(&*db).await
 }
 
 /// Reset all migrations (for development/testing)
+#[allow(dead_code)]
 pub async fn reset_migrations() -> Result<(), DbErr> {
     let db = get_database().await?;
     migration::reset_migrations(&*db).await

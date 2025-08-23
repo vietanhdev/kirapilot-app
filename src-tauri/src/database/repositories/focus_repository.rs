@@ -74,10 +74,12 @@ pub struct DayFocusStats {
 }
 
 /// Focus repository for SeaORM-based database operations
+#[allow(dead_code)]
 pub struct FocusRepository {
     db: Arc<DatabaseConnection>,
 }
 
+#[allow(dead_code)]
 impl FocusRepository {
     pub fn new(db: Arc<DatabaseConnection>) -> Self {
         Self { db }

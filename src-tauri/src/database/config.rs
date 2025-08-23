@@ -34,6 +34,7 @@ impl DatabaseConfig {
     }
 
     /// Set the database URL
+    #[allow(dead_code)]
     pub fn with_database_url(mut self, url: String) -> Self {
         self.database_url = url;
         self
@@ -73,6 +74,7 @@ impl DatabaseConfig {
 }
 
 /// Create a database connection with default configuration
+#[allow(dead_code)]
 pub async fn create_connection() -> Result<DatabaseConnection, DbErr> {
     DatabaseConfig::default().connect().await
 }
