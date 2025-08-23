@@ -1,4 +1,13 @@
 // Tool execution engine with permission system
+import { TranslationKey } from '../../i18n';
+
+/**
+ * Translation function type for the tool execution engine
+ */
+export type TranslationFunction = (
+  key: TranslationKey,
+  variables?: Record<string, string | number>
+) => string;
 
 /**
  * Permission levels for tool execution
@@ -52,10 +61,12 @@ export class ToolExecutionEngine {
   private permissions: PermissionLevel[] = [PermissionLevel.READ_ONLY];
   private preferences: ToolExecutionPreferences;
   private toolPermissions: Map<string, ToolPermission> = new Map();
+  private t: TranslationFunction;
 
   constructor(
     permissions: PermissionLevel[] = [PermissionLevel.READ_ONLY],
-    preferences?: Partial<ToolExecutionPreferences>
+    preferences?: Partial<ToolExecutionPreferences>,
+    translationFunction?: TranslationFunction
   ) {
     this.permissions = permissions;
     this.preferences = {
@@ -64,6 +75,9 @@ export class ToolExecutionEngine {
       confirmationTimeout: 30,
       ...preferences,
     };
+
+    // Default translation function that returns the key if no translation function is provided
+    this.t = translationFunction || ((key: TranslationKey) => key);
 
     this.initializeToolPermissions();
   }
@@ -77,43 +91,55 @@ export class ToolExecutionEngine {
         toolName: 'get_tasks',
         requiredPermissions: [PermissionLevel.READ_ONLY],
         requiresConfirmation: false,
-        description: 'Retrieve and search tasks',
+        description: this.t('ai.tools.get_tasks.description' as TranslationKey),
       },
       {
         toolName: 'get_time_data',
         requiredPermissions: [PermissionLevel.READ_ONLY],
         requiresConfirmation: false,
-        description: 'View time tracking data and statistics',
+        description: this.t(
+          'ai.tools.get_time_data.description' as TranslationKey
+        ),
       },
       {
         toolName: 'analyze_productivity',
         requiredPermissions: [PermissionLevel.READ_ONLY],
         requiresConfirmation: false,
-        description: 'Generate productivity insights and recommendations',
+        description: this.t(
+          'ai.tools.analyze_productivity.description' as TranslationKey
+        ),
       },
       {
         toolName: 'create_task',
         requiredPermissions: [PermissionLevel.MODIFY_TASKS],
         requiresConfirmation: true,
-        description: 'Create new tasks in the system',
+        description: this.t(
+          'ai.tools.create_task.description' as TranslationKey
+        ),
       },
       {
         toolName: 'update_task',
         requiredPermissions: [PermissionLevel.MODIFY_TASKS],
         requiresConfirmation: true,
-        description: 'Modify existing tasks',
+        description: this.t(
+          'ai.tools.update_task.description' as TranslationKey
+        ),
       },
       {
         toolName: 'start_timer',
         requiredPermissions: [PermissionLevel.TIMER_CONTROL],
         requiresConfirmation: false,
-        description: 'Start time tracking for tasks',
+        description: this.t(
+          'ai.tools.start_timer.description' as TranslationKey
+        ),
       },
       {
         toolName: 'stop_timer',
         requiredPermissions: [PermissionLevel.TIMER_CONTROL],
         requiresConfirmation: false,
-        description: 'Stop current time tracking session',
+        description: this.t(
+          'ai.tools.stop_timer.description' as TranslationKey
+        ),
       },
     ];
 
@@ -180,8 +206,11 @@ export class ToolExecutionEngine {
     } catch {
       return {
         success: false,
-        error: 'Failed to parse tool result',
-        userMessage: `❌ Error executing ${toolName}: Invalid response format`,
+        error: this.t('ai.error.invalidResponse' as TranslationKey),
+        userMessage: `❌ ${this.t('ai.error.toolFailed' as TranslationKey, {
+          toolName: this.getToolDisplayName(toolName),
+          error: this.t('ai.error.invalidResponse' as TranslationKey),
+        })}`,
         metadata: {
           executionTime,
           toolName,
@@ -199,7 +228,10 @@ export class ToolExecutionEngine {
     result: Record<string, unknown>
   ): string {
     if (!result.success) {
-      return `❌ ${this.getToolDisplayName(toolName)} failed: ${result.error || 'Unknown error'}`;
+      return `❌ ${this.t('ai.error.toolFailed' as TranslationKey, {
+        toolName: this.getToolDisplayName(toolName),
+        error: (result.error as string) || 'Unknown error',
+      })}`;
     }
 
     switch (toolName) {
@@ -218,7 +250,9 @@ export class ToolExecutionEngine {
       case 'analyze_productivity':
         return this.formatProductivityMessage(result);
       default:
-        return `✅ ${this.getToolDisplayName(toolName)} completed successfully`;
+        return `✅ ${this.t('ai.success.toolExecuted' as TranslationKey, {
+          toolName: this.getToolDisplayName(toolName),
+        })}`;
     }
   }
 
@@ -228,13 +262,14 @@ export class ToolExecutionEngine {
   private formatTaskListMessage(result: Record<string, unknown>): string {
     const tasks = result.tasks as Record<string, unknown>[] | undefined;
     if (!tasks || tasks.length === 0) {
-      return '📝 No tasks found matching your criteria';
+      return `📝 ${this.t('ai.taskList.noTasks' as TranslationKey)}`;
     }
 
     const count = tasks.length;
     const preview = tasks.slice(0, 3);
+    const plural = count === 1 ? '' : 's';
 
-    let message = `📝 Found ${count} task${count === 1 ? '' : 's'}:\n\n`;
+    let message = `📝 ${this.t('ai.taskList.foundTasks' as TranslationKey, { count, plural })}\n\n`;
 
     preview.forEach((task: Record<string, unknown>, index: number) => {
       const priority = this.formatPriority(task.priority as number);
@@ -243,16 +278,18 @@ export class ToolExecutionEngine {
 
       if (task.dueDate) {
         const dueDate = new Date(task.dueDate as string).toLocaleDateString();
-        message += `   📅 Due: ${dueDate}\n`;
+        message += `   📅 ${this.t('ai.taskList.dueDate' as TranslationKey, { date: dueDate })}\n`;
       }
 
       if (task.timeEstimate) {
-        message += `   ⏱️ Estimated: ${task.timeEstimate} minutes\n`;
+        message += `   ⏱️ ${this.t('ai.taskList.timeEstimate' as TranslationKey, { minutes: task.timeEstimate as number })}\n`;
       }
     });
 
     if (count > 3) {
-      message += `\n...and ${count - 3} more task${count - 3 === 1 ? '' : 's'}`;
+      const remainingCount = count - 3;
+      const remainingPlural = remainingCount === 1 ? '' : 's';
+      message += `\n${this.t('ai.taskList.andMore' as TranslationKey, { count: remainingCount, plural: remainingPlural })}`;
     }
 
     return message;
@@ -264,7 +301,7 @@ export class ToolExecutionEngine {
   private formatTaskCreatedMessage(result: Record<string, unknown>): string {
     const task = result.task as Record<string, unknown>;
     const priority = this.formatPriority(task.priority as number);
-    return `✅ Created task: **${task.title}** (${priority} priority)`;
+    return `✅ ${this.t('ai.tools.create_task.success' as TranslationKey, { title: `**${task.title}** (${priority} priority)` })}`;
   }
 
   /**
@@ -272,14 +309,14 @@ export class ToolExecutionEngine {
    */
   private formatTaskUpdatedMessage(result: Record<string, unknown>): string {
     const task = result.task as Record<string, unknown>;
-    return `✅ Updated task: **${task.title}**`;
+    return `✅ ${this.t('ai.tools.update_task.success' as TranslationKey, { title: `**${task.title}**` })}`;
   }
 
   /**
    * Format timer started message
    */
   private formatTimerStartedMessage(_result: Record<string, unknown>): string {
-    return `⏱️ Timer started! Now tracking time for your task.`;
+    return `⏱️ ${this.t('ai.timer.started' as TranslationKey)}`;
   }
 
   /**
@@ -288,7 +325,8 @@ export class ToolExecutionEngine {
   private formatTimerStoppedMessage(result: Record<string, unknown>): string {
     const session = result.session as Record<string, unknown>;
     const duration = Math.round((session.duration as number) / (1000 * 60));
-    return `⏹️ Timer stopped! You worked for ${duration} minute${duration === 1 ? '' : 's'}.`;
+    const plural = duration === 1 ? '' : 's';
+    return `⏹️ ${this.t('ai.timer.stopped' as TranslationKey, { duration, plural })}`;
   }
 
   /**
@@ -303,10 +341,10 @@ export class ToolExecutionEngine {
     );
 
     return (
-      `📊 Time Summary:\n` +
-      `• Sessions: ${timeData.totalSessions}\n` +
-      `• Total time: ${totalHours} hours\n` +
-      `• Average session: ${avgMinutes} minutes`
+      `📊 ${this.t('ai.timeData.summary' as TranslationKey)}\n` +
+      `• ${this.t('ai.timeData.sessions' as TranslationKey, { count: timeData.totalSessions as number })}\n` +
+      `• ${this.t('ai.timeData.totalTime' as TranslationKey, { hours: totalHours })}\n` +
+      `• ${this.t('ai.timeData.averageSession' as TranslationKey, { minutes: avgMinutes })}`
     );
   }
 
@@ -321,18 +359,28 @@ export class ToolExecutionEngine {
       string,
       unknown
     >;
-    let message = `📈 Productivity Analysis:\n\n`;
-    message += `🎯 **Key Insights:**\n`;
-    message += `• Most productive: ${mostProductiveTime.start}-${mostProductiveTime.end}\n`;
-    message += `• Completion rate: ${Math.round((insights.completionRate as number) * 100)}%\n`;
-    message += `• Focus efficiency: ${Math.round((insights.focusEfficiency as number) * 100)}%\n\n`;
+    let message = `📈 ${this.t('ai.productivity.analysis' as TranslationKey)}\n\n`;
+    message += `🎯 **${this.t('ai.productivity.keyInsights' as TranslationKey)}**\n`;
+    message += `• ${this.t('ai.productivity.mostProductive' as TranslationKey, {
+      start: mostProductiveTime.start as string,
+      end: mostProductiveTime.end as string,
+    })}\n`;
+    message += `• ${this.t('ai.productivity.completionRate' as TranslationKey, {
+      rate: Math.round((insights.completionRate as number) * 100),
+    })}\n`;
+    message += `• ${this.t(
+      'ai.productivity.focusEfficiency' as TranslationKey,
+      {
+        efficiency: Math.round((insights.focusEfficiency as number) * 100),
+      }
+    )}\n\n`;
 
     if (
       analysis.recommendations &&
       Array.isArray(analysis.recommendations) &&
       analysis.recommendations.length > 0
     ) {
-      message += `💡 **Recommendations:**\n`;
+      message += `💡 **${this.t('ai.productivity.recommendations' as TranslationKey)}**\n`;
       (analysis.recommendations as string[])
         .slice(0, 3)
         .forEach((rec: string, index: number) => {
@@ -362,17 +410,15 @@ export class ToolExecutionEngine {
    * Get display name for tool
    */
   private getToolDisplayName(toolName: string): string {
-    const displayNames: Record<string, string> = {
-      get_tasks: 'Task Search',
-      create_task: 'Task Creation',
-      update_task: 'Task Update',
-      start_timer: 'Timer Start',
-      stop_timer: 'Timer Stop',
-      get_time_data: 'Time Analysis',
-      analyze_productivity: 'Productivity Analysis',
-    };
+    const displayNameKey = `ai.tools.displayName.${toolName}` as TranslationKey;
+    const displayName = this.t(displayNameKey);
 
-    return displayNames[toolName] || toolName.replace('_', ' ');
+    // If translation returns the key (meaning no translation found), use fallback
+    if (displayName === displayNameKey) {
+      return toolName.replace('_', ' ');
+    }
+
+    return displayName;
   }
 
   /**
@@ -388,6 +434,15 @@ export class ToolExecutionEngine {
    */
   updatePreferences(preferences: Partial<ToolExecutionPreferences>): void {
     this.preferences = { ...this.preferences, ...preferences };
+  }
+
+  /**
+   * Update translation function
+   */
+  setTranslationFunction(translationFunction: TranslationFunction): void {
+    this.t = translationFunction;
+    // Reinitialize tool permissions with new translations
+    this.initializeToolPermissions();
   }
 
   /**
@@ -421,7 +476,7 @@ export class ToolExecutionEngine {
     if (!this.toolPermissions.has(toolName)) {
       return {
         allowed: false,
-        reason: `Unknown tool: ${toolName}`,
+        reason: this.t('ai.error.unknownTool' as TranslationKey, { toolName }),
         requiresConfirmation: false,
       };
     }
@@ -431,7 +486,9 @@ export class ToolExecutionEngine {
       const toolConfig = this.toolPermissions.get(toolName)!;
       return {
         allowed: false,
-        reason: `Insufficient permissions. Required: ${toolConfig.requiredPermissions.join(', ')}`,
+        reason: this.t('ai.error.insufficientPermissions' as TranslationKey, {
+          permissions: toolConfig.requiredPermissions.join(', '),
+        }),
         requiresConfirmation: false,
       };
     }
@@ -467,8 +524,13 @@ export function getToolExecutionEngine(): ToolExecutionEngine {
  */
 export function initializeToolExecutionEngine(
   permissions: PermissionLevel[],
-  preferences?: Partial<ToolExecutionPreferences>
+  preferences?: Partial<ToolExecutionPreferences>,
+  translationFunction?: TranslationFunction
 ): ToolExecutionEngine {
-  defaultEngine = new ToolExecutionEngine(permissions, preferences);
+  defaultEngine = new ToolExecutionEngine(
+    permissions,
+    preferences,
+    translationFunction
+  );
   return defaultEngine;
 }

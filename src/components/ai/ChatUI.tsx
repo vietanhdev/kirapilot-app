@@ -20,6 +20,7 @@ import { AppContext, Priority } from '../../types';
 import { MarkdownRenderer, MessageSkeleton } from '../common';
 import { MessageActions, CollapsibleConversation } from './';
 import { useAutoScroll } from '../../hooks/useAutoScroll';
+import { useTranslation } from '../../hooks/useTranslation';
 
 interface ChatUIProps {
   isOpen: boolean;
@@ -31,6 +32,7 @@ export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
   const [message, setMessage] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
   const { scrollRef, isAutoScrollPaused, resumeAutoScroll } = useAutoScroll();
+  const { t } = useTranslation();
 
   const {
     isInitialized,
@@ -169,10 +171,12 @@ export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
               />
               <div className='flex-1'>
                 <h3 className='font-semibold text-sm text-foreground'>
-                  Kira AI
+                  {t('ai.title')}
                 </h3>
                 <p className='text-xs text-foreground-600'>
-                  {isInitialized ? 'Ready to help' : 'Setup required'}
+                  {isInitialized
+                    ? t('ai.status.ready')
+                    : t('ai.status.setupRequired')}
                 </p>
               </div>
             </div>
@@ -221,7 +225,7 @@ export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
                   startContent={<Play className='w-3 h-3' />}
                   onPress={resumeAutoScroll}
                 >
-                  Resume auto-scroll
+                  {t('ai.button.resumeAutoScroll')}
                 </Button>
               </div>
             )}
@@ -229,15 +233,15 @@ export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
             {!isInitialized && (
               <div className='text-center text-foreground-600 text-sm'>
                 <Bot className='w-8 h-8 mx-auto mb-2 text-foreground-500' />
-                <p>Welcome to Kira AI!</p>
-                <p className='mt-1'>Setup your API key to get started.</p>
+                <p>{t('ai.welcome.title')}</p>
+                <p className='mt-1'>{t('ai.welcome.description')}</p>
                 <Button
                   size='sm'
                   color='primary'
                   className='mt-2'
                   onPress={handleOpenSettings}
                 >
-                  Open Settings
+                  {t('ai.button.openSettings')}
                 </Button>
               </div>
             )}
@@ -290,7 +294,7 @@ export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
                                 <div className='flex items-center gap-1 mb-1'>
                                   <Bot className='w-3 h-3 text-primary-500' />
                                   <span className='font-medium text-primary-700 dark:text-primary-300'>
-                                    Reasoning
+                                    {t('ai.status.reasoning')}
                                   </span>
                                 </div>
                                 <MarkdownRenderer
@@ -312,14 +316,15 @@ export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
                                       <div className='flex items-center gap-1 mb-1'>
                                         <Check className='w-3 h-3 text-success-500' />
                                         <span className='font-medium text-success-700 dark:text-success-300'>
-                                          Action:{' '}
+                                          {t('ai.status.action')}:{' '}
                                           {action.type
                                             .replace('_', ' ')
                                             .toLowerCase()}
                                         </span>
                                         {action.confidence && (
                                           <span className='text-success-600 dark:text-success-200 ml-auto'>
-                                            {action.confidence}% confidence
+                                            {action.confidence}%{' '}
+                                            {t('ai.status.confidence')}
                                           </span>
                                         )}
                                       </div>
@@ -369,7 +374,10 @@ export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
                     .map((group, groupIndex) => (
                       <CollapsibleConversation
                         key={`group-${groupIndex}`}
-                        title={`Conversation ${groupIndex + 1} (${group.length} messages)`}
+                        title={t('ai.conversation.title', {
+                          number: groupIndex + 1,
+                          count: group.length,
+                        })}
                         defaultExpanded={false}
                         className='mb-4'
                       >
@@ -482,7 +490,7 @@ export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
                                   <div className='flex items-center gap-1 mb-1'>
                                     <Bot className='w-3 h-3 text-primary-500' />
                                     <span className='font-medium text-primary-700 dark:text-primary-300'>
-                                      Reasoning
+                                      {t('ai.status.reasoning')}
                                     </span>
                                   </div>
                                   <MarkdownRenderer
@@ -505,14 +513,15 @@ export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
                                           <div className='flex items-center gap-1 mb-1'>
                                             <Check className='w-3 h-3 text-success-500' />
                                             <span className='font-medium text-success-700 dark:text-success-300'>
-                                              Action:{' '}
+                                              {t('ai.status.action')}:{' '}
                                               {action.type
                                                 .replace('_', ' ')
                                                 .toLowerCase()}
                                             </span>
                                             {action.confidence && (
                                               <span className='text-success-600 dark:text-success-200 ml-auto'>
-                                                {action.confidence}% confidence
+                                                {action.confidence}%{' '}
+                                                {t('ai.status.confidence')}
                                               </span>
                                             )}
                                           </div>
@@ -564,7 +573,7 @@ export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
               <div className='flex items-center gap-2 mb-2'>
                 <Lightbulb className='w-4 h-4 text-yellow-500' />
                 <span className='text-xs font-medium text-foreground-600'>
-                  Suggestions
+                  {t('ai.suggestions.title')}
                 </span>
               </div>
               <div className='space-y-2 max-h-24 overflow-y-auto'>
@@ -612,7 +621,7 @@ export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
             <div className='flex gap-2'>
               <Input
                 ref={inputRef}
-                placeholder='Ask Kira anything...'
+                placeholder={t('ai.placeholder')}
                 value={message}
                 onChange={e => setMessage(e.target.value)}
                 onKeyDown={handleKeyDown}

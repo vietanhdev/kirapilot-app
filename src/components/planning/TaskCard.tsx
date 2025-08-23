@@ -229,7 +229,7 @@ export function TaskCard({
           <div className='space-y-2'>
             <div className='flex items-center justify-between'>
               <h4 className='text-xs font-semibold text-slate-900 dark:text-slate-100'>
-                Notes
+                {t('tasks.notes')}
               </h4>
               <div className='flex space-x-1'>
                 <button
@@ -258,7 +258,7 @@ export function TaskCard({
               onMouseDown={e => e.stopPropagation()}
               onPointerDown={e => e.stopPropagation()}
               className='w-full h-20 px-2 py-1.5 text-xs border border-slate-200 dark:border-slate-700 rounded bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 resize-none placeholder-slate-400 dark:placeholder-slate-500 transition-all duration-200'
-              placeholder='Add notes for this task...'
+              placeholder={t('tasks.addNotesPlaceholder')}
               autoFocus
             />
           </div>
@@ -284,10 +284,10 @@ export function TaskCard({
                 }`}
                 title={
                   isStatusChangePending
-                    ? 'Updating status...'
+                    ? t('tasks.updatingStatus')
                     : isCompleted
-                      ? 'Click to mark incomplete'
-                      : 'Click to mark complete'
+                      ? t('tasks.markIncomplete')
+                      : t('tasks.markComplete')
                 }
               >
                 {isCompleted ? (
@@ -318,8 +318,8 @@ export function TaskCard({
                       className='shrink-0 ml-2 p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-all duration-200'
                       title={
                         isExpanded
-                          ? 'Collapse description'
-                          : 'Expand description'
+                          ? t('tasks.collapseDescription')
+                          : t('tasks.expandDescription')
                       }
                     >
                       {isExpanded ? (
@@ -394,12 +394,12 @@ export function TaskCard({
                     `}
                     title={
                       isTimerOperationPending
-                        ? 'Processing...'
+                        ? t('timer.processing')
                         : isTimerActive && isTimerRunning
-                          ? 'Pause timer'
+                          ? t('timer.pauseTimer')
                           : isTimerActive && !isTimerRunning
-                            ? 'Resume timer'
-                            : 'Start timer for this task'
+                            ? t('timer.resumeTimer')
+                            : t('timer.startTimer')
                     }
                   >
                     {isTimerOperationPending ? (
@@ -419,7 +419,7 @@ export function TaskCard({
                     onMouseDown={e => e.stopPropagation()}
                     onPointerDown={e => e.stopPropagation()}
                     className='p-1.5 rounded bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 transition-all duration-200'
-                    title='Stop timer'
+                    title={t('timer.stopTimer')}
                   >
                     <Square className='w-3 h-3' />
                   </button>
@@ -441,8 +441,8 @@ export function TaskCard({
                       {elapsedTime > 0
                         ? formatElapsedTime(elapsedTime)
                         : isTimerRunning
-                          ? 'Recording'
-                          : 'Paused'}
+                          ? t('timer.recording')
+                          : t('timer.paused')}
                     </span>
                   </div>
                 )}
@@ -458,7 +458,9 @@ export function TaskCard({
                   className={`p-1.5 rounded transition-all duration-200 hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 ${
                     hasNotes ? 'bg-blue-50 dark:bg-blue-900/10' : ''
                   }`}
-                  title={hasNotes ? 'View/Edit notes' : 'Add notes'}
+                  title={
+                    hasNotes ? t('tasks.viewEditNotes') : t('tasks.addNotes')
+                  }
                 >
                   <FileText className='w-3 h-3' />
                 </button>
@@ -475,8 +477,10 @@ export function TaskCard({
                   }`}
                   title={
                     task.actualTime > 0
-                      ? `Session logs (${task.actualTime}min total)`
-                      : 'Session logs'
+                      ? t('tasks.sessionLogsWithTime', {
+                          time: task.actualTime,
+                        })
+                      : t('tasks.sessionLogs')
                   }
                 >
                   <History className='w-3 h-3' />
@@ -536,10 +540,10 @@ export function TaskCard({
         isOpen={isDeleteDialogOpen}
         onClose={() => setIsDeleteDialogOpen(false)}
         onConfirm={handleConfirmDelete}
-        title='Delete Task'
-        message={`Are you sure you want to delete "${task.title}"? This action cannot be undone.`}
-        confirmText='Delete'
-        cancelText='Cancel'
+        title={t('tasks.deleteConfirmTitle')}
+        message={t('tasks.deleteConfirmMessage', { title: task.title })}
+        confirmText={t('tasks.deleteConfirmButton')}
+        cancelText={t('tasks.cancelButton')}
         variant='danger'
       />
     </div>

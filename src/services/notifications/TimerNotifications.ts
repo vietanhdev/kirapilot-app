@@ -1,5 +1,14 @@
 // Timer notification service for break reminders and session alerts
 import { TimerSession } from '../../types';
+import { TranslationKey } from '../../i18n';
+
+/**
+ * Translation function type for notifications
+ */
+export type NotificationTranslationFunction = (
+  key: TranslationKey,
+  variables?: Record<string, string | number>
+) => string;
 
 export interface NotificationOptions {
   title: string;
@@ -14,9 +23,12 @@ export class TimerNotifications {
   private permission: NotificationPermission = 'default';
   private activeNotifications: Map<string, Notification> = new Map();
   private breakReminders: Map<string, NodeJS.Timeout> = new Map();
+  private t: NotificationTranslationFunction;
 
   private constructor() {
     this.checkPermission();
+    // Default translation function that returns the key if no translation function is provided
+    this.t = (key: TranslationKey) => key;
   }
 
   static getInstance(): TimerNotifications {
@@ -27,11 +39,22 @@ export class TimerNotifications {
   }
 
   /**
+   * Set translation function for localized notifications
+   */
+  setTranslationFunction(
+    translationFunction: NotificationTranslationFunction
+  ): void {
+    this.t = translationFunction;
+  }
+
+  /**
    * Request notification permission
    */
   async requestPermission(): Promise<NotificationPermission> {
     if (!('Notification' in window)) {
-      console.warn('This browser does not support notifications');
+      console.warn(
+        this.t('notifications.browserNotSupported' as TranslationKey)
+      );
       return 'denied';
     }
 
@@ -74,9 +97,7 @@ export class TimerNotifications {
         return null; // Tauri notifications don't return Notification objects
       }
     } catch {
-      console.log(
-        'Tauri notifications not available, falling back to web notifications'
-      );
+      console.log(this.t('notifications.fallbackToWeb' as TranslationKey));
     }
 
     // Fallback to web notifications
@@ -120,7 +141,10 @@ export class TimerNotifications {
 
       return notification;
     } catch (error) {
-      console.error('Failed to show notification:', error);
+      console.error(
+        this.t('notifications.showFailed' as TranslationKey),
+        error
+      );
       return null;
     }
   }
@@ -133,8 +157,10 @@ export class TimerNotifications {
     taskTitle: string
   ): Promise<void> {
     await this.showNotification({
-      title: 'Timer Started',
-      body: `Working on: ${taskTitle}`,
+      title: this.t('notifications.timer.started' as TranslationKey),
+      body: this.t('notifications.timer.workingOn' as TranslationKey, {
+        taskTitle,
+      }),
       tag: 'session-start',
     });
   }
@@ -147,8 +173,10 @@ export class TimerNotifications {
     taskTitle: string
   ): Promise<void> {
     await this.showNotification({
-      title: 'Timer Paused',
-      body: `Paused work on: ${taskTitle}`,
+      title: this.t('notifications.timer.paused' as TranslationKey),
+      body: this.t('notifications.timer.pausedWork' as TranslationKey, {
+        taskTitle,
+      }),
       tag: 'session-pause',
     });
   }
@@ -161,8 +189,10 @@ export class TimerNotifications {
     taskTitle: string
   ): Promise<void> {
     await this.showNotification({
-      title: 'Timer Resumed',
-      body: `Resumed work on: ${taskTitle}`,
+      title: this.t('notifications.timer.resumed' as TranslationKey),
+      body: this.t('notifications.timer.resumedWork' as TranslationKey, {
+        taskTitle,
+      }),
       tag: 'session-resume',
     });
   }
@@ -178,8 +208,11 @@ export class TimerNotifications {
     const formattedDuration = this.formatDuration(duration);
 
     await this.showNotification({
-      title: 'Session Completed',
-      body: `Completed ${taskTitle} in ${formattedDuration}`,
+      title: this.t('notifications.session.completed' as TranslationKey),
+      body: this.t('notifications.session.completedTask' as TranslationKey, {
+        taskTitle,
+        duration: formattedDuration,
+      }),
       tag: 'session-complete',
       requireInteraction: true,
       icon: '/tauri.svg',
@@ -204,8 +237,11 @@ export class TimerNotifications {
 
     const reminderInterval = setInterval(async () => {
       await this.showNotification({
-        title: 'Break Reminder',
-        body: `You've been working on "${taskTitle}" for ${intervalMinutes} minutes. Consider taking a break!`,
+        title: this.t('notifications.break.reminder' as TranslationKey),
+        body: this.t('notifications.break.reminderMessage' as TranslationKey, {
+          taskTitle,
+          minutes: intervalMinutes,
+        }),
         tag: `break-reminder-${sessionId}`,
         requireInteraction: true,
         icon: '/tauri.svg',
@@ -240,8 +276,10 @@ export class TimerNotifications {
    */
   async notifyBreakTime(duration: number = 5): Promise<void> {
     await this.showNotification({
-      title: 'Break Time!',
-      body: `Take a ${duration} minute break to recharge`,
+      title: this.t('notifications.break.time' as TranslationKey),
+      body: this.t('notifications.break.takeBreak' as TranslationKey, {
+        duration,
+      }),
       tag: 'break-time',
       requireInteraction: true,
       icon: '/tauri.svg',
@@ -253,8 +291,8 @@ export class TimerNotifications {
    */
   async notifyBreakEnd(): Promise<void> {
     await this.showNotification({
-      title: 'Break Over',
-      body: 'Ready to get back to work?',
+      title: this.t('notifications.break.over' as TranslationKey),
+      body: this.t('notifications.break.readyToWork' as TranslationKey),
       tag: 'break-end',
       icon: '/tauri.svg',
     });
@@ -271,8 +309,12 @@ export class TimerNotifications {
     const formattedTime = this.formatDuration(totalTime);
 
     await this.showNotification({
-      title: 'Daily Summary',
-      body: `Today: ${formattedTime} across ${sessionsCount} sessions, ${tasksCompleted} tasks completed`,
+      title: this.t('notifications.daily.summary' as TranslationKey),
+      body: this.t('notifications.daily.summaryMessage' as TranslationKey, {
+        time: formattedTime,
+        sessions: sessionsCount,
+        tasks: tasksCompleted,
+      }),
       tag: 'daily-summary',
       requireInteraction: true,
       icon: '/tauri.svg',
@@ -287,7 +329,7 @@ export class TimerNotifications {
     achievement: string
   ): Promise<void> {
     await this.showNotification({
-      title: `🎉 ${milestone}`,
+      title: `🎉 ${this.t('notifications.productivity.milestone' as TranslationKey, { milestone })}`,
       body: achievement,
       tag: 'productivity-milestone',
       requireInteraction: true,

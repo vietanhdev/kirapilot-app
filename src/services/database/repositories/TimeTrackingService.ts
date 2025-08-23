@@ -1,6 +1,8 @@
 // Time tracking service that interfaces with Tauri commands (SeaORM backend)
 import { invoke } from '@tauri-apps/api/core';
 import { TimerSession, CompletedSession, TimerBreak } from '../../../types';
+import { getDatabaseErrorMessage } from '../index';
+import { TranslationKey } from '../../../i18n';
 
 export class TimeTrackingService {
   /**
@@ -20,7 +22,10 @@ export class TimeTrackingService {
       );
       return this.transformSessionFromBackend(result);
     } catch (error) {
-      throw new Error(`Failed to start session: ${error}`);
+      const errorMessage = getDatabaseErrorMessage(
+        'timeTracking.error.startFailed' as TranslationKey
+      );
+      throw new Error(`${errorMessage}: ${error}`);
     }
   }
 
@@ -66,7 +71,10 @@ export class TimeTrackingService {
 
       return this.transformSessionFromBackend(updatedResult);
     } catch (error) {
-      throw new Error(`Failed to create historical session: ${error}`);
+      const errorMessage = getDatabaseErrorMessage(
+        'timeTracking.error.createHistoricalFailed' as TranslationKey
+      );
+      throw new Error(`${errorMessage}: ${error}`);
     }
   }
 
@@ -154,7 +162,11 @@ export class TimeTrackingService {
       // Get current session
       const session = await this.findById(sessionId);
       if (!session) {
-        throw new Error(`Session with id ${sessionId} not found`);
+        const errorMessage = getDatabaseErrorMessage(
+          'database.error.sessionNotFound' as TranslationKey,
+          { sessionId }
+        );
+        throw new Error(errorMessage);
       }
 
       // Create new break
@@ -426,7 +438,10 @@ export class TimeTrackingService {
         console.log('Active session found:', activeSession.id);
       }
     } catch (error) {
-      console.warn('Failed to check session state:', error);
+      const errorMessage = getDatabaseErrorMessage(
+        'timeTracking.error.checkStateFailed' as TranslationKey
+      );
+      console.warn(errorMessage, error);
     }
   }
 

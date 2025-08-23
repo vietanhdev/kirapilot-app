@@ -344,9 +344,9 @@ export function WeekView({
                 <button
                   onClick={() => onWeekChange(new Date())}
                   className='px-2 py-1 text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-900/50 rounded transition-colors duration-200'
-                  title='Go to current week'
+                  title={t('planning.goToCurrentWeek')}
                 >
-                  This Week
+                  {t('planning.thisWeek')}
                 </button>
 
                 <button

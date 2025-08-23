@@ -3,6 +3,7 @@ import { Priority } from '../../types';
 import { getPriorityColor } from '../../utils';
 import { ChevronDown, Flag } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
+import { useTranslation } from '../../hooks/useTranslation';
 
 interface PrioritySelectorProps {
   value: Priority;
@@ -10,13 +11,6 @@ interface PrioritySelectorProps {
   disabled?: boolean;
   className?: string;
 }
-
-const priorityLabels = {
-  [Priority.LOW]: 'Low',
-  [Priority.MEDIUM]: 'Medium',
-  [Priority.HIGH]: 'High',
-  [Priority.URGENT]: 'Urgent',
-};
 
 const priorityIcons = {
   [Priority.LOW]: '🟢',
@@ -31,6 +25,14 @@ export function PrioritySelector({
   disabled = false,
   className = '',
 }: PrioritySelectorProps) {
+  const { t } = useTranslation();
+
+  const priorityLabels = {
+    [Priority.LOW]: t('common.prioritySelector.low'),
+    [Priority.MEDIUM]: t('common.prioritySelector.medium'),
+    [Priority.HIGH]: t('common.prioritySelector.high'),
+    [Priority.URGENT]: t('common.prioritySelector.urgent'),
+  };
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 

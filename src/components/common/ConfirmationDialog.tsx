@@ -7,6 +7,7 @@ import {
   Button,
 } from '@heroui/react';
 import { AlertTriangle } from 'lucide-react';
+import { useTranslation } from '../../hooks/useTranslation';
 
 interface ConfirmationDialogProps {
   isOpen: boolean;
@@ -26,11 +27,12 @@ export function ConfirmationDialog({
   onConfirm,
   title,
   message,
-  confirmText = 'Confirm',
-  cancelText = 'Cancel',
+  confirmText,
+  cancelText,
   variant = 'default',
   isLoading = false,
 }: ConfirmationDialogProps) {
+  const { t } = useTranslation();
   const handleConfirm = () => {
     onConfirm();
     onClose();
@@ -84,7 +86,7 @@ export function ConfirmationDialog({
             disabled={isLoading}
             className='font-medium'
           >
-            {cancelText}
+            {cancelText || t('common.confirmDialog.cancel')}
           </Button>
           <Button
             color={confirmColor}
@@ -92,7 +94,7 @@ export function ConfirmationDialog({
             isLoading={isLoading}
             className='font-medium'
           >
-            {confirmText}
+            {confirmText || t('common.confirmDialog.confirm')}
           </Button>
         </ModalFooter>
       </ModalContent>

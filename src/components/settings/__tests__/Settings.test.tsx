@@ -24,7 +24,55 @@ jest.mock('../../../contexts/AIContext', () => ({
 // Mock the translation hook
 jest.mock('../../../hooks/useTranslation', () => ({
   useTranslation: () => ({
-    t: (key: string) => key,
+    t: (key: string) => {
+      const translations: Record<string, string> = {
+        'settings.title': 'Settings',
+        'settings.subtitle': 'Customize your KiraPilot experience',
+        'settings.resetToDefaults': 'Reset to Defaults',
+        'settings.general': 'General',
+        'settings.ai': 'AI Assistant',
+        'settings.time': 'Time Tracking',
+        'settings.privacy': 'Privacy & Data',
+        'settings.about': 'About',
+        'settings.appearance': 'Appearance',
+        'settings.apiConfiguration': 'API Configuration',
+        'settings.aiBehavior': 'AI Behavior',
+        'settings.timerSettings': 'Timer Settings',
+        'settings.geminiApiKey': 'Gemini API Key',
+        'settings.geminiApiKeyDescription':
+          'Enter your Google Gemini API key to enable AI features. Get your key from',
+        'settings.geminiApiKeyPlaceholder': 'Enter your Gemini API key...',
+        'settings.apiKeyConfigured': '✓ API key configured',
+        'settings.defaultSessionLength': 'Default Session Length',
+        'settings.breakInterval': 'Break Interval',
+        'settings.general.theme': 'Theme',
+        'settings.general.themeDescription':
+          'Choose your preferred color scheme',
+        'settings.general.language': 'Language',
+        'settings.general.languageDescription':
+          'Select your preferred language',
+        'settings.general.workingHours': 'Working Hours',
+        'settings.general.startTime': 'Start Time',
+        'settings.general.endTime': 'End Time',
+        'about.appName': 'KiraPilot',
+        'about.appDescription': 'Intelligent Productivity Assistant',
+        'about.version': 'Version 0.1.0',
+        'about.systemInformation': 'System Information',
+        'about.copyright': '© 2024 KiraPilot. All rights reserved.',
+        'system.platform': 'Platform',
+        'system.database': 'Database',
+        'system.aiEngine': 'AI Engine',
+        'system.platformValue': 'Desktop (Tauri)',
+        'system.databaseValue': 'SQLite (Local)',
+        'system.aiEngineValue': 'Google Gemini',
+        'theme.light': 'Light',
+        'theme.dark': 'Dark',
+        'theme.auto': 'Auto',
+        'time.minutes': 'minutes',
+        'common.loading': 'Loading...',
+      };
+      return translations[key] || key;
+    },
   }),
 }));
 
@@ -160,7 +208,7 @@ describe('Settings Component', () => {
   it('shows reset to defaults button', () => {
     renderSettings();
 
-    expect(screen.getByText('settings.resetToDefaults')).toBeInTheDocument();
+    expect(screen.getByText('Reset to Defaults')).toBeInTheDocument();
   });
 
   it('persists API key to localStorage', async () => {

@@ -158,24 +158,24 @@ export const Settings: React.FC<SettingsProps> = ({
               title={
                 <div className='flex items-center space-x-2'>
                   <User className='w-4 h-4' />
-                  <span>General</span>
+                  <span>{t('settings.general')}</span>
                 </div>
               }
             >
               <div className='p-6 space-y-6'>
                 <div>
                   <h3 className='text-lg font-semibold text-foreground mb-4'>
-                    Appearance
+                    {t('settings.appearance')}
                   </h3>
 
                   <div className='space-y-4'>
                     <div className='flex items-center justify-between'>
                       <div>
                         <label className='text-sm font-medium text-foreground'>
-                          Theme
+                          {t('settings.general.theme')}
                         </label>
                         <p className='text-xs text-foreground-600'>
-                          Choose your preferred color scheme
+                          {t('settings.general.themeDescription')}
                         </p>
                       </div>
                       <Select
@@ -196,19 +196,19 @@ export const Settings: React.FC<SettingsProps> = ({
                           value: 'text-foreground',
                         }}
                       >
-                        <SelectItem key='light'>Light</SelectItem>
-                        <SelectItem key='dark'>Dark</SelectItem>
-                        <SelectItem key='auto'>Auto</SelectItem>
+                        <SelectItem key='light'>{t('theme.light')}</SelectItem>
+                        <SelectItem key='dark'>{t('theme.dark')}</SelectItem>
+                        <SelectItem key='auto'>{t('theme.auto')}</SelectItem>
                       </Select>
                     </div>
 
                     <div className='flex items-center justify-between'>
                       <div>
                         <label className='text-sm font-medium text-foreground'>
-                          Language
+                          {t('settings.general.language')}
                         </label>
                         <p className='text-xs text-foreground-600'>
-                          Select your preferred language
+                          {t('settings.general.languageDescription')}
                         </p>
                       </div>
                       <Select
@@ -238,13 +238,13 @@ export const Settings: React.FC<SettingsProps> = ({
 
                 <div>
                   <h3 className='text-lg font-semibold text-foreground mb-4'>
-                    Working Hours
+                    {t('settings.general.workingHours')}
                   </h3>
 
                   <div className='grid grid-cols-2 gap-4'>
                     <div>
                       <label className='text-sm font-medium text-foreground block mb-2'>
-                        Start Time
+                        {t('settings.general.startTime')}
                       </label>
                       <Input
                         type='time'
@@ -266,7 +266,7 @@ export const Settings: React.FC<SettingsProps> = ({
                     </div>
                     <div>
                       <label className='text-sm font-medium text-foreground block mb-2'>
-                        End Time
+                        {t('settings.general.endTime')}
                       </label>
                       <Input
                         type='time'
@@ -296,24 +296,23 @@ export const Settings: React.FC<SettingsProps> = ({
               title={
                 <div className='flex items-center space-x-2'>
                   <Bot className='w-4 h-4' />
-                  <span>AI Assistant</span>
+                  <span>{t('settings.ai')}</span>
                 </div>
               }
             >
               <div className='p-6 space-y-6'>
                 <div>
                   <h3 className='text-lg font-semibold text-foreground mb-4'>
-                    API Configuration
+                    {t('settings.apiConfiguration')}
                   </h3>
 
                   <div className='space-y-4'>
                     <div>
                       <label className='text-sm font-medium text-foreground block mb-2'>
-                        Gemini API Key
+                        {t('settings.geminiApiKey')}
                       </label>
                       <p className='text-xs text-foreground-600 mb-3'>
-                        Enter your Google Gemini API key to enable AI features.
-                        Get your key from{' '}
+                        {t('settings.geminiApiKeyDescription')}{' '}
                         <a
                           href='https://aistudio.google.com/app/apikey'
                           target='_blank'
@@ -328,7 +327,7 @@ export const Settings: React.FC<SettingsProps> = ({
                           type={showApiKey ? 'text' : 'password'}
                           value={preferences.aiSettings.geminiApiKey || ''}
                           onValueChange={handleApiKeyChange}
-                          placeholder='Enter your Gemini API key...'
+                          placeholder={t('settings.geminiApiKeyPlaceholder')}
                           size='sm'
                           classNames={{
                             input:
@@ -354,7 +353,7 @@ export const Settings: React.FC<SettingsProps> = ({
                       </div>
                       {preferences.aiSettings.geminiApiKey && (
                         <p className='text-xs text-success mt-2'>
-                          ✓ API key configured
+                          {t('settings.apiKeyConfigured')}
                         </p>
                       )}
                     </div>
@@ -365,17 +364,17 @@ export const Settings: React.FC<SettingsProps> = ({
 
                 <div>
                   <h3 className='text-lg font-semibold text-foreground mb-4'>
-                    AI Behavior
+                    {t('settings.aiBehavior')}
                   </h3>
 
                   <div className='space-y-4'>
                     <div className='flex items-center justify-between'>
                       <div>
                         <label className='text-sm font-medium text-foreground'>
-                          Conversation History
+                          {t('settings.ai.conversationHistory')}
                         </label>
                         <p className='text-xs text-foreground-600'>
-                          Keep chat history for better context
+                          {t('settings.ai.conversationHistoryDescription')}
                         </p>
                       </div>
                       <Switch
@@ -394,10 +393,10 @@ export const Settings: React.FC<SettingsProps> = ({
                     <div className='flex items-center justify-between'>
                       <div>
                         <label className='text-sm font-medium text-foreground'>
-                          Auto Suggestions
+                          {t('settings.ai.autoSuggestions')}
                         </label>
                         <p className='text-xs text-foreground-600'>
-                          Show AI suggestions automatically
+                          {t('settings.ai.autoSuggestionsDescription')}
                         </p>
                       </div>
                       <Switch
@@ -416,10 +415,10 @@ export const Settings: React.FC<SettingsProps> = ({
                     <div className='flex items-center justify-between'>
                       <div>
                         <label className='text-sm font-medium text-foreground'>
-                          Tool Permissions
+                          {t('settings.ai.toolPermissions')}
                         </label>
                         <p className='text-xs text-foreground-600'>
-                          Allow AI to modify tasks and timers
+                          {t('settings.ai.toolPermissionsDescription')}
                         </p>
                       </div>
                       <Switch
@@ -437,7 +436,7 @@ export const Settings: React.FC<SettingsProps> = ({
 
                     <div>
                       <label className='text-sm font-medium text-foreground block mb-2'>
-                        Response Style
+                        {t('settings.ai.responseStyle')}
                       </label>
                       <Select
                         selectedKeys={[preferences.aiSettings.responseStyle]}
@@ -460,15 +459,21 @@ export const Settings: React.FC<SettingsProps> = ({
                           value: 'text-foreground',
                         }}
                       >
-                        <SelectItem key='concise'>Concise</SelectItem>
-                        <SelectItem key='balanced'>Balanced</SelectItem>
-                        <SelectItem key='detailed'>Detailed</SelectItem>
+                        <SelectItem key='concise'>
+                          {t('responseStyle.concise')}
+                        </SelectItem>
+                        <SelectItem key='balanced'>
+                          {t('responseStyle.balanced')}
+                        </SelectItem>
+                        <SelectItem key='detailed'>
+                          {t('responseStyle.detailed')}
+                        </SelectItem>
                       </Select>
                     </div>
 
                     <div>
                       <label className='text-sm font-medium text-foreground block mb-2'>
-                        Suggestion Frequency
+                        {t('settings.ai.suggestionFrequency')}
                       </label>
                       <Select
                         selectedKeys={[
@@ -493,9 +498,15 @@ export const Settings: React.FC<SettingsProps> = ({
                           value: 'text-foreground',
                         }}
                       >
-                        <SelectItem key='minimal'>Minimal</SelectItem>
-                        <SelectItem key='moderate'>Moderate</SelectItem>
-                        <SelectItem key='frequent'>Frequent</SelectItem>
+                        <SelectItem key='minimal'>
+                          {t('suggestionFrequency.minimal')}
+                        </SelectItem>
+                        <SelectItem key='moderate'>
+                          {t('suggestionFrequency.moderate')}
+                        </SelectItem>
+                        <SelectItem key='frequent'>
+                          {t('suggestionFrequency.frequent')}
+                        </SelectItem>
                       </Select>
                     </div>
                   </div>
@@ -508,21 +519,22 @@ export const Settings: React.FC<SettingsProps> = ({
               title={
                 <div className='flex items-center space-x-2'>
                   <Clock className='w-4 h-4' />
-                  <span>Time Tracking</span>
+                  <span>{t('settings.time')}</span>
                 </div>
               }
             >
               <div className='p-6 space-y-6'>
                 <div>
                   <h3 className='text-lg font-semibold text-foreground mb-4'>
-                    Timer Settings
+                    {t('settings.timerSettings')}
                   </h3>
 
                   <div className='space-y-6'>
                     <div>
                       <label className='text-sm font-medium text-foreground block mb-2'>
-                        Default Session Length:{' '}
-                        {preferences.focusPreferences.defaultDuration} minutes
+                        {t('settings.defaultSessionLength')}:{' '}
+                        {preferences.focusPreferences.defaultDuration}{' '}
+                        {t('time.minutes')}
                       </label>
                       <Input
                         type='number'
@@ -549,8 +561,9 @@ export const Settings: React.FC<SettingsProps> = ({
 
                     <div>
                       <label className='text-sm font-medium text-foreground block mb-2'>
-                        Break Interval:{' '}
-                        {preferences.breakPreferences.breakInterval} minutes
+                        {t('settings.breakInterval')}:{' '}
+                        {preferences.breakPreferences.breakInterval}{' '}
+                        {t('time.minutes')}
                       </label>
                       <Input
                         type='number'
@@ -584,7 +597,7 @@ export const Settings: React.FC<SettingsProps> = ({
               title={
                 <div className='flex items-center space-x-2'>
                   <Shield className='w-4 h-4' />
-                  <span>Privacy & Data</span>
+                  <span>{t('settings.privacy')}</span>
                 </div>
               }
             >
@@ -598,7 +611,7 @@ export const Settings: React.FC<SettingsProps> = ({
               title={
                 <div className='flex items-center space-x-2'>
                   <Info className='w-4 h-4' />
-                  <span>About</span>
+                  <span>{t('settings.about')}</span>
                 </div>
               }
             >
@@ -608,13 +621,13 @@ export const Settings: React.FC<SettingsProps> = ({
                     <Bot className='w-8 h-8 text-white' />
                   </div>
                   <h2 className='text-2xl font-bold text-foreground mb-2'>
-                    KiraPilot
+                    {t('about.appName')}
                   </h2>
                   <p className='text-foreground-600 mb-4'>
-                    Intelligent Productivity Assistant
+                    {t('about.appDescription')}
                   </p>
                   <div className='inline-flex items-center px-3 py-1 bg-primary-500/20 text-primary-400 rounded-full text-sm'>
-                    Version 0.1.0
+                    {t('about.version')}
                   </div>
                 </div>
 
@@ -622,21 +635,33 @@ export const Settings: React.FC<SettingsProps> = ({
 
                 <div>
                   <h3 className='text-lg font-semibold text-foreground mb-4'>
-                    System Information
+                    {t('about.systemInformation')}
                   </h3>
 
                   <div className='space-y-3'>
                     <div className='flex justify-between'>
-                      <span className='text-foreground-600'>Platform</span>
-                      <span className='text-foreground'>Desktop (Tauri)</span>
+                      <span className='text-foreground-600'>
+                        {t('system.platform')}
+                      </span>
+                      <span className='text-foreground'>
+                        {t('system.platformValue')}
+                      </span>
                     </div>
                     <div className='flex justify-between'>
-                      <span className='text-foreground-600'>Database</span>
-                      <span className='text-foreground'>SQLite (Local)</span>
+                      <span className='text-foreground-600'>
+                        {t('system.database')}
+                      </span>
+                      <span className='text-foreground'>
+                        {t('system.databaseValue')}
+                      </span>
                     </div>
                     <div className='flex justify-between'>
-                      <span className='text-foreground-600'>AI Engine</span>
-                      <span className='text-foreground'>Google Gemini</span>
+                      <span className='text-foreground-600'>
+                        {t('system.aiEngine')}
+                      </span>
+                      <span className='text-foreground'>
+                        {t('system.aiEngineValue')}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -645,7 +670,7 @@ export const Settings: React.FC<SettingsProps> = ({
 
                 <div className='text-center'>
                   <p className='text-xs text-foreground-500'>
-                    © 2024 KiraPilot. All rights reserved.
+                    {t('about.copyright')}
                   </p>
                 </div>
               </div>

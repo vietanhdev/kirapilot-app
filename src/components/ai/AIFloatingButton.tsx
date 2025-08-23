@@ -37,15 +37,13 @@ export function AIFloatingButton({ className = '' }: AIFloatingButtonProps) {
 
   const getTooltipText = () => {
     if (error) {
-      return t('ai.error') || 'AI Error - Click to resolve';
+      return t('ai.error');
     }
     if (!isInitialized) {
-      return t('ai.setup') || 'Setup Kira AI';
+      return t('ai.setup');
     }
     if (hasNotifications) {
-      return t('ai.suggestions')
-        ? `${activeSuggestions.length} ${t('ai.suggestions')}`
-        : `${activeSuggestions.length} AI suggestions`;
+      return `${activeSuggestions.length} ${t('ai.suggestions')}`;
     }
     return t('ai.chat');
   };

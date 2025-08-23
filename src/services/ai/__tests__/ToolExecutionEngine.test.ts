@@ -1,21 +1,70 @@
-import { ToolExecutionEngine, PermissionLevel } from '../ToolExecutionEngine';
+import {
+  ToolExecutionEngine,
+  PermissionLevel,
+  TranslationFunction,
+} from '../ToolExecutionEngine';
+
+// Mock translation function
+const mockTranslation: TranslationFunction = (key, variables) => {
+  const translations: Record<string, string> = {
+    'ai.tools.get_tasks.description': 'Retrieve and search tasks',
+    'ai.tools.get_time_data.description':
+      'View time tracking data and statistics',
+    'ai.tools.analyze_productivity.description':
+      'Generate productivity insights and recommendations',
+    'ai.tools.create_task.description': 'Create new tasks in the system',
+    'ai.tools.update_task.description': 'Modify existing tasks',
+    'ai.tools.start_timer.description': 'Start time tracking for tasks',
+    'ai.tools.stop_timer.description': 'Stop current time tracking session',
+    'ai.tools.create_task.success': 'Created task: {title}',
+    'ai.tools.update_task.success': 'Updated task: {title}',
+    'ai.error.unknownTool': 'Unknown tool: {toolName}',
+    'ai.error.insufficientPermissions':
+      'Insufficient permissions. Required: {permissions}',
+    'ai.error.toolFailed': '{toolName} failed: {error}',
+    'ai.error.invalidResponse': 'Failed to parse tool result',
+    'ai.taskList.foundTasks': 'Found {count} task{plural}',
+    'ai.taskList.dueDate': 'Due: {date}',
+    'ai.taskList.timeEstimate': 'Estimated: {minutes} minutes',
+    'ai.timer.started': 'Timer started! Now tracking time for your task.',
+    'ai.tools.displayName.create_task': 'Task Creation',
+    'ai.tools.displayName.update_task': 'Task Update',
+  };
+
+  let result = translations[key] || key;
+
+  // Handle variable substitution
+  if (variables) {
+    Object.entries(variables).forEach(([varKey, value]) => {
+      result = result.replace(new RegExp(`{${varKey}}`, 'g'), String(value));
+    });
+  }
+
+  return result;
+};
 
 describe('ToolExecutionEngine', () => {
   let engine: ToolExecutionEngine;
 
   beforeEach(() => {
-    engine = new ToolExecutionEngine([
-      PermissionLevel.READ_ONLY,
-      PermissionLevel.MODIFY_TASKS,
-      PermissionLevel.TIMER_CONTROL,
-    ]);
+    engine = new ToolExecutionEngine(
+      [
+        PermissionLevel.READ_ONLY,
+        PermissionLevel.MODIFY_TASKS,
+        PermissionLevel.TIMER_CONTROL,
+      ],
+      undefined,
+      mockTranslation
+    );
   });
 
   describe('Permission System', () => {
     test('should allow read-only tools with read-only permission', () => {
-      const readOnlyEngine = new ToolExecutionEngine([
-        PermissionLevel.READ_ONLY,
-      ]);
+      const readOnlyEngine = new ToolExecutionEngine(
+        [PermissionLevel.READ_ONLY],
+        undefined,
+        mockTranslation
+      );
 
       expect(readOnlyEngine.hasPermission('get_tasks')).toBe(true);
       expect(readOnlyEngine.hasPermission('get_time_data')).toBe(true);
@@ -23,9 +72,11 @@ describe('ToolExecutionEngine', () => {
     });
 
     test('should deny modify tools without modify permission', () => {
-      const readOnlyEngine = new ToolExecutionEngine([
-        PermissionLevel.READ_ONLY,
-      ]);
+      const readOnlyEngine = new ToolExecutionEngine(
+        [PermissionLevel.READ_ONLY],
+        undefined,
+        mockTranslation
+      );
 
       expect(readOnlyEngine.hasPermission('create_task')).toBe(false);
       expect(readOnlyEngine.hasPermission('update_task')).toBe(false);
@@ -37,9 +88,11 @@ describe('ToolExecutionEngine', () => {
     });
 
     test('should allow all tools with full access', () => {
-      const fullAccessEngine = new ToolExecutionEngine([
-        PermissionLevel.FULL_ACCESS,
-      ]);
+      const fullAccessEngine = new ToolExecutionEngine(
+        [PermissionLevel.FULL_ACCESS],
+        undefined,
+        mockTranslation
+      );
 
       expect(fullAccessEngine.hasPermission('get_tasks')).toBe(true);
       expect(fullAccessEngine.hasPermission('create_task')).toBe(true);
@@ -84,9 +137,11 @@ describe('ToolExecutionEngine', () => {
     });
 
     test('should reject tools without sufficient permissions', () => {
-      const readOnlyEngine = new ToolExecutionEngine([
-        PermissionLevel.READ_ONLY,
-      ]);
+      const readOnlyEngine = new ToolExecutionEngine(
+        [PermissionLevel.READ_ONLY],
+        undefined,
+        mockTranslation
+      );
       const validation = readOnlyEngine.validateExecution('create_task', {});
 
       expect(validation.allowed).toBe(false);
@@ -185,15 +240,17 @@ describe('ToolExecutionEngine', () => {
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('Failed to parse tool result');
-      expect(result.userMessage).toContain('Error executing get_tasks');
+      expect(result.userMessage).toContain('get tasks failed');
     });
   });
 
   describe('Available Tools', () => {
     test('should return available tools based on permissions', () => {
-      const readOnlyEngine = new ToolExecutionEngine([
-        PermissionLevel.READ_ONLY,
-      ]);
+      const readOnlyEngine = new ToolExecutionEngine(
+        [PermissionLevel.READ_ONLY],
+        undefined,
+        mockTranslation
+      );
       const availableTools = readOnlyEngine.getAvailableTools();
 
       expect(availableTools).toContain('get_tasks');
@@ -204,9 +261,11 @@ describe('ToolExecutionEngine', () => {
     });
 
     test('should return all tools with full access', () => {
-      const fullAccessEngine = new ToolExecutionEngine([
-        PermissionLevel.FULL_ACCESS,
-      ]);
+      const fullAccessEngine = new ToolExecutionEngine(
+        [PermissionLevel.FULL_ACCESS],
+        undefined,
+        mockTranslation
+      );
       const availableTools = fullAccessEngine.getAvailableTools();
 
       expect(availableTools.length).toBeGreaterThan(5);

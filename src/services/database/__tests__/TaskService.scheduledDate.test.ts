@@ -402,7 +402,7 @@ describe('TaskService - ScheduledDate Functionality', () => {
       };
 
       await expect(service.create(createRequest)).rejects.toThrow(
-        'Failed to create task: Error: Database connection failed'
+        'taskService.error.createFailed: Error: Database connection failed'
       );
     });
 
@@ -415,7 +415,9 @@ describe('TaskService - ScheduledDate Functionality', () => {
 
       await expect(
         service.update('non-existent-id', updateRequest)
-      ).rejects.toThrow('Failed to update task: Error: Task not found');
+      ).rejects.toThrow(
+        'taskService.error.updateFailed: Error: Task not found'
+      );
     });
   });
 

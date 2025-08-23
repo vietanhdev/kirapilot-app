@@ -14,6 +14,7 @@ import {
   Heading1,
   Heading2,
 } from 'lucide-react';
+import { useTranslation } from '../../hooks/useTranslation';
 
 interface RichTextEditorProps {
   content: string;
@@ -26,15 +27,16 @@ interface RichTextEditorProps {
 export function RichTextEditor({
   content,
   onChange,
-  placeholder = 'Start typing...',
+  placeholder,
   className = '',
   disabled = false,
 }: RichTextEditorProps) {
+  const { t } = useTranslation();
   const editor = useEditor({
     extensions: [
       StarterKit,
       Placeholder.configure({
-        placeholder,
+        placeholder: placeholder || t('common.richTextEditor.placeholder'),
       }),
     ],
     content,
@@ -58,7 +60,7 @@ export function RichTextEditor({
           onClick={() => editor.chain().focus().toggleBold().run()}
           isActive={editor.isActive('bold')}
           disabled={disabled}
-          title='Bold'
+          title={t('common.richTextEditor.bold')}
         >
           <Bold className='w-4 h-4' />
         </ToolbarButton>
@@ -67,7 +69,7 @@ export function RichTextEditor({
           onClick={() => editor.chain().focus().toggleItalic().run()}
           isActive={editor.isActive('italic')}
           disabled={disabled}
-          title='Italic'
+          title={t('common.richTextEditor.italic')}
         >
           <Italic className='w-4 h-4' />
         </ToolbarButton>
@@ -80,7 +82,7 @@ export function RichTextEditor({
           }
           isActive={editor.isActive('heading', { level: 1 })}
           disabled={disabled}
-          title='Heading 1'
+          title={t('common.richTextEditor.heading1')}
         >
           <Heading1 className='w-4 h-4' />
         </ToolbarButton>
@@ -91,7 +93,7 @@ export function RichTextEditor({
           }
           isActive={editor.isActive('heading', { level: 2 })}
           disabled={disabled}
-          title='Heading 2'
+          title={t('common.richTextEditor.heading2')}
         >
           <Heading2 className='w-4 h-4' />
         </ToolbarButton>
@@ -100,7 +102,7 @@ export function RichTextEditor({
           onClick={() => editor.chain().focus().setParagraph().run()}
           isActive={editor.isActive('paragraph')}
           disabled={disabled}
-          title='Paragraph'
+          title={t('common.richTextEditor.paragraph')}
         >
           <Type className='w-4 h-4' />
         </ToolbarButton>
@@ -111,7 +113,7 @@ export function RichTextEditor({
           onClick={() => editor.chain().focus().toggleBulletList().run()}
           isActive={editor.isActive('bulletList')}
           disabled={disabled}
-          title='Bullet List'
+          title={t('common.richTextEditor.bulletList')}
         >
           <List className='w-4 h-4' />
         </ToolbarButton>
@@ -120,7 +122,7 @@ export function RichTextEditor({
           onClick={() => editor.chain().focus().toggleOrderedList().run()}
           isActive={editor.isActive('orderedList')}
           disabled={disabled}
-          title='Numbered List'
+          title={t('common.richTextEditor.numberedList')}
         >
           <ListOrdered className='w-4 h-4' />
         </ToolbarButton>
@@ -129,7 +131,7 @@ export function RichTextEditor({
           onClick={() => editor.chain().focus().toggleBlockquote().run()}
           isActive={editor.isActive('blockquote')}
           disabled={disabled}
-          title='Quote'
+          title={t('common.richTextEditor.quote')}
         >
           <Quote className='w-4 h-4' />
         </ToolbarButton>
@@ -139,7 +141,7 @@ export function RichTextEditor({
         <ToolbarButton
           onClick={() => editor.chain().focus().undo().run()}
           disabled={disabled || !editor.can().undo()}
-          title='Undo'
+          title={t('common.richTextEditor.undo')}
         >
           <Undo className='w-4 h-4' />
         </ToolbarButton>
@@ -147,7 +149,7 @@ export function RichTextEditor({
         <ToolbarButton
           onClick={() => editor.chain().focus().redo().run()}
           disabled={disabled || !editor.can().redo()}
-          title='Redo'
+          title={t('common.richTextEditor.redo')}
         >
           <Redo className='w-4 h-4' />
         </ToolbarButton>

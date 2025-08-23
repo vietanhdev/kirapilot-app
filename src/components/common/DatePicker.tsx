@@ -1,6 +1,7 @@
 // Date picker component
 import { useState, useRef, useEffect } from 'react';
 import { Calendar, X } from 'lucide-react';
+import { useTranslation } from '../../hooks/useTranslation';
 
 interface DatePickerProps {
   value?: Date;
@@ -15,12 +16,13 @@ interface DatePickerProps {
 export function DatePicker({
   value,
   onChange,
-  placeholder = 'Select date...',
+  placeholder,
   disabled = false,
   className = '',
   minDate,
   maxDate,
 }: DatePickerProps) {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(value || new Date());
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -95,7 +97,9 @@ export function DatePicker({
                 : 'text-slate-500 dark:text-slate-400'
             }
           >
-            {value ? formatDate(value) : placeholder}
+            {value
+              ? formatDate(value)
+              : placeholder || t('common.datePicker.placeholder')}
           </span>
         </div>
         {value && !disabled && (
@@ -103,7 +107,7 @@ export function DatePicker({
             type='button'
             onClick={handleClear}
             className='p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded transition-colors duration-200'
-            title='Clear date'
+            title={t('common.datePicker.clearDate')}
           >
             <X className='w-4 h-4 text-slate-500 dark:text-slate-400' />
           </button>
@@ -140,6 +144,7 @@ function CalendarGrid({
   onMonthChange,
   isDateDisabled,
 }: CalendarGridProps) {
+  const { t } = useTranslation();
   const today = new Date();
   const year = currentMonth.getFullYear();
   const month = currentMonth.getMonth();
@@ -150,21 +155,29 @@ function CalendarGrid({
   const daysInMonth = lastDayOfMonth.getDate();
 
   const monthNames = [
-    'January',
-    'February',
-    'March',
-    'April',
-    'May',
-    'June',
-    'July',
-    'August',
-    'September',
-    'October',
-    'November',
-    'December',
+    t('common.datePicker.monthNames.january'),
+    t('common.datePicker.monthNames.february'),
+    t('common.datePicker.monthNames.march'),
+    t('common.datePicker.monthNames.april'),
+    t('common.datePicker.monthNames.may'),
+    t('common.datePicker.monthNames.june'),
+    t('common.datePicker.monthNames.july'),
+    t('common.datePicker.monthNames.august'),
+    t('common.datePicker.monthNames.september'),
+    t('common.datePicker.monthNames.october'),
+    t('common.datePicker.monthNames.november'),
+    t('common.datePicker.monthNames.december'),
   ];
 
-  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const dayNames = [
+    t('common.datePicker.dayNames.sun'),
+    t('common.datePicker.dayNames.mon'),
+    t('common.datePicker.dayNames.tue'),
+    t('common.datePicker.dayNames.wed'),
+    t('common.datePicker.dayNames.thu'),
+    t('common.datePicker.dayNames.fri'),
+    t('common.datePicker.dayNames.sat'),
+  ];
 
   const previousMonth = () => {
     onMonthChange(new Date(year, month - 1, 1));

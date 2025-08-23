@@ -16,6 +16,7 @@ import { TaskColumn } from './TaskColumn';
 import { TaskCard } from './TaskCard';
 import { TaskModal } from './TaskModal';
 import { useResponsiveColumnWidth } from '../../hooks';
+import { useTranslation } from '../../hooks/useTranslation';
 import {
   ChevronLeft,
   ChevronRight,
@@ -62,6 +63,7 @@ export function DayView({
   className = '',
   columnHeight,
 }: DayViewProps) {
+  const { t } = useTranslation();
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [, setTaskModalColumn] = useState<string>('');
   const [taskModalDate, setTaskModalDate] = useState<Date | undefined>();
@@ -348,7 +350,7 @@ export function DayView({
                 <button
                   onClick={() => navigateDay('prev')}
                   className='p-1 hover:bg-gray-300 dark:hover:bg-gray-700/50 rounded transition-colors duration-200'
-                  title='Previous day'
+                  title={t('planning.previousDay')}
                 >
                   <ChevronLeft className='w-4 h-4 text-foreground-600' />
                 </button>
@@ -356,15 +358,15 @@ export function DayView({
                 <button
                   onClick={() => onDateChange(new Date())}
                   className='px-2 py-1 text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-900/50 rounded transition-colors duration-200'
-                  title='Go to today'
+                  title={t('planning.goToToday')}
                 >
-                  Today
+                  {t('planning.today')}
                 </button>
 
                 <button
                   onClick={() => navigateDay('next')}
                   className='p-1 hover:bg-gray-300 dark:hover:bg-gray-700/50 rounded transition-colors duration-200'
-                  title='Next day'
+                  title={t('planning.nextDay')}
                 >
                   <ChevronRight className='w-4 h-4 text-foreground-600' />
                 </button>
@@ -408,7 +410,7 @@ export function DayView({
           <div className='flex gap-3 overflow-x-auto pb-4'>
             {/* Backlog Column */}
             <TaskColumn
-              title='Backlog'
+              title={t('planning.backlog')}
               icon={Archive}
               count={taskCategories.backlog.length}
               color='blue'
@@ -431,7 +433,7 @@ export function DayView({
 
             {/* Overdue Column */}
             <TaskColumn
-              title='Overdue'
+              title={t('planning.overdue')}
               icon={AlertTriangle}
               count={taskCategories.overdue.length}
               color='red'
@@ -454,7 +456,7 @@ export function DayView({
 
             {/* Today Column */}
             <TaskColumn
-              title='Today'
+              title={t('planning.today')}
               icon={Sun}
               count={taskCategories.today.length}
               color='gray'
@@ -478,7 +480,7 @@ export function DayView({
 
             {/* Next Tasks Column */}
             <TaskColumn
-              title='Next Tasks'
+              title={t('planning.nextTasks')}
               icon={ArrowRight}
               count={taskCategories.next.length}
               color='purple'

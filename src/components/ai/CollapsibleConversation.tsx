@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@heroui/react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
-
 interface CollapsibleConversationProps {
   title: string;
   children: React.ReactNode;
@@ -19,17 +18,13 @@ export function CollapsibleConversation({
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
   return (
-    <div
-      className={`border border-gray-200 dark:border-gray-700 rounded-lg ${className}`}
-    >
+    <div className={`border border-divider rounded-lg ${className}`}>
       <Button
         variant='light'
         className='w-full justify-between p-3 h-auto'
         onPress={() => setIsExpanded(!isExpanded)}
       >
-        <span className='text-sm font-medium text-gray-700 dark:text-gray-300'>
-          {title}
-        </span>
+        <span className='text-sm font-medium text-foreground-700'>{title}</span>
         {isExpanded ? (
           <ChevronUp className='w-4 h-4' />
         ) : (
@@ -46,9 +41,7 @@ export function CollapsibleConversation({
             transition={{ duration: 0.2 }}
             className='overflow-hidden'
           >
-            <div className='p-3 pt-0 border-t border-gray-200 dark:border-gray-700'>
-              {children}
-            </div>
+            <div className='p-3 pt-0 border-t border-divider'>{children}</div>
           </motion.div>
         )}
       </AnimatePresence>

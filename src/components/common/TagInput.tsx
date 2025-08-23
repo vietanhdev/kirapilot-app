@@ -1,6 +1,7 @@
 // Tag input component
 import { useState, KeyboardEvent } from 'react';
 import { X, Plus } from 'lucide-react';
+import { useTranslation } from '../../hooks/useTranslation';
 
 interface TagInputProps {
   tags: string[];
@@ -14,11 +15,12 @@ interface TagInputProps {
 export function TagInput({
   tags,
   onChange,
-  placeholder = 'Add tags...',
+  placeholder,
   disabled = false,
   className = '',
   maxTags = 10,
 }: TagInputProps) {
+  const { t } = useTranslation();
   const [inputValue, setInputValue] = useState('');
   const [isInputFocused, setIsInputFocused] = useState(false);
 
@@ -85,7 +87,11 @@ export function TagInput({
             onKeyDown={handleKeyDown}
             onFocus={() => setIsInputFocused(true)}
             onBlur={handleInputBlur}
-            placeholder={tags.length === 0 ? placeholder : ''}
+            placeholder={
+              tags.length === 0
+                ? placeholder || t('common.tagInput.placeholder')
+                : ''
+            }
             className='flex-1 min-w-[120px] bg-transparent border-none outline-none text-slate-900 dark:text-slate-100 placeholder-slate-500 dark:placeholder-slate-400'
           />
         )}
@@ -96,7 +102,7 @@ export function TagInput({
             type='button'
             onClick={() => addTag(inputValue)}
             className='p-1 text-primary-500 hover:text-primary-600 transition-colors duration-200'
-            title='Add tag'
+            title={t('common.tagInput.addTag')}
           >
             <Plus className='w-4 h-4' />
           </button>
@@ -106,7 +112,10 @@ export function TagInput({
       {/* Tag Count Indicator */}
       {tags.length > 0 && (
         <div className='mt-1 text-xs text-slate-500 dark:text-slate-400'>
-          {tags.length} / {maxTags} tags
+          {t('common.tagInput.tagCount', {
+            count: tags.length.toString(),
+            max: maxTags.toString(),
+          })}
         </div>
       )}
     </div>
@@ -120,6 +129,8 @@ interface TagChipProps {
 }
 
 function TagChip({ tag, onRemove, disabled = false }: TagChipProps) {
+  const { t } = useTranslation();
+
   return (
     <span className='inline-flex items-center gap-1 px-2 py-1 bg-primary-100 dark:bg-primary-900 text-primary-800 dark:text-primary-200 text-sm rounded-full'>
       <span className='font-medium'>{tag}</span>
@@ -128,7 +139,7 @@ function TagChip({ tag, onRemove, disabled = false }: TagChipProps) {
           type='button'
           onClick={onRemove}
           className='p-0.5 hover:bg-primary-200 dark:hover:bg-primary-800 rounded-full transition-colors duration-200'
-          title={`Remove ${tag} tag`}
+          title={t('common.tagInput.removeTag', { tag })}
         >
           <X className='w-3 h-3' />
         </button>

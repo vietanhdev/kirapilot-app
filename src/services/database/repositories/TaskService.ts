@@ -9,6 +9,8 @@ import {
   TaskSortOptions,
   ValidationResult,
 } from '../../../types';
+import { getDatabaseErrorMessage } from '../index';
+import { TranslationKey } from '../../../i18n';
 
 export class TaskService {
   /**
@@ -35,7 +37,10 @@ export class TaskService {
       });
       return this.transformTaskFromBackend(result);
     } catch (error) {
-      throw new Error(`Failed to create task: ${error}`);
+      const errorMessage = getDatabaseErrorMessage(
+        'taskService.error.createFailed' as TranslationKey
+      );
+      throw new Error(`${errorMessage}: ${error}`);
     }
   }
 
@@ -49,7 +54,10 @@ export class TaskService {
       });
       return result ? this.transformTaskFromBackend(result) : null;
     } catch (error) {
-      throw new Error(`Failed to find task: ${error}`);
+      const errorMessage = getDatabaseErrorMessage(
+        'taskService.error.findFailed' as TranslationKey
+      );
+      throw new Error(`${errorMessage}: ${error}`);
     }
   }
 
@@ -76,7 +84,10 @@ export class TaskService {
         ),
       };
     } catch (error) {
-      throw new Error(`Failed to find task with dependencies: ${error}`);
+      const errorMessage = getDatabaseErrorMessage(
+        'taskService.error.findWithDependenciesFailed' as TranslationKey
+      );
+      throw new Error(`${errorMessage}: ${error}`);
     }
   }
 
@@ -111,7 +122,10 @@ export class TaskService {
 
       return tasks;
     } catch (error) {
-      throw new Error(`Failed to find tasks: ${error}`);
+      const errorMessage = getDatabaseErrorMessage(
+        'taskService.error.findAllFailed' as TranslationKey
+      );
+      throw new Error(`${errorMessage}: ${error}`);
     }
   }
 
@@ -130,7 +144,10 @@ export class TaskService {
 
       return result.map(task => this.transformTaskFromBackend(task));
     } catch (error) {
-      throw new Error(`Failed to find scheduled tasks: ${error}`);
+      const errorMessage = getDatabaseErrorMessage(
+        'taskService.error.findScheduledFailed' as TranslationKey
+      );
+      throw new Error(`${errorMessage}: ${error}`);
     }
   }
 
@@ -143,7 +160,10 @@ export class TaskService {
         await invoke<Record<string, unknown>[]>('get_backlog_tasks');
       return result.map(task => this.transformTaskFromBackend(task));
     } catch (error) {
-      throw new Error(`Failed to find backlog tasks: ${error}`);
+      const errorMessage = getDatabaseErrorMessage(
+        'taskService.error.findBacklogFailed' as TranslationKey
+      );
+      throw new Error(`${errorMessage}: ${error}`);
     }
   }
 
@@ -189,7 +209,10 @@ export class TaskService {
       });
       return this.transformTaskFromBackend(result);
     } catch (error) {
-      throw new Error(`Failed to update task: ${error}`);
+      const errorMessage = getDatabaseErrorMessage(
+        'taskService.error.updateFailed' as TranslationKey
+      );
+      throw new Error(`${errorMessage}: ${error}`);
     }
   }
 
@@ -200,7 +223,10 @@ export class TaskService {
     try {
       await invoke<string>('delete_task', { id });
     } catch (error) {
-      throw new Error(`Failed to delete task: ${error}`);
+      const errorMessage = getDatabaseErrorMessage(
+        'taskService.error.deleteFailed' as TranslationKey
+      );
+      throw new Error(`${errorMessage}: ${error}`);
     }
   }
 

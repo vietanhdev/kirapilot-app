@@ -25,6 +25,7 @@ import {
   Settings,
 } from 'lucide-react';
 import { useAI } from '../../contexts/AIContext';
+import { useTranslation } from '../../hooks/useTranslation';
 import { forceClearData } from '../../utils/clearOldData';
 import { TaskService } from '../../services/database/repositories/TaskService';
 import { TimeTrackingService } from '../../services/database/repositories/TimeTrackingService';
@@ -39,6 +40,7 @@ export const DataManagement: React.FC<DataManagementProps> = ({
   className = '',
 }) => {
   const { clearConversation } = useAI();
+  const { t } = useTranslation();
 
   // Modal controls
   const {
@@ -802,11 +804,10 @@ Perfect for exploring KiraPilot's task management, time tracking, and analytics 
       {/* Header */}
       <div>
         <h2 className='text-2xl font-bold text-gray-900 dark:text-white mb-2'>
-          Data Management
+          {t('dataManagement.title')}
         </h2>
         <p className='text-gray-600 dark:text-gray-400'>
-          Manage your KiraPilot data, including backup, restore, and privacy
-          controls.
+          {t('dataManagement.subtitle')}
         </p>
       </div>
 
@@ -816,12 +817,12 @@ Perfect for exploring KiraPilot's task management, time tracking, and analytics 
           <div className='flex items-center gap-3'>
             <Database className='h-5 w-5 text-blue-600' />
             <h3 className='text-lg font-semibold text-gray-900 dark:text-white'>
-              Backup & Restore
+              {t('dataManagement.backupRestore')}
             </h3>
           </div>
 
           <p className='text-gray-600 dark:text-gray-400'>
-            Export your data for backup or import data from a previous backup.
+            {t('dataManagement.backupRestoreDescription')}
           </p>
 
           <div className='flex gap-3'>
@@ -832,7 +833,7 @@ Perfect for exploring KiraPilot's task management, time tracking, and analytics 
               onPress={onExportOpen}
               isDisabled={isExporting}
             >
-              Export Data
+              {t('dataManagement.exportData')}
             </Button>
 
             <Button
@@ -842,7 +843,7 @@ Perfect for exploring KiraPilot's task management, time tracking, and analytics 
               onPress={onImportOpen}
               isDisabled={isImporting}
             >
-              Import Data
+              {t('dataManagement.importData')}
             </Button>
           </div>
         </CardBody>
@@ -854,14 +855,12 @@ Perfect for exploring KiraPilot's task management, time tracking, and analytics 
           <div className='flex items-center gap-3'>
             <Settings className='h-5 w-5 text-green-600' />
             <h3 className='text-lg font-semibold text-gray-900 dark:text-white'>
-              Sample Data
+              {t('dataManagement.sampleData')}
             </h3>
           </div>
 
           <p className='text-gray-600 dark:text-gray-400'>
-            Generate sophisticated sample data with realistic work patterns,
-            diverse task categories, intelligent time tracking sessions, and
-            seasonal context spanning 6+ months.
+            {t('dataManagement.sampleDataDescription')}
           </p>
 
           <Button
@@ -871,7 +870,9 @@ Perfect for exploring KiraPilot's task management, time tracking, and analytics 
             onPress={generateMockData}
             isLoading={isGeneratingMockData}
           >
-            {isGeneratingMockData ? 'Generating...' : 'Generate Sample Data'}
+            {isGeneratingMockData
+              ? t('dataManagement.generating')
+              : t('dataManagement.generateSampleData')}
           </Button>
         </CardBody>
       </Card>
@@ -882,7 +883,7 @@ Perfect for exploring KiraPilot's task management, time tracking, and analytics 
           <div className='flex items-center gap-3'>
             <Shield className='h-5 w-5 text-purple-600' />
             <h3 className='text-lg font-semibold text-gray-900 dark:text-white'>
-              Privacy Controls
+              {t('dataManagement.privacyControls')}
             </h3>
           </div>
 
@@ -890,10 +891,10 @@ Perfect for exploring KiraPilot's task management, time tracking, and analytics 
             <div className='flex items-center justify-between'>
               <div>
                 <p className='font-medium text-gray-900 dark:text-white'>
-                  Show AI Interaction Logs
+                  {t('dataManagement.showAILogs')}
                 </p>
                 <p className='text-sm text-gray-600 dark:text-gray-400'>
-                  Display detailed logs of AI interactions for transparency
+                  {t('dataManagement.showAILogsDescription')}
                 </p>
               </div>
               <Switch
@@ -911,7 +912,7 @@ Perfect for exploring KiraPilot's task management, time tracking, and analytics 
               startContent={<Shield className='h-4 w-4' />}
               onPress={onPrivacyOpen}
             >
-              View Privacy Settings
+              {t('dataManagement.viewPrivacySettings')}
             </Button>
           </div>
         </CardBody>
@@ -923,12 +924,12 @@ Perfect for exploring KiraPilot's task management, time tracking, and analytics 
           <div className='flex items-center gap-3'>
             <AlertTriangle className='h-5 w-5 text-red-600 dark:text-red-400' />
             <h3 className='text-lg font-semibold text-red-900 dark:text-red-200'>
-              Danger Zone
+              {t('dataManagement.dangerZone')}
             </h3>
           </div>
 
           <p className='text-red-700 dark:text-red-300'>
-            Permanently delete all your data. This action cannot be undone.
+            {t('dataManagement.dangerZoneDescription')}
           </p>
 
           <Button
@@ -937,7 +938,7 @@ Perfect for exploring KiraPilot's task management, time tracking, and analytics 
             startContent={<Trash2 className='h-4 w-4' />}
             onPress={onResetOpen}
           >
-            Clear All Data
+            {t('dataManagement.clearAllData')}
           </Button>
         </CardBody>
       </Card>
@@ -945,18 +946,15 @@ Perfect for exploring KiraPilot's task management, time tracking, and analytics 
       {/* Export Modal */}
       <Modal isOpen={isExportOpen} onClose={onExportClose}>
         <ModalContent>
-          <ModalHeader>Export Data</ModalHeader>
+          <ModalHeader>{t('export.title')}</ModalHeader>
           <ModalBody>
             {isExporting ? (
               <div className='space-y-4'>
-                <p>Exporting your data...</p>
+                <p>{t('export.exporting')}</p>
                 <Progress value={exportProgress} className='w-full' />
               </div>
             ) : (
-              <p>
-                This will export all your tasks, time sessions, and settings to
-                a JSON file.
-              </p>
+              <p>{t('export.description')}</p>
             )}
           </ModalBody>
           <ModalFooter>
@@ -965,14 +963,14 @@ Perfect for exploring KiraPilot's task management, time tracking, and analytics 
               onPress={onExportClose}
               isDisabled={isExporting}
             >
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button
               color='primary'
               onPress={handleExportData}
               isLoading={isExporting}
             >
-              Export
+              {t('export.export')}
             </Button>
           </ModalFooter>
         </ModalContent>
@@ -981,20 +979,16 @@ Perfect for exploring KiraPilot's task management, time tracking, and analytics 
       {/* Import Modal */}
       <Modal isOpen={isImportOpen} onClose={onImportClose}>
         <ModalContent>
-          <ModalHeader>Import Data</ModalHeader>
+          <ModalHeader>{t('import.title')}</ModalHeader>
           <ModalBody>
             {isImporting ? (
               <div className='space-y-4'>
-                <p>Importing your data...</p>
+                <p>{t('import.importing')}</p>
                 <Progress value={importProgress} className='w-full' />
               </div>
             ) : (
               <div className='space-y-4'>
-                <p>
-                  This will replace all your current data with the imported
-                  data. Make sure to export your current data first if you want
-                  to keep it.
-                </p>
+                <p>{t('import.description')}</p>
                 <input
                   type='file'
                   accept='.json'
@@ -1015,7 +1009,7 @@ Perfect for exploring KiraPilot's task management, time tracking, and analytics 
               onPress={onImportClose}
               isDisabled={isImporting}
             >
-              Cancel
+              {t('common.cancel')}
             </Button>
           </ModalFooter>
         </ModalContent>
@@ -1025,7 +1019,7 @@ Perfect for exploring KiraPilot's task management, time tracking, and analytics 
       <Modal isOpen={isResetOpen} onClose={onResetClose}>
         <ModalContent>
           <ModalHeader className='text-red-600 dark:text-red-400'>
-            Clear All Data
+            {t('reset.title')}
           </ModalHeader>
           <ModalBody>
             {!showFinalConfirmation ? (
@@ -1034,31 +1028,29 @@ Perfect for exploring KiraPilot's task management, time tracking, and analytics 
                   <AlertTriangle className='h-6 w-6 text-red-600 dark:text-red-400' />
                   <div>
                     <p className='font-semibold text-red-900 dark:text-red-200'>
-                      Warning: This action cannot be undone!
+                      {t('reset.warning')}
                     </p>
                     <p className='text-sm text-red-700 dark:text-red-300'>
-                      All your tasks, time sessions, settings, and AI
-                      conversations will be permanently deleted.
+                      {t('reset.warningDescription')}
                     </p>
                   </div>
                 </div>
 
                 <div className='space-y-3'>
                   <p className='font-medium text-gray-900 dark:text-white'>
-                    This will permanently delete:
+                    {t('reset.willDelete')}
                   </p>
                   <ul className='list-disc list-inside space-y-1 text-sm text-gray-600 dark:text-gray-400 ml-4'>
-                    <li>All tasks and projects</li>
-                    <li>Timer sessions and history</li>
-                    <li>AI conversation history</li>
-                    <li>User preferences and settings</li>
-                    <li>All other application data</li>
+                    <li>{t('reset.allTasks')}</li>
+                    <li>{t('reset.timerSessions')}</li>
+                    <li>{t('reset.aiHistory')}</li>
+                    <li>{t('reset.userPreferences')}</li>
+                    <li>{t('reset.allData')}</li>
                   </ul>
                 </div>
 
                 <p className='text-gray-600 dark:text-gray-400'>
-                  Consider exporting your data first if you want to keep a
-                  backup.
+                  {t('reset.considerBackup')}
                 </p>
               </div>
             ) : (
@@ -1067,20 +1059,20 @@ Perfect for exploring KiraPilot's task management, time tracking, and analytics 
                   <AlertTriangle className='h-8 w-8 text-red-600 dark:text-red-400' />
                   <div>
                     <p className='font-bold text-red-900 dark:text-red-200 text-lg'>
-                      FINAL CONFIRMATION
+                      {t('reset.finalConfirmation')}
                     </p>
                     <p className='text-sm text-red-700 dark:text-red-300'>
-                      This is your last chance to cancel!
+                      {t('reset.lastChance')}
                     </p>
                   </div>
                 </div>
 
                 <div className='text-center space-y-3'>
                   <p className='font-semibold text-gray-900 dark:text-white'>
-                    Are you absolutely sure you want to delete ALL data?
+                    {t('reset.absolutelySure')}
                   </p>
                   <p className='text-sm text-gray-600 dark:text-gray-400'>
-                    The application will restart after clearing all data.
+                    {t('reset.appWillRestart')}
                   </p>
                 </div>
 
@@ -1091,7 +1083,7 @@ Perfect for exploring KiraPilot's task management, time tracking, and analytics 
                       isIndeterminate
                       color='danger'
                       className='max-w-md mx-auto'
-                      label='Clearing all data...'
+                      label={t('reset.clearingData')}
                       classNames={{
                         base: 'max-w-md',
                         track:
@@ -1111,10 +1103,10 @@ Perfect for exploring KiraPilot's task management, time tracking, and analytics 
             {!showFinalConfirmation ? (
               <>
                 <Button variant='light' onPress={onResetClose}>
-                  Cancel
+                  {t('common.cancel')}
                 </Button>
                 <Button color='danger' onPress={handleShowFinalConfirmation}>
-                  Continue to Final Confirmation
+                  {t('reset.continueToFinal')}
                 </Button>
               </>
             ) : (
@@ -1124,7 +1116,7 @@ Perfect for exploring KiraPilot's task management, time tracking, and analytics 
                   onPress={handleCancelFinalConfirmation}
                   isDisabled={isClearingData}
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </Button>
                 <Button
                   color='danger'
@@ -1132,7 +1124,9 @@ Perfect for exploring KiraPilot's task management, time tracking, and analytics 
                   isLoading={isClearingData}
                   isDisabled={isClearingData}
                 >
-                  {isClearingData ? 'Clearing Data...' : 'YES, DELETE ALL DATA'}
+                  {isClearingData
+                    ? t('reset.clearingDataProgress')
+                    : t('reset.yesDeleteAll')}
                 </Button>
               </>
             )}
@@ -1143,23 +1137,22 @@ Perfect for exploring KiraPilot's task management, time tracking, and analytics 
       {/* Privacy Settings Modal */}
       <Modal isOpen={isPrivacyOpen} onClose={onPrivacyClose} size='2xl'>
         <ModalContent>
-          <ModalHeader>Privacy Settings</ModalHeader>
+          <ModalHeader>{t('privacy.title')}</ModalHeader>
           <ModalBody>
             <div className='space-y-6'>
               <div className='space-y-4'>
                 <h4 className='font-semibold text-gray-900 dark:text-white'>
-                  Data Storage
+                  {t('privacy.dataStorage')}
                 </h4>
                 <div className='space-y-3'>
                   <div className='flex items-center gap-3 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg'>
                     <CheckCircle className='h-5 w-5 text-green-600' />
                     <div>
                       <p className='font-medium text-green-900 dark:text-green-100'>
-                        Local Storage Only
+                        {t('privacy.localStorageOnly')}
                       </p>
                       <p className='text-sm text-green-700 dark:text-green-300'>
-                        All your data is stored locally on your device and never
-                        sent to external servers.
+                        {t('privacy.localStorageDescription')}
                       </p>
                     </div>
                   </div>
@@ -1168,18 +1161,17 @@ Perfect for exploring KiraPilot's task management, time tracking, and analytics 
 
               <div className='space-y-4'>
                 <h4 className='font-semibold text-gray-900 dark:text-white'>
-                  AI Interactions
+                  {t('privacy.aiInteractions')}
                 </h4>
                 <div className='space-y-3'>
                   <div className='flex items-center gap-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg'>
                     <Info className='h-5 w-5 text-blue-600' />
                     <div>
                       <p className='font-medium text-blue-900 dark:text-blue-100'>
-                        AI Data Usage
+                        {t('privacy.aiDataUsage')}
                       </p>
                       <p className='text-sm text-blue-700 dark:text-blue-300'>
-                        AI interactions are processed through external APIs but
-                        conversation history is stored locally.
+                        {t('privacy.aiDataUsageDescription')}
                       </p>
                     </div>
                   </div>
@@ -1189,7 +1181,7 @@ Perfect for exploring KiraPilot's task management, time tracking, and analytics 
           </ModalBody>
           <ModalFooter>
             <Button color='primary' onPress={onPrivacyClose}>
-              Close
+              {t('privacy.close')}
             </Button>
           </ModalFooter>
         </ModalContent>

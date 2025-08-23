@@ -17,7 +17,9 @@ import {
   ToolExecutionEngine,
   PermissionLevel,
   getToolExecutionEngine,
+  TranslationFunction,
 } from './ToolExecutionEngine';
+import { TranslationKey } from '../../i18n';
 import {
   ToolResultFormatter,
   FormattedToolResult,
@@ -247,11 +249,18 @@ export class ReactAIService {
   private apiKey: string | null = null;
   private toolExecutionEngine: ToolExecutionEngine;
   private resultFormatter: ToolResultFormatter;
+  private translationFunction: TranslationFunction | null = null;
 
-  constructor(apiKey?: string) {
+  constructor(apiKey?: string, translationFunction?: TranslationFunction) {
     this.apiKey = apiKey || this.getEnvironmentApiKey() || null;
+    this.translationFunction = translationFunction || null;
     this.toolExecutionEngine = getToolExecutionEngine();
     this.resultFormatter = getToolResultFormatter();
+
+    // Set translation function if provided
+    if (this.translationFunction) {
+      this.toolExecutionEngine.setTranslationFunction(this.translationFunction);
+    }
   }
 
   private getEnvironmentApiKey(): string | null {
@@ -291,9 +300,12 @@ export class ReactAIService {
   ): Promise<AIResponse> {
     try {
       if (!this.apiKey) {
-        throw new Error(
-          'AI model not initialized. Please provide a valid API key.'
-        );
+        const errorMessage = this.translationFunction
+          ? this.translationFunction(
+              'ai.error.apiKeyRequired' as TranslationKey
+            )
+          : 'AI model not initialized. Please provide a valid API key.';
+        throw new Error(errorMessage);
       }
 
       // Prepare the input for the graph
@@ -410,9 +422,14 @@ export class ReactAIService {
       };
     } catch (error) {
       console.error('ReAct AI Service Error:', error);
+      const errorMessage = this.translationFunction
+        ? this.translationFunction(
+            'ai.error.processingFailed' as TranslationKey
+          )
+        : "I'm sorry, I encountered an error processing your request. Please try again.";
+
       return {
-        message:
-          "I'm sorry, I encountered an error processing your request. Please try again.",
+        message: errorMessage,
         actions: [],
         suggestions: [],
         context,
@@ -538,6 +555,14 @@ export class ReactAIService {
   }
 
   /**
+   * Set translation function for localized messages
+   */
+  setTranslationFunction(translationFunction: TranslationFunction): void {
+    this.translationFunction = translationFunction;
+    this.toolExecutionEngine.setTranslationFunction(translationFunction);
+  }
+
+  /**
    * Configure tool execution permissions
    */
   setToolPermissions(permissions: PermissionLevel[]): void {
@@ -618,10 +643,16 @@ export function getReactAIService(): ReactAIService {
 /**
  * Initialize ReAct AI service with API key
  */
-export function initializeReactAIService(apiKey: string): ReactAIService {
+export function initializeReactAIService(
+  apiKey: string,
+  translationFunction?: TranslationFunction
+): ReactAIService {
   if (!reactAIServiceInstance) {
     reactAIServiceInstance = new ReactAIService();
   }
   reactAIServiceInstance.setApiKey(apiKey);
+  if (translationFunction) {
+    reactAIServiceInstance.setTranslationFunction(translationFunction);
+  }
   return reactAIServiceInstance;
 }

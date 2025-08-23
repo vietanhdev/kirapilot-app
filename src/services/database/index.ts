@@ -1,5 +1,36 @@
 // Database service for KiraPilot using SeaORM backend via Tauri commands
 import { invoke } from '@tauri-apps/api/core';
+import { TranslationKey } from '../../i18n';
+
+// Translation function type for database services
+export type DatabaseTranslationFunction = (
+  key: TranslationKey,
+  variables?: Record<string, string | number>
+) => string;
+
+// Global translation function for database services
+let databaseTranslationFunction: DatabaseTranslationFunction = (
+  key: TranslationKey
+) => key;
+
+/**
+ * Set translation function for database services
+ */
+export function setDatabaseTranslationFunction(
+  translationFunction: DatabaseTranslationFunction
+): void {
+  databaseTranslationFunction = translationFunction;
+}
+
+/**
+ * Get localized database error message
+ */
+export function getDatabaseErrorMessage(
+  key: TranslationKey,
+  variables?: Record<string, string | number>
+): string {
+  return databaseTranslationFunction(key, variables);
+}
 
 /**
  * Initialize the database connection (handled by Rust backend)
@@ -9,8 +40,11 @@ export async function initializeDatabase(): Promise<void> {
     await invoke<string>('init_database');
     console.log('Database initialized successfully via SeaORM backend');
   } catch (error) {
-    console.error('Failed to initialize database:', error);
-    throw error;
+    const errorMessage = getDatabaseErrorMessage(
+      'database.error.initFailed' as TranslationKey
+    );
+    console.error(errorMessage, error);
+    throw new Error(`${errorMessage}: ${error}`);
   }
 }
 
@@ -38,7 +72,10 @@ export async function checkDatabaseHealth(): Promise<{
       lastMigration: health.last_migration,
     };
   } catch (error) {
-    console.error('Database health check failed:', error);
+    const errorMessage = getDatabaseErrorMessage(
+      'database.error.healthCheckFailed' as TranslationKey
+    );
+    console.error(errorMessage, error);
     return {
       isHealthy: false,
       version: 'unknown',

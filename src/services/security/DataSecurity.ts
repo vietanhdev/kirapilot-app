@@ -1,5 +1,36 @@
 // Data security and encryption utilities
 import { reportErrorWithPrivacy } from '../../contexts/PrivacyContext';
+import { TranslationKey } from '../../i18n';
+
+// Translation function type for security services
+export type SecurityTranslationFunction = (
+  key: TranslationKey,
+  variables?: Record<string, string | number>
+) => string;
+
+// Global translation function for security services
+let securityTranslationFunction: SecurityTranslationFunction = (
+  key: TranslationKey
+) => key;
+
+/**
+ * Set translation function for security services
+ */
+export function setSecurityTranslationFunction(
+  translationFunction: SecurityTranslationFunction
+): void {
+  securityTranslationFunction = translationFunction;
+}
+
+/**
+ * Get localized security error message
+ */
+export function getSecurityErrorMessage(
+  key: TranslationKey,
+  variables?: Record<string, string | number>
+): string {
+  return securityTranslationFunction(key, variables);
+}
 
 /**
  * Simple encryption/decryption using Web Crypto API
@@ -58,7 +89,10 @@ class DataSecurity {
       reportErrorWithPrivacy(error as Error, {
         context: 'DataSecurity.initializeEncryption',
       });
-      throw new Error('Failed to initialize encryption');
+      const errorMessage = getSecurityErrorMessage(
+        'security.error.initEncryptionFailed' as TranslationKey
+      );
+      throw new Error(errorMessage);
     }
   }
 
@@ -71,7 +105,10 @@ class DataSecurity {
     }
 
     if (!this.encryptionKey) {
-      throw new Error('Encryption key not available');
+      const errorMessage = getSecurityErrorMessage(
+        'security.error.encryptionKeyNotAvailable' as TranslationKey
+      );
+      throw new Error(errorMessage);
     }
 
     try {
@@ -99,7 +136,10 @@ class DataSecurity {
       reportErrorWithPrivacy(error as Error, {
         context: 'DataSecurity.encryptData',
       });
-      throw new Error('Failed to encrypt data');
+      const errorMessage = getSecurityErrorMessage(
+        'security.error.encryptFailed' as TranslationKey
+      );
+      throw new Error(errorMessage);
     }
   }
 
@@ -112,7 +152,10 @@ class DataSecurity {
     }
 
     if (!this.encryptionKey) {
-      throw new Error('Encryption key not available');
+      const errorMessage = getSecurityErrorMessage(
+        'security.error.encryptionKeyNotAvailable' as TranslationKey
+      );
+      throw new Error(errorMessage);
     }
 
     try {
@@ -141,7 +184,10 @@ class DataSecurity {
       reportErrorWithPrivacy(error as Error, {
         context: 'DataSecurity.decryptData',
       });
-      throw new Error('Failed to decrypt data');
+      const errorMessage = getSecurityErrorMessage(
+        'security.error.decryptFailed' as TranslationKey
+      );
+      throw new Error(errorMessage);
     }
   }
 
@@ -157,7 +203,10 @@ class DataSecurity {
       reportErrorWithPrivacy(error as Error, {
         context: 'DataSecurity.secureStore',
       });
-      throw new Error('Failed to securely store data');
+      const errorMessage = getSecurityErrorMessage(
+        'security.error.secureStoreFailed' as TranslationKey
+      );
+      throw new Error(errorMessage);
     }
   }
 
@@ -232,7 +281,10 @@ class DataSecurity {
       reportErrorWithPrivacy(error as Error, {
         context: 'DataSecurity.generateHash',
       });
-      throw new Error('Failed to generate hash');
+      const errorMessage = getSecurityErrorMessage(
+        'security.error.generateHashFailed' as TranslationKey
+      );
+      throw new Error(errorMessage);
     }
   }
 

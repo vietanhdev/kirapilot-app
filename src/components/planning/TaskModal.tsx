@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Task, Priority, TaskStatus } from '../../types';
 import { generateId } from '../../utils';
+import { useTranslation } from '../../hooks/useTranslation';
 import {
   Modal,
   ModalContent,
@@ -56,6 +57,7 @@ export function TaskModal({
   task,
   defaultDate,
 }: TaskModalProps) {
+  const { t } = useTranslation();
   const isEditMode = !!task;
   const [formData, setFormData] = useState<FormData>({
     title: '',
@@ -178,22 +180,22 @@ export function TaskModal({
   const priorityOptions = [
     {
       key: Priority.LOW,
-      label: 'Low',
+      label: t('priority.low'),
       icon: <CheckCircle2 className='w-3 h-3' />,
     },
     {
       key: Priority.MEDIUM,
-      label: 'Medium',
+      label: t('priority.medium'),
       icon: <Target className='w-3 h-3' />,
     },
     {
       key: Priority.HIGH,
-      label: 'High',
+      label: t('priority.high'),
       icon: <AlertCircle className='w-3 h-3' />,
     },
     {
       key: Priority.URGENT,
-      label: 'Urgent',
+      label: t('priority.urgent'),
       icon: <Flame className='w-3 h-3' />,
     },
   ];
@@ -220,7 +222,9 @@ export function TaskModal({
                 <PlusCircle className='w-4 h-4' />
               )}
               <h2 className='text-lg font-semibold'>
-                {isEditMode ? 'Edit Task' : 'Create New Task'}
+                {isEditMode
+                  ? t('task.modal.title.edit')
+                  : t('task.modal.title.create')}
               </h2>
             </div>
           </ModalHeader>
@@ -229,8 +233,8 @@ export function TaskModal({
             {/* Title */}
             <Input
               autoFocus
-              label='Title'
-              placeholder='What needs to be done?'
+              label={t('task.modal.label.title')}
+              placeholder={t('task.modal.placeholder.title')}
               value={formData.title}
               onChange={e =>
                 setFormData(prev => ({ ...prev, title: e.target.value }))
@@ -241,8 +245,8 @@ export function TaskModal({
 
             {/* Description */}
             <Textarea
-              label='Description'
-              placeholder='Add details about this task...'
+              label={t('task.modal.label.description')}
+              placeholder={t('task.modal.placeholder.description')}
               value={formData.description}
               onChange={e =>
                 setFormData(prev => ({ ...prev, description: e.target.value }))
@@ -256,8 +260,8 @@ export function TaskModal({
             <div className='grid grid-cols-2 gap-3'>
               {/* Priority */}
               <Select
-                label='Priority'
-                placeholder='Select priority'
+                label={t('task.modal.label.priority')}
+                placeholder={t('task.modal.placeholder.priority')}
                 selectedKeys={[formData.priority.toString()]}
                 onSelectionChange={keys => {
                   const priority = Array.from(keys)[0] as string;
@@ -286,8 +290,8 @@ export function TaskModal({
               {/* Time Estimate */}
               <Input
                 type='number'
-                label='Time (min)'
-                placeholder='60'
+                label={t('task.modal.label.timeEstimate')}
+                placeholder={t('task.modal.placeholder.timeEstimate')}
                 value={formData.timeEstimate.toString()}
                 onChange={e =>
                   setFormData(prev => ({
@@ -306,7 +310,7 @@ export function TaskModal({
               {/* Due Date */}
               <Input
                 type='date'
-                label='Due Date'
+                label={t('task.modal.label.dueDate')}
                 value={
                   formData.dueDate
                     ? formData.dueDate.toISOString().split('T')[0]
@@ -327,7 +331,7 @@ export function TaskModal({
               {/* Scheduled Date */}
               <Input
                 type='date'
-                label='Scheduled'
+                label={t('task.modal.label.scheduled')}
                 value={
                   formData.scheduledDate
                     ? formData.scheduledDate.toISOString().split('T')[0]
@@ -350,7 +354,7 @@ export function TaskModal({
             <div className='space-y-2'>
               <div className='flex gap-2'>
                 <Input
-                  placeholder='Add tag...'
+                  placeholder={t('task.modal.placeholder.tag')}
                   value={newTag}
                   onChange={e => setNewTag(e.target.value)}
                   onKeyDown={e =>
@@ -401,7 +405,7 @@ export function TaskModal({
               size='sm'
               isDisabled={isSubmitting}
             >
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button
               color='primary'
@@ -418,7 +422,9 @@ export function TaskModal({
                 ))
               }
             >
-              {isEditMode ? 'Save Changes' : 'Create Task'}
+              {isEditMode
+                ? t('task.modal.button.saveChanges')
+                : t('task.modal.button.createTask')}
             </Button>
           </ModalFooter>
         </form>

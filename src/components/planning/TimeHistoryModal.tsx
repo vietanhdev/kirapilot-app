@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { Clock, Calendar, Coffee, Play } from 'lucide-react';
 import { Task, TimerSession } from '../../types';
 import { TimeTrackingService } from '../../services/database/repositories/TimeTrackingService';
+import { useTranslation } from '../../hooks/useTranslation';
 import {
   Modal,
   ModalContent,
@@ -23,6 +24,7 @@ export function TimeHistoryModal({
   isOpen,
   onClose,
 }: TimeHistoryModalProps) {
+  const { t } = useTranslation();
   const [sessions, setSessions] = useState<TimerSession[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -76,13 +78,13 @@ export function TimeHistoryModal({
     );
 
     if (diffDays === 0) {
-      return 'Today';
+      return t('timeHistory.today');
     }
     if (diffDays === 1) {
-      return 'Yesterday';
+      return t('timeHistory.yesterday');
     }
     if (diffDays < 7) {
-      return `${diffDays} days ago`;
+      return t('timeHistory.daysAgo', { days: diffDays });
     }
     return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
   };
@@ -121,7 +123,7 @@ export function TimeHistoryModal({
           <div className='flex flex-col gap-1'>
             <div className='flex items-center gap-2'>
               <Clock className='w-4 h-4 text-primary' />
-              <span className='font-semibold'>Time History</span>
+              <span className='font-semibold'>{t('timeHistory.title')}</span>
             </div>
             <span className='text-sm text-default-500 font-normal'>
               {task.title}
@@ -137,19 +139,25 @@ export function TimeHistoryModal({
                 <div className='text-lg font-bold text-primary'>
                   {completedSessions.length}
                 </div>
-                <div className='text-xs text-default-400'>Sessions</div>
+                <div className='text-xs text-default-400'>
+                  {t('timeHistory.sessions')}
+                </div>
               </div>
               <div className='text-center'>
                 <div className='text-lg font-bold text-success'>
                   {formatDuration(totalWorkTime)}
                 </div>
-                <div className='text-xs text-default-400'>Total Time</div>
+                <div className='text-xs text-default-400'>
+                  {t('timeHistory.totalTime')}
+                </div>
               </div>
               <div className='text-center'>
                 <div className='text-lg font-bold text-warning'>
                   {task.actualTime}min
                 </div>
-                <div className='text-xs text-default-400'>Recorded</div>
+                <div className='text-xs text-default-400'>
+                  {t('timeHistory.recorded')}
+                </div>
               </div>
             </div>
           </div>
@@ -160,7 +168,9 @@ export function TimeHistoryModal({
           {isLoading ? (
             <div className='text-center py-8'>
               <div className='animate-spin rounded-full h-5 w-5 border-b-2 border-primary mx-auto'></div>
-              <p className='text-default-400 mt-2 text-sm'>Loading...</p>
+              <p className='text-default-400 mt-2 text-sm'>
+                {t('timeHistory.loading')}
+              </p>
             </div>
           ) : error ? (
             <div className='text-center py-4'>
@@ -169,9 +179,11 @@ export function TimeHistoryModal({
           ) : sessions.length === 0 ? (
             <div className='text-center py-8'>
               <Clock className='w-8 h-8 text-default-300 mx-auto mb-2' />
-              <p className='text-default-400 text-sm'>No sessions yet</p>
+              <p className='text-default-400 text-sm'>
+                {t('timeHistory.noSessionsYet')}
+              </p>
               <p className='text-xs text-default-300 mt-1'>
-                Start a timer to track work on this task
+                {t('timeHistory.startTimerToTrack')}
               </p>
             </div>
           ) : (
@@ -238,7 +250,7 @@ export function TimeHistoryModal({
                             variant='flat'
                             startContent={<Play className='w-3 h-3' />}
                           >
-                            Active
+                            {t('timeHistory.active')}
                           </Chip>
                         )}
                       </div>

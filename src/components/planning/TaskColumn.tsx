@@ -7,6 +7,7 @@ import {
 } from '@dnd-kit/sortable';
 import { Plus, LucideIcon } from 'lucide-react';
 import { Task } from '../../types';
+import { useTranslation } from '../../hooks/useTranslation';
 
 interface TaskColumnProps {
   title: string;
@@ -35,6 +36,7 @@ export function TaskColumn({
   columnHeight,
   columnWidth,
 }: TaskColumnProps) {
+  const { t } = useTranslation();
   const { isOver, setNodeRef } = useDroppable({
     id: title.toLowerCase(),
     data: {
@@ -177,7 +179,7 @@ export function TaskColumn({
                   ? 'text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 hover:bg-primary-100 dark:hover:bg-primary-900/30'
                   : 'text-foreground-600 hover:text-foreground hover:bg-content2'
               }`}
-              title='Add task'
+              title={t('planning.addTask')}
             >
               <Plus className='w-3.5 h-3.5' />
             </button>
@@ -210,7 +212,7 @@ export function TaskColumn({
             <div className='animate-bounce'>
               <Plus className='w-6 h-6 mx-auto mb-1 text-primary-400' />
               <p className='text-xs text-primary-400 font-medium'>
-                Drop task here
+                {t('planning.dropTaskHere')}
               </p>
             </div>
           </div>
@@ -220,10 +222,10 @@ export function TaskColumn({
         {count === 0 && !isOver && (
           <div className='text-center py-6 border-2 border-dashed border-divider rounded-lg'>
             <div className='text-xs text-foreground-500 text-center'>
-              {isOver ? 'Drop task here' : 'No tasks'}
+              {isOver ? t('planning.dropTaskHere') : t('planning.noTasks')}
             </div>
             <p className='text-xs text-foreground-600 mt-1'>
-              Drag tasks here or click + to add
+              {t('planning.dragTasksHere')}
             </p>
           </div>
         )}

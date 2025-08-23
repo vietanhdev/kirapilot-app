@@ -63,7 +63,7 @@ interface TaskTimeData {
 
 export function Reports() {
   const { isInitialized } = useDatabase();
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const [timeRange, setTimeRange] = useState<'week' | 'month' | 'quarter'>(
     'week'
   );
@@ -177,10 +177,19 @@ export function Reports() {
 
       const dailyDataArray: DailyData[] = Array.from(dailyMap.entries())
         .map(([date, data]) => ({
-          date: new Date(date).toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-          }),
+          date: new Date(date).toLocaleDateString(
+            {
+              en: 'en-US',
+              es: 'es-ES',
+              fr: 'fr-FR',
+              de: 'de-DE',
+              vi: 'vi-VN',
+            }[language] || 'en-US',
+            {
+              month: 'short',
+              day: 'numeric',
+            }
+          ),
           hours: Math.round(data.hours * 10) / 10,
           sessions: data.sessions,
           productivity: Math.round(data.productivity),
@@ -462,7 +471,7 @@ export function Reports() {
             <div className='flex items-center gap-2'>
               <TrendingUp className='w-5 h-5 text-green-500' />
               <h3 className='text-lg font-semibold text-foreground'>
-                Hourly Patterns
+                {t('reports.hourlyPatterns')}
               </h3>
             </div>
           </CardHeader>
@@ -485,7 +494,10 @@ export function Reports() {
                     color: '#F9FAFB',
                   }}
                   labelFormatter={value => `${value}:00`}
-                  formatter={(value: number) => [`${value}%`, 'Productivity']}
+                  formatter={(value: number) => [
+                    `${value}%`,
+                    t('reports.productivity'),
+                  ]}
                 />
                 <Line
                   type='monotone'
@@ -506,7 +518,7 @@ export function Reports() {
             <div className='flex items-center gap-2'>
               <Target className='w-5 h-5 text-purple-500' />
               <h3 className='text-lg font-semibold text-foreground'>
-                Task Performance
+                {t('reports.taskPerformance')}
               </h3>
             </div>
           </CardHeader>
@@ -515,10 +527,10 @@ export function Reports() {
               <div className='text-center py-12'>
                 <Activity className='w-12 h-12 text-foreground-400 mx-auto mb-3' />
                 <p className='text-foreground-600 mb-2'>
-                  No task data available
+                  {t('reports.noTaskData')}
                 </p>
                 <p className='text-sm text-foreground-500'>
-                  Start working on tasks to see performance insights
+                  {t('reports.startWorkingTasks')}
                 </p>
               </div>
             ) : (
@@ -530,7 +542,7 @@ export function Reports() {
                       {taskTimeData.length}
                     </div>
                     <div className='text-xs text-foreground-600'>
-                      Active Tasks
+                      {t('reports.activeTasks')}
                     </div>
                   </div>
                   <div className='text-center'>
@@ -543,7 +555,9 @@ export function Reports() {
                       )}
                       %
                     </div>
-                    <div className='text-xs text-foreground-600'>Avg Focus</div>
+                    <div className='text-xs text-foreground-600'>
+                      {t('reports.avgFocus')}
+                    </div>
                   </div>
                   <div className='text-center'>
                     <div className='text-2xl font-bold text-blue-500'>
@@ -555,7 +569,7 @@ export function Reports() {
                       )}
                     </div>
                     <div className='text-xs text-foreground-600'>
-                      Total Time
+                      {t('reports.totalTime')}
                     </div>
                   </div>
                 </div>
@@ -563,7 +577,7 @@ export function Reports() {
                 {/* Top Performing Tasks List */}
                 <div className='space-y-2'>
                   <h4 className='text-sm font-medium text-foreground mb-3'>
-                    Top Performing Tasks
+                    {t('reports.topPerformingTasks')}
                   </h4>
                   {taskTimeData.slice(0, 5).map((task, index) => {
                     const maxTime = Math.max(
@@ -627,8 +641,10 @@ export function Reports() {
 
                         {/* Session count */}
                         <div className='text-xs text-foreground-500'>
-                          {task.sessions} session
-                          {task.sessions !== 1 ? 's' : ''}
+                          {task.sessions}{' '}
+                          {task.sessions === 1
+                            ? t('reports.session')
+                            : t('reports.sessionsPlural')}
                         </div>
                       </div>
                     );
@@ -639,7 +655,9 @@ export function Reports() {
                 {taskTimeData.length > 5 && (
                   <div className='text-center pt-2'>
                     <button className='text-sm text-purple-500 hover:text-purple-600 font-medium'>
-                      View all {taskTimeData.length} tasks →
+                      {t('reports.viewAllTasks', {
+                        count: taskTimeData.length,
+                      })}
                     </button>
                   </div>
                 )}
@@ -655,7 +673,7 @@ export function Reports() {
               <div className='flex items-center gap-2'>
                 <Activity className='w-5 h-5 text-orange-500' />
                 <h3 className='text-lg font-semibold text-foreground'>
-                  Productivity Trends
+                  {t('reports.productivityTrends')}
                 </h3>
               </div>
               {dailyData.length > 0 && (
@@ -663,7 +681,7 @@ export function Reports() {
                   <div className='flex items-center gap-1'>
                     <div className='w-2 h-2 bg-orange-500 rounded-full'></div>
                     <span className='text-xs text-foreground-600'>
-                      Daily Focus
+                      {t('reports.dailyFocus')}
                     </span>
                   </div>
                 </div>
@@ -674,9 +692,11 @@ export function Reports() {
             {dailyData.length === 0 ? (
               <div className='text-center py-12'>
                 <TrendingUp className='w-12 h-12 text-foreground-400 mx-auto mb-3' />
-                <p className='text-foreground-600 mb-2'>No productivity data</p>
+                <p className='text-foreground-600 mb-2'>
+                  {t('reports.noProductivityData')}
+                </p>
                 <p className='text-sm text-foreground-500'>
-                  Complete some work sessions to see trends
+                  {t('reports.completeWorkSessions')}
                 </p>
               </div>
             ) : (
@@ -687,7 +707,9 @@ export function Reports() {
                     <div className='text-xl font-bold text-orange-500'>
                       {Math.max(...dailyData.map(d => d.productivity))}%
                     </div>
-                    <div className='text-xs text-foreground-600'>Best Day</div>
+                    <div className='text-xs text-foreground-600'>
+                      {t('reports.bestDay')}
+                    </div>
                   </div>
                   <div className='text-center'>
                     <div className='text-xl font-bold text-green-500'>
@@ -697,13 +719,17 @@ export function Reports() {
                       )}
                       %
                     </div>
-                    <div className='text-xs text-foreground-600'>Average</div>
+                    <div className='text-xs text-foreground-600'>
+                      {t('reports.average')}
+                    </div>
                   </div>
                   <div className='text-center'>
                     <div className='text-xl font-bold text-blue-500'>
                       {dailyData.filter(d => d.productivity >= 80).length}
                     </div>
-                    <div className='text-xs text-foreground-600'>High Days</div>
+                    <div className='text-xs text-foreground-600'>
+                      {t('reports.highDays')}
+                    </div>
                   </div>
                 </div>
 
@@ -744,9 +770,13 @@ export function Reports() {
                       }}
                       formatter={(value: number, name: string) => [
                         `${value}%`,
-                        name === 'productivity' ? 'Focus Score' : name,
+                        name === 'productivity'
+                          ? t('reports.focusScore')
+                          : name,
                       ]}
-                      labelFormatter={label => `Date: ${label}`}
+                      labelFormatter={label =>
+                        t('reports.dateLabel', { date: label })
+                      }
                     />
                     <Bar
                       dataKey='productivity'
@@ -760,7 +790,7 @@ export function Reports() {
                 {/* Trend Insights */}
                 <div className='space-y-2'>
                   <h4 className='text-sm font-medium text-foreground'>
-                    Recent Performance
+                    {t('reports.recentPerformance')}
                   </h4>
                   {dailyData
                     .slice(-3)
@@ -816,7 +846,7 @@ export function Reports() {
             <div className='flex items-center gap-2'>
               <Calendar className='w-5 h-5 text-indigo-500' />
               <h3 className='text-lg font-semibold text-foreground'>
-                Task Breakdown
+                {t('reports.taskBreakdown')}
               </h3>
             </div>
           </CardHeader>
@@ -826,16 +856,16 @@ export function Reports() {
                 <thead>
                   <tr className='border-b border-divider'>
                     <th className='text-left py-3 px-4 text-foreground-600 font-medium'>
-                      Task
+                      {t('reports.task')}
                     </th>
                     <th className='text-left py-3 px-4 text-foreground-600 font-medium'>
-                      Time
+                      {t('reports.time')}
                     </th>
                     <th className='text-left py-3 px-4 text-foreground-600 font-medium'>
-                      Sessions
+                      {t('reports.sessions')}
                     </th>
                     <th className='text-left py-3 px-4 text-foreground-600 font-medium'>
-                      Productivity
+                      {t('reports.productivity')}
                     </th>
                   </tr>
                 </thead>

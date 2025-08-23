@@ -5,6 +5,7 @@ import rehypeHighlight from 'rehype-highlight';
 import { Button } from '@heroui/react';
 import { Copy, Check } from 'lucide-react';
 import { useClipboard } from '../../hooks/useClipboard';
+import { useTranslation } from '../../hooks/useTranslation';
 import 'highlight.js/styles/github.css';
 
 interface MarkdownRendererProps {
@@ -20,6 +21,7 @@ interface CodeBlockProps {
 
 function CodeBlock({ children, className, inline }: CodeBlockProps) {
   const { copied, copy } = useClipboard();
+  const { t } = useTranslation();
   const language = className?.replace('language-', '') || '';
   const codeContent =
     typeof children === 'string' ? children : String(children || '');
@@ -36,7 +38,7 @@ function CodeBlock({ children, className, inline }: CodeBlockProps) {
     <div className='relative group'>
       <div className='flex items-center justify-between bg-content2 px-3 py-2 rounded-t-lg border-b border-divider'>
         <span className='text-xs font-medium text-foreground-600'>
-          {language || 'code'}
+          {language || t('common.markdownRenderer.code')}
         </span>
         <Button
           isIconOnly

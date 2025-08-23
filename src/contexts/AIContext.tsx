@@ -9,6 +9,7 @@ import {
   ReactAIService,
   getReactAIService,
 } from '../services/ai/ReactAIService';
+import { useTranslation } from '../hooks/useTranslation';
 import {
   AIResponse,
   AISuggestion,
@@ -53,6 +54,7 @@ interface AIProviderProps {
 const AIContext = createContext<AIContextType | undefined>(undefined);
 
 export function AIProvider({ children }: AIProviderProps) {
+  const { t } = useTranslation();
   const [aiService, setAiService] = useState<ReactAIService | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -128,12 +130,16 @@ export function AIProvider({ children }: AIProviderProps) {
     return () => {
       window.removeEventListener('storage', handleStorageChange);
     };
-  }, []);
+  }, [t]); // Re-initialize when translation function changes (language change)
 
   const initializeAI = () => {
     try {
       // Always create the service instance, but don't require API key initially
       const service = getReactAIService();
+
+      // Set translation function for localized AI messages
+      service.setTranslationFunction(t);
+
       setAiService(service);
 
       // Check if API key is available in environment, settings, or legacy localStorage
@@ -149,9 +155,7 @@ export function AIProvider({ children }: AIProviderProps) {
         setIsInitialized(true);
         setError(null);
       } else {
-        setError(
-          'Google API key not configured. Please provide an API key to enable Kira AI.'
-        );
+        setError(t('ai.error.apiKeyRequired'));
         setIsInitialized(false);
       }
     } catch (err) {
@@ -167,11 +171,13 @@ export function AIProvider({ children }: AIProviderProps) {
     try {
       if (aiService) {
         aiService.setApiKey(apiKey);
+        aiService.setTranslationFunction(t);
         setIsInitialized(true);
         setError(null);
       } else {
         const service = getReactAIService();
         service.setApiKey(apiKey);
+        service.setTranslationFunction(t);
         setAiService(service);
         setIsInitialized(true);
         setError(null);
@@ -193,7 +199,7 @@ export function AIProvider({ children }: AIProviderProps) {
     context: AppContext
   ): Promise<AIResponse | null> => {
     if (!aiService || !isInitialized) {
-      setError('AI service not initialized');
+      setError(t('ai.status.setupRequired'));
       return null;
     }
 
@@ -289,7 +295,7 @@ export function AIProvider({ children }: AIProviderProps) {
 
   const analyzePatterns = async (): Promise<PatternAnalysis | null> => {
     if (!aiService) {
-      setError('AI service not initialized');
+      setError(t('ai.status.setupRequired'));
       return null;
     }
 
