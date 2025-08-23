@@ -10,7 +10,6 @@ import {
   ModalFooter,
   Button,
   Input,
-  Textarea,
   Select,
   SelectItem,
   Chip,
@@ -28,6 +27,7 @@ import {
   Edit3,
   PlusCircle,
 } from 'lucide-react';
+import { MinimalRichTextEditor } from '../common/MinimalRichTextEditor';
 
 interface TaskModalProps {
   isOpen: boolean;
@@ -211,9 +211,19 @@ export function TaskModal({
       size='lg'
       scrollBehavior='inside'
       backdrop='blur'
+      onMouseDown={e => e.stopPropagation()}
+      onPointerDown={e => e.stopPropagation()}
     >
-      <ModalContent>
-        <form onSubmit={handleSubmit}>
+      <ModalContent
+        onMouseDown={e => e.stopPropagation()}
+        onPointerDown={e => e.stopPropagation()}
+        onTouchStart={e => e.stopPropagation()}
+      >
+        <form
+          onSubmit={handleSubmit}
+          onMouseDown={e => e.stopPropagation()}
+          onPointerDown={e => e.stopPropagation()}
+        >
           <ModalHeader className='flex flex-col gap-1'>
             <div className='flex items-center gap-2'>
               {isEditMode ? (
@@ -241,20 +251,29 @@ export function TaskModal({
               }
               isRequired
               size='sm'
+              classNames={{
+                input: 'text-foreground',
+                inputWrapper:
+                  'bg-content2 border-divider data-[hover=true]:bg-content3 group-data-[focus=true]:bg-content2',
+              }}
             />
 
             {/* Description */}
-            <Textarea
-              label={t('task.modal.label.description')}
-              placeholder={t('task.modal.placeholder.description')}
-              value={formData.description}
-              onChange={e =>
-                setFormData(prev => ({ ...prev, description: e.target.value }))
-              }
-              size='sm'
-              minRows={2}
-              maxRows={4}
-            />
+            <div className='space-y-1'>
+              <label className='text-sm font-medium text-foreground-600'>
+                {t('task.modal.label.description')}
+              </label>
+              <div className='h-32'>
+                <MinimalRichTextEditor
+                  content={formData.description}
+                  onChange={content =>
+                    setFormData(prev => ({ ...prev, description: content }))
+                  }
+                  placeholder={t('task.modal.placeholder.description')}
+                  className='h-full'
+                />
+              </div>
+            </div>
 
             {/* Priority & Time Row */}
             <div className='grid grid-cols-2 gap-3'>
@@ -271,6 +290,11 @@ export function TaskModal({
                   }));
                 }}
                 size='sm'
+                classNames={{
+                  trigger:
+                    'bg-content2 border-divider data-[hover=true]:bg-content3',
+                  value: 'text-foreground',
+                }}
                 renderValue={() =>
                   selectedPriority && (
                     <div className='flex items-center gap-2'>
@@ -302,6 +326,11 @@ export function TaskModal({
                 min={15}
                 step={15}
                 startContent={<Timer className='w-3 h-3' />}
+                classNames={{
+                  input: 'text-foreground',
+                  inputWrapper:
+                    'bg-content2 border-divider data-[hover=true]:bg-content3 group-data-[focus=true]:bg-content2',
+                }}
               />
             </div>
 
@@ -326,6 +355,11 @@ export function TaskModal({
                 }
                 size='sm'
                 startContent={<Calendar className='w-3 h-3' />}
+                classNames={{
+                  input: 'text-foreground',
+                  inputWrapper:
+                    'bg-content2 border-divider data-[hover=true]:bg-content3 group-data-[focus=true]:bg-content2',
+                }}
               />
 
               {/* Scheduled Date */}
@@ -347,6 +381,11 @@ export function TaskModal({
                 }
                 size='sm'
                 startContent={<Calendar className='w-3 h-3' />}
+                classNames={{
+                  input: 'text-foreground',
+                  inputWrapper:
+                    'bg-content2 border-divider data-[hover=true]:bg-content3 group-data-[focus=true]:bg-content2',
+                }}
               />
             </div>
 
@@ -363,6 +402,11 @@ export function TaskModal({
                   size='sm'
                   startContent={<Hash className='w-3 h-3' />}
                   className='flex-1'
+                  classNames={{
+                    input: 'text-foreground',
+                    inputWrapper:
+                      'bg-content2 border-divider data-[hover=true]:bg-content3 group-data-[focus=true]:bg-content2',
+                  }}
                 />
                 <Button
                   type='button'
@@ -408,11 +452,16 @@ export function TaskModal({
               {t('common.cancel')}
             </Button>
             <Button
-              color='primary'
               type='submit'
               isDisabled={!formData.title.trim() || isSubmitting}
               isLoading={isSubmitting}
               size='sm'
+              style={{
+                backgroundColor: '#059669',
+                color: '#ffffff',
+                fontWeight: '500',
+              }}
+              className='shadow-md hover:opacity-90 transition-opacity'
               startContent={
                 !isSubmitting &&
                 (isEditMode ? (

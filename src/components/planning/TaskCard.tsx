@@ -1,14 +1,14 @@
-// Compact task card component for planning interface
-import { useState } from 'react';
+// Modern task card component with enhanced note editing
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Task, TaskStatus } from '../../types';
 import { useDraggable } from '@dnd-kit/core';
 import { useTranslation } from '../../hooks/useTranslation';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Clock,
   Circle,
   CheckCircle,
   Edit3,
-  Save,
   X,
   FileText,
   ChevronDown,
@@ -19,9 +19,14 @@ import {
   Pause,
   Trash2,
   History,
+  Type,
+  Maximize2,
+  Minimize2,
+  Check,
 } from 'lucide-react';
 import { TaskModal } from './TaskModal';
 import { ConfirmationDialog } from '../common';
+import { MinimalRichTextEditor } from '../common/MinimalRichTextEditor';
 
 interface PlanningTaskCardProps {
   task: Task;
@@ -36,6 +41,14 @@ interface PlanningTaskCardProps {
   isTimerRunning?: boolean;
   elapsedTime?: number;
   className?: string;
+}
+
+type EditMode = 'none' | 'inline' | 'expanded' | 'modal';
+
+interface AutoSaveState {
+  isSaving: boolean;
+  lastSaved: Date | null;
+  hasUnsavedChanges: boolean;
 }
 
 export function TaskCard({
@@ -54,16 +67,25 @@ export function TaskCard({
 }: PlanningTaskCardProps) {
   const { t } = useTranslation();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isEditingNotes, setIsEditingNotes] = useState(false);
+  const [editMode, setEditMode] = useState<EditMode>('none');
   const [isExpanded, setIsExpanded] = useState(false);
   const [isTimerOperationPending, setIsTimerOperationPending] = useState(false);
   const [isStatusChangePending, setIsStatusChangePending] = useState(false);
-  const [notesText, setNotesText] = useState(task.description || '');
+  const [notesContent, setNotesContent] = useState(task.description || '');
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [autoSaveState, setAutoSaveState] = useState<AutoSaveState>({
+    isSaving: false,
+    lastSaved: null,
+    hasUnsavedChanges: false,
+  });
+
+  const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const editorContainerRef = useRef<HTMLDivElement>(null);
 
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useDraggable({
       id: task.id,
+      disabled: editMode !== 'none', // Disable dragging when editing
     });
 
   const style = transform
@@ -71,6 +93,89 @@ export function TaskCard({
         transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
       }
     : undefined;
+
+  // Auto-save functionality
+  const performAutoSave = useCallback(
+    async (content: string) => {
+      if (!onEdit || content === task.description) {
+        return;
+      }
+
+      setAutoSaveState(prev => ({ ...prev, isSaving: true }));
+
+      try {
+        onEdit({ description: content });
+        setAutoSaveState({
+          isSaving: false,
+          lastSaved: new Date(),
+          hasUnsavedChanges: false,
+        });
+      } catch (error) {
+        console.error('Auto-save failed:', error);
+        setAutoSaveState(prev => ({ ...prev, isSaving: false }));
+      }
+    },
+    [onEdit, task.description]
+  );
+
+  // Debounced auto-save
+  const debouncedAutoSave = useCallback(
+    (content: string) => {
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+      }
+
+      setAutoSaveState(prev => ({ ...prev, hasUnsavedChanges: true }));
+
+      autoSaveTimeoutRef.current = setTimeout(() => {
+        performAutoSave(content);
+      }, 1500); // Auto-save after 1.5 seconds of inactivity
+    },
+    [performAutoSave]
+  );
+
+  // Update notes content when task changes
+  useEffect(() => {
+    setNotesContent(task.description || '');
+    setAutoSaveState(prev => ({ ...prev, hasUnsavedChanges: false }));
+  }, [task.description]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Handle keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (editMode === 'none') {
+        return;
+      }
+
+      // Escape to cancel editing
+      if (e.key === 'Escape') {
+        handleCancelEdit();
+      }
+      // Cmd/Ctrl + Enter to save and exit
+      else if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+        handleSaveAndExit();
+      }
+      // Cmd/Ctrl + S to save
+      else if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+        e.preventDefault();
+        performAutoSave(notesContent);
+      }
+    };
+
+    if (editMode !== 'none') {
+      document.addEventListener('keydown', handleKeyDown);
+      return () => document.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [editMode, notesContent, performAutoSave]);
 
   const handleStatusToggle = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -86,7 +191,6 @@ export function TaskCard({
         onStatusChange(TaskStatus.COMPLETED);
       }
     } finally {
-      // Reset the pending state after a short delay to prevent rapid clicks
       setTimeout(() => setIsStatusChangePending(false), 300);
     }
   };
@@ -103,25 +207,42 @@ export function TaskCard({
     setIsEditModalOpen(false);
   };
 
+  // Enhanced note editing handlers
   const handleNotesClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setNotesText(task.description || '');
-    setIsEditingNotes(true);
-  };
-
-  const handleNotesSave = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (onEdit) {
-      onEdit({
-        description: notesText,
-      });
+    if (editMode === 'none') {
+      setEditMode('inline');
+      setIsExpanded(true);
     }
-    setIsEditingNotes(false);
   };
 
-  const handleNotesCancel = (e: React.MouseEvent) => {
+  const handleExpandedEdit = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setIsEditingNotes(false);
+    setEditMode('expanded');
+    setIsExpanded(true);
+  };
+
+  const handleSaveAndExit = () => {
+    if (autoSaveState.hasUnsavedChanges) {
+      performAutoSave(notesContent);
+    }
+    setEditMode('none');
+    setIsExpanded(false);
+  };
+
+  const handleCancelEdit = () => {
+    if (autoSaveTimeoutRef.current) {
+      clearTimeout(autoSaveTimeoutRef.current);
+    }
+    setNotesContent(task.description || '');
+    setAutoSaveState(prev => ({ ...prev, hasUnsavedChanges: false }));
+    setEditMode('none');
+    setIsExpanded(false);
+  };
+
+  const handleNotesContentChange = (content: string) => {
+    setNotesContent(content);
+    debouncedAutoSave(content);
   };
 
   const handleToggleExpand = (e: React.MouseEvent) => {
@@ -195,81 +316,48 @@ export function TaskCard({
   const isCompleted = task.status === TaskStatus.COMPLETED;
   const hasNotes = task.description && task.description.trim().length > 0;
   const isTimerActive = activeTimerTaskId === task.id;
+  const isEditing = editMode !== 'none';
 
   return (
-    <div
+    <motion.div
       ref={setNodeRef}
       style={style}
-      {...listeners}
-      {...attributes}
+      {...(editMode === 'none' ? listeners : {})}
+      {...(editMode === 'none' ? attributes : {})}
+      layout
+      initial={false}
+      animate={{
+        scale: isDragging ? 1.05 : 1,
+        opacity: isDragging ? 0.6 : 1,
+      }}
       className={`
-        group relative bg-content1 dark:bg-content2 rounded-md shadow-sm
-        border-l-1 transition-all duration-300 ease-out hover:shadow-md hover:-translate-y-0.5
-        cursor-grab active:cursor-grabbing
+        group relative bg-content1 dark:bg-content2 rounded-lg shadow-sm
+        border-l-4 transition-all duration-300 ease-out
+        ${editMode === 'none' ? 'cursor-grab active:cursor-grabbing hover:shadow-md hover:-translate-y-0.5' : 'cursor-default'}
         ${isOverdue ? 'border-l-rose-500' : ''}
-        ${isDragging ? 'opacity-60 shadow-xl scale-105 z-50' : ''}
+        ${isDragging ? 'shadow-xl z-50' : ''}
         ${isCompleted ? 'opacity-75 border-l-emerald-500' : ''}
-        ${isEditModalOpen || isEditingNotes ? 'border-l-indigo-500 shadow-md ring-1 ring-indigo-200 dark:ring-indigo-800' : ''}
-        ${isTimerActive && isTimerRunning ? 'border-l-green-500 shadow-md ring-1 ring-green-200 dark:ring-green-800' : ''}
-        ${isTimerActive && !isTimerRunning ? 'border-l-amber-500 ring-1 ring-amber-200 dark:ring-amber-800' : ''}
-        ${!isOverdue && !isCompleted && !isTimerActive && !(isEditModalOpen || isEditingNotes) ? 'border-l-divider' : ''}
+        ${isEditing ? 'border-l-indigo-500 shadow-lg ring-2 ring-indigo-200 dark:ring-indigo-800' : ''}
+        ${isTimerActive && isTimerRunning ? 'border-l-green-500 shadow-md ring-2 ring-green-200 dark:ring-green-800' : ''}
+        ${isTimerActive && !isTimerRunning ? 'border-l-amber-500 ring-2 ring-amber-200 dark:ring-amber-800' : ''}
+        ${!isOverdue && !isCompleted && !isTimerActive && !isEditing ? 'border-l-slate-200 dark:border-l-slate-700' : ''}
+        ${editMode === 'expanded' ? 'col-span-full' : ''}
         ${className}
       `}
       onMouseDown={e => {
-        // Allow button clicks to work by not preventing default on buttons
+        if (editMode !== 'none') {
+          return;
+        }
         const target = e.target as HTMLElement;
         if (target.closest('button')) {
           e.stopPropagation();
         }
       }}
     >
-      {/* Notes Editing Modal */}
-      {isEditingNotes && (
-        <div className='absolute inset-0 bg-content1 rounded-md border-l-3 border-l-primary shadow-lg ring-1 ring-primary/20 z-10 p-3'>
-          <div className='space-y-2'>
-            <div className='flex items-center justify-between'>
-              <h4 className='text-xs font-semibold text-slate-900 dark:text-slate-100'>
-                {t('tasks.notes')}
-              </h4>
-              <div className='flex space-x-1'>
-                <button
-                  onClick={handleNotesSave}
-                  onMouseDown={e => e.stopPropagation()}
-                  onPointerDown={e => e.stopPropagation()}
-                  className='px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs rounded transition-all duration-200'
-                  title={t('common.save')}
-                >
-                  <Save className='w-3 h-3' />
-                </button>
-                <button
-                  onClick={handleNotesCancel}
-                  onMouseDown={e => e.stopPropagation()}
-                  onPointerDown={e => e.stopPropagation()}
-                  className='px-2 py-1 bg-slate-500 hover:bg-slate-600 text-white text-xs rounded transition-all duration-200'
-                  title={t('common.cancel')}
-                >
-                  <X className='w-3 h-3' />
-                </button>
-              </div>
-            </div>
-            <textarea
-              value={notesText}
-              onChange={e => setNotesText(e.target.value)}
-              onMouseDown={e => e.stopPropagation()}
-              onPointerDown={e => e.stopPropagation()}
-              className='w-full h-20 px-2 py-1.5 text-xs border border-slate-200 dark:border-slate-700 rounded bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 resize-none placeholder-slate-400 dark:placeholder-slate-500 transition-all duration-200'
-              placeholder={t('tasks.addNotesPlaceholder')}
-              autoFocus
-            />
-          </div>
-        </div>
-      )}
-
       {/* Main Content */}
-      <div className='p-2.5'>
-        {/* Normal Display Mode */}
-        <>
-          {/* Header */}
+      <div className={`${isEditing ? 'pb-2.5' : 'p-2.5'}`}>
+        {/* Header */}
+        <div className={`mb-2 ${isEditing ? 'px-2.5 pt-2.5' : ''}`}>
           <div className='mb-2'>
             <div className='flex items-start space-x-2'>
               <button
@@ -310,7 +398,7 @@ export function TaskCard({
                   </div>
 
                   {/* Expand button - Right side of title */}
-                  {hasNotes && (
+                  {hasNotes && !isEditing && (
                     <button
                       onClick={handleToggleExpand}
                       onMouseDown={e => e.stopPropagation()}
@@ -333,20 +421,128 @@ export function TaskCard({
               </div>
             </div>
 
-            {/* Description preview when expanded */}
-            {isExpanded && hasNotes && (
-              <div className='mt-1.5 ml-6 text-xs text-slate-600 dark:text-slate-400 leading-relaxed'>
-                {/* Strip HTML tags and show plain text - limit to ~100 chars */}
-                {task.description
-                  ?.replace(/<[^>]*>/g, '')
-                  .trim()
-                  .substring(0, 100)}
-                {task.description &&
-                  task.description.replace(/<[^>]*>/g, '').trim().length >
-                    100 &&
-                  '...'}
-              </div>
-            )}
+            {/* Description preview when expanded and not editing */}
+            <AnimatePresence>
+              {isExpanded && hasNotes && !isEditing && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.3, ease: 'easeInOut' }}
+                  className='mt-1.5 ml-6 leading-relaxed overflow-hidden'
+                >
+                  <div
+                    className='prose prose-xs prose-slate dark:prose-invert max-w-none text-xs [&_p]:my-0.5 [&_p]:leading-relaxed [&_p]:text-xs [&_ul]:my-0.5 [&_ol]:my-0.5 [&_li]:my-0 [&_li]:text-xs [&_strong]:text-xs [&_em]:text-xs'
+                    dangerouslySetInnerHTML={{
+                      __html: task.description || '',
+                    }}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Full Width Notes Editor */}
+            <AnimatePresence>
+              {isEditing && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.2, ease: 'easeInOut' }}
+                  className={`
+                    mt-2 ${editMode === 'expanded' ? 'fixed inset-4 z-50 bg-content1 dark:bg-content2 rounded-lg shadow-2xl border border-indigo-300 dark:border-indigo-600 p-4' : 'w-full'}
+                  `}
+                >
+                  {/* Minimal Header */}
+                  <div className='flex items-center justify-between mb-2'>
+                    {/* Auto-save indicator - minimal */}
+                    <div className='flex items-center space-x-2'>
+                      {autoSaveState.isSaving && (
+                        <div className='w-2 h-2 border border-amber-500 border-t-transparent rounded-full animate-spin' />
+                      )}
+                      {autoSaveState.hasUnsavedChanges &&
+                        !autoSaveState.isSaving && (
+                          <div className='w-2 h-2 bg-orange-400 rounded-full' />
+                        )}
+                      {autoSaveState.lastSaved &&
+                        !autoSaveState.hasUnsavedChanges &&
+                        !autoSaveState.isSaving && (
+                          <div className='w-2 h-2 bg-green-400 rounded-full' />
+                        )}
+                    </div>
+
+                    {/* Minimal action buttons */}
+                    <div className='flex items-center space-x-1'>
+                      {/* Expand toggle - icon only */}
+                      {editMode === 'inline' && (
+                        <button
+                          onClick={handleExpandedEdit}
+                          onMouseDown={e => e.stopPropagation()}
+                          className='p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors'
+                          title={t('tasks.expandEditor')}
+                        >
+                          <Maximize2 className='w-3 h-3' />
+                        </button>
+                      )}
+                      {editMode === 'expanded' && (
+                        <button
+                          onClick={() => setEditMode('inline')}
+                          onMouseDown={e => e.stopPropagation()}
+                          className='p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors'
+                          title={t('tasks.collapseEditor')}
+                        >
+                          <Minimize2 className='w-3 h-3' />
+                        </button>
+                      )}
+
+                      {/* Done button - minimal */}
+                      <button
+                        onClick={handleSaveAndExit}
+                        onMouseDown={e => e.stopPropagation()}
+                        disabled={autoSaveState.isSaving}
+                        className='p-1 rounded bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-white transition-colors'
+                        title={`${t('common.done')} (⌘+Enter)`}
+                      >
+                        <Check className='w-3 h-3' />
+                      </button>
+
+                      {/* Cancel button - minimal */}
+                      <button
+                        onClick={handleCancelEdit}
+                        onMouseDown={e => e.stopPropagation()}
+                        className='p-1 rounded bg-slate-400 hover:bg-slate-500 text-white transition-colors'
+                        title={`${t('common.cancel')} (Esc)`}
+                      >
+                        <X className='w-3 h-3' />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Rich Text Editor with proper height and card-matching colors */}
+                  <div
+                    ref={editorContainerRef}
+                    className={`
+                      ${editMode === 'expanded' ? 'h-96' : 'h-32'}
+                      transition-all duration-200
+                    `}
+                    onMouseDown={e => e.stopPropagation()}
+                    onPointerDown={e => e.stopPropagation()}
+                  >
+                    <MinimalRichTextEditor
+                      content={notesContent}
+                      onChange={handleNotesContentChange}
+                      placeholder={t('tasks.addNotesPlaceholder')}
+                      className='h-full'
+                    />
+                  </div>
+
+                  {/* Minimal shortcuts hint */}
+                  <div className='mt-1 text-xs text-slate-400 dark:text-slate-500 text-center'>
+                    ⌘+Enter to save • Esc to cancel
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
           {/* Metadata and Actions */}
@@ -456,13 +652,23 @@ export function TaskCard({
                   onMouseDown={e => e.stopPropagation()}
                   onPointerDown={e => e.stopPropagation()}
                   className={`p-1.5 rounded transition-all duration-200 hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 ${
-                    hasNotes ? 'bg-blue-50 dark:bg-blue-900/10' : ''
-                  }`}
+                    hasNotes || isEditing
+                      ? 'bg-blue-50 dark:bg-blue-900/10'
+                      : ''
+                  } ${isEditing ? 'ring-1 ring-blue-300 dark:ring-blue-600' : ''}`}
                   title={
-                    hasNotes ? t('tasks.viewEditNotes') : t('tasks.addNotes')
+                    isEditing
+                      ? t('tasks.editingNotes')
+                      : hasNotes
+                        ? t('tasks.viewEditNotes')
+                        : t('tasks.addNotes')
                   }
                 >
-                  <FileText className='w-3 h-3' />
+                  {isEditing ? (
+                    <Type className='w-3 h-3' />
+                  ) : (
+                    <FileText className='w-3 h-3' />
+                  )}
                 </button>
 
                 {/* Session Logs Button */}
@@ -524,7 +730,7 @@ export function TaskCard({
               </div>
             </div>
           </div>
-        </>
+        </div>
       </div>
 
       {/* Task Edit Modal */}
@@ -546,6 +752,6 @@ export function TaskCard({
         cancelText={t('tasks.cancelButton')}
         variant='danger'
       />
-    </div>
+    </motion.div>
   );
 }

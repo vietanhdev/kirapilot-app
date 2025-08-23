@@ -3,6 +3,11 @@ export const en = {
   'common.save': 'Save',
   'common.cancel': 'Cancel',
   'common.delete': 'Delete',
+  'common.done': 'Done',
+  'common.saving': 'Saving...',
+  'common.saved': 'Saved',
+  'common.unsavedChanges': 'Unsaved changes',
+  'common.saveAndExit': 'Save and exit',
   'common.edit': 'Edit',
   'common.add': 'Add',
   'common.remove': 'Remove',
@@ -174,6 +179,9 @@ export const en = {
     'Are you sure you want to delete "{title}"? This action cannot be undone.',
   'tasks.deleteConfirmButton': 'Delete',
   'tasks.cancelButton': 'Cancel',
+  'tasks.editingNotes': 'Editing notes',
+  'tasks.expandEditor': 'Expand editor',
+  'tasks.collapseEditor': 'Collapse editor',
 
   // Timer
   'timer.start': 'Start',
