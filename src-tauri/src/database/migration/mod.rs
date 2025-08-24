@@ -10,9 +10,20 @@ pub mod m20240101_000006_create_productivity_patterns_table;
 pub mod m20240101_000007_create_user_preferences_table;
 pub mod m20240101_000008_create_ai_suggestions_table;
 pub mod m20240101_000009_create_indexes;
+pub mod m20240101_000010_create_task_lists_table;
+pub mod m20240101_000011_add_task_list_id_to_tasks;
+pub mod m20240101_000012_fix_task_lists_unique_index;
+
+pub mod initialization;
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod integration_tests;
+
+#[cfg(test)]
+mod manual_test;
 
 pub struct Migrator;
 
@@ -29,6 +40,9 @@ impl MigratorTrait for Migrator {
             Box::new(m20240101_000007_create_user_preferences_table::Migration),
             Box::new(m20240101_000008_create_ai_suggestions_table::Migration),
             Box::new(m20240101_000009_create_indexes::Migration),
+            Box::new(m20240101_000010_create_task_lists_table::Migration),
+            Box::new(m20240101_000011_add_task_list_id_to_tasks::Migration),
+            Box::new(m20240101_000012_fix_task_lists_unique_index::Migration),
         ]
     }
 }

@@ -32,6 +32,7 @@ export function createTaskRequestToTask(request: CreateTaskRequest): Task {
     projectId: request.projectId,
     parentTaskId: request.parentTaskId,
     subtasks: [],
+    taskListId: request.taskListId || 'default-task-list',
     createdAt: now,
     updatedAt: now,
   };
@@ -151,6 +152,7 @@ export function dbRowToTask(row: Record<string, unknown>): Task {
     projectId: row.project_id as string | undefined,
     parentTaskId: row.parent_task_id as string | undefined,
     subtasks: safeJsonParse<string[]>(row.subtasks as string, []),
+    taskListId: (row.task_list_id as string) || 'default-task-list',
     completedAt: row.completed_at
       ? new Date(row.completed_at as string)
       : undefined,

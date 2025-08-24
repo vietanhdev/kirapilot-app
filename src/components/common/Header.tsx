@@ -12,6 +12,7 @@ import { useTimerContext } from '../../contexts/TimerContext';
 import { useTranslation } from '../../hooks/useTranslation';
 import { SessionHistoryModal } from '../timer/SessionHistory';
 import { AppLogo } from './AppLogo';
+import { TaskListDropdown } from './TaskListDropdown';
 
 interface HeaderProps {
   currentView: string;
@@ -65,14 +66,16 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <header className='flex items-center justify-between px-6 py-4 border-b border-divider bg-content1 shadow-sm'>
-      <div className='flex items-center gap-3'>
-        <AppLogo size={32} />
-        <h1 className='text-xl font-bold text-foreground'>KiraPilot</h1>
+    <header className='flex items-center justify-between px-4 sm:px-6 py-4 border-b border-divider bg-content1 shadow-sm'>
+      <div className='flex items-center gap-2 sm:gap-3 min-w-0 flex-1'>
+        <AppLogo size={36} />
+
+        {/* Task List Dropdown */}
+        <TaskListDropdown className='flex-shrink-0' />
 
         {/* Timer Display and Controls */}
         {hasActiveTimer && activeTask && (
-          <div className='flex items-center gap-2 ml-4 px-3 py-2 bg-content2 rounded-lg border border-divider shadow-sm'>
+          <div className='flex items-center gap-2 ml-2 sm:ml-4 px-2 sm:px-3 py-2 bg-content2 rounded-lg border border-divider shadow-sm flex-shrink-0'>
             <div className='flex items-center gap-1'>
               {isRunning ? (
                 <div className='flex items-center gap-1'>
@@ -89,12 +92,12 @@ export const Header: React.FC<HeaderProps> = ({
             <span className='text-sm font-mono text-foreground font-medium'>
               {formatElapsedTime(elapsedTime)}
             </span>
-            <span className='text-xs text-foreground-600 max-w-24 truncate'>
+            <span className='text-xs text-foreground-600 max-w-16 sm:max-w-24 truncate hidden sm:block'>
               {activeTask.title}
             </span>
 
             {/* Timer Controls */}
-            <div className='flex items-center gap-1 ml-2 pl-2 border-l border-divider'>
+            <div className='flex items-center gap-1 ml-1 sm:ml-2 pl-1 sm:pl-2 border-l border-divider'>
               <button
                 onClick={handleTimerControl}
                 className={`p-1.5 rounded-md transition-all duration-200 ${
@@ -123,12 +126,12 @@ export const Header: React.FC<HeaderProps> = ({
         )}
       </div>
 
-      <nav className='flex items-center gap-3'>
+      <nav className='flex items-center gap-2 sm:gap-3 flex-shrink-0'>
         {/* Week/Day Toggle */}
         <div className='flex rounded-lg border border-divider overflow-hidden bg-content2 shadow-sm'>
           <button
             onClick={() => onViewChange('week')}
-            className={`px-4 py-2 text-sm font-medium transition-all duration-200 ${
+            className={`px-3 sm:px-4 py-2 text-sm font-medium transition-all duration-200 ${
               currentView === 'week'
                 ? 'bg-primary-500 text-white shadow-sm'
                 : 'text-foreground-700 hover:text-foreground hover:bg-content3'
@@ -138,7 +141,7 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
           <button
             onClick={() => onViewChange('day')}
-            className={`px-4 py-2 text-sm font-medium transition-all duration-200 ${
+            className={`px-3 sm:px-4 py-2 text-sm font-medium transition-all duration-200 ${
               currentView === 'day'
                 ? 'bg-primary-500 text-white shadow-sm'
                 : 'text-foreground-700 hover:text-foreground hover:bg-content3'

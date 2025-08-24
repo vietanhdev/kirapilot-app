@@ -42,9 +42,6 @@ export function MinimalRichTextEditor({
   return (
     <div
       className={`flex flex-col h-full border-2 border-divider rounded-lg overflow-hidden bg-content2 hover:bg-content3 focus-within:bg-content2 focus-within:border-primary transition-colors ${className}`}
-      onMouseDown={e => e.stopPropagation()}
-      onPointerDown={e => e.stopPropagation()}
-      onTouchStart={e => e.stopPropagation()}
     >
       {/* Minimal Toolbar */}
       <div className='flex-shrink-0 border-b border-divider bg-content2 px-2 py-1 flex items-center gap-0.5'>

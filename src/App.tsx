@@ -7,6 +7,7 @@ import { AIProvider } from './contexts/AIContext';
 import { PrivacyProvider } from './contexts/PrivacyContext';
 import { SettingsProvider } from './contexts/SettingsContext';
 import { NavigationProvider } from './contexts/NavigationContext';
+import { TaskListProvider } from './contexts/TaskListContext';
 import { Planner } from './components/planning/Planner';
 import { Reports } from './components/reports/Reports';
 import { Settings } from './components/settings/Settings';
@@ -81,11 +82,13 @@ function App() {
     <PrivacyProvider>
       <SettingsProvider>
         <DatabaseProvider>
-          <TimerProvider>
-            <AIProvider>
-              <ThemedApp />
-            </AIProvider>
-          </TimerProvider>
+          <TaskListProvider>
+            <TimerProvider>
+              <AIProvider>
+                <ThemedApp />
+              </AIProvider>
+            </TimerProvider>
+          </TaskListProvider>
         </DatabaseProvider>
       </SettingsProvider>
     </PrivacyProvider>

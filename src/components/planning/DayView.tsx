@@ -17,6 +17,7 @@ import { TaskCard } from './TaskCard';
 import { TaskModal } from './TaskModal';
 import { useResponsiveColumnWidth } from '../../hooks';
 import { useTranslation } from '../../hooks/useTranslation';
+import { useTaskList } from '../../contexts/TaskListContext';
 import {
   ChevronLeft,
   ChevronRight,
@@ -39,7 +40,7 @@ interface DayViewProps {
   ) => void;
   onTaskEdit: (task: Task) => void;
   onTaskStatusChange: (task: Task, status: TaskStatus) => void;
-  onTaskCreate: (task: Task) => void;
+  onTaskCreate: (task: Task) => Promise<void>;
   onInlineEdit?: (taskId: string, updates: Partial<Task>) => void;
   onTaskDelete?: (task: Task) => void;
   onViewTimeHistory?: (task: Task) => void;
@@ -68,6 +69,9 @@ export function DayView({
   const [, setTaskModalColumn] = useState<string>('');
   const [taskModalDate, setTaskModalDate] = useState<Date | undefined>();
   const [draggedTask, setDraggedTask] = useState<Task | null>(null);
+
+  // Get task list context for indicators
+  const { isAllSelected, taskLists } = useTaskList();
 
   // Drag and drop sensors
   const sensors = useSensors(
@@ -268,10 +272,16 @@ export function DayView({
     setShowTaskModal(true);
   };
 
-  const handleTaskCreate = (task: Task) => {
+  const handleTaskCreate = async (task: Task) => {
     console.log('Creating task:', task);
-    onTaskCreate(task);
-    setShowTaskModal(false);
+
+    try {
+      await onTaskCreate(task);
+      setShowTaskModal(false);
+    } catch (error) {
+      // Let the error bubble up to be handled by the TaskModal
+      throw error;
+    }
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -426,6 +436,10 @@ export function DayView({
                   onStatusChange={status => onTaskStatusChange(task, status)}
                   onDelete={onTaskDelete}
                   onViewTimeHistory={onViewTimeHistory}
+                  showTaskListIndicator={isAllSelected()}
+                  taskListName={
+                    taskLists.find(list => list.id === task.taskListId)?.name
+                  }
                   {...(getTaskTimerProps?.(task) || {})}
                 />
               ))}
@@ -449,6 +463,10 @@ export function DayView({
                   onStatusChange={status => onTaskStatusChange(task, status)}
                   onDelete={onTaskDelete}
                   onViewTimeHistory={onViewTimeHistory}
+                  showTaskListIndicator={isAllSelected()}
+                  taskListName={
+                    taskLists.find(list => list.id === task.taskListId)?.name
+                  }
                   {...(getTaskTimerProps?.(task) || {})}
                 />
               ))}
@@ -473,6 +491,10 @@ export function DayView({
                   onStatusChange={status => onTaskStatusChange(task, status)}
                   onDelete={onTaskDelete}
                   onViewTimeHistory={onViewTimeHistory}
+                  showTaskListIndicator={isAllSelected()}
+                  taskListName={
+                    taskLists.find(list => list.id === task.taskListId)?.name
+                  }
                   {...(getTaskTimerProps?.(task) || {})}
                 />
               ))}
@@ -496,6 +518,10 @@ export function DayView({
                   onStatusChange={status => onTaskStatusChange(task, status)}
                   onDelete={onTaskDelete}
                   onViewTimeHistory={onViewTimeHistory}
+                  showTaskListIndicator={isAllSelected()}
+                  taskListName={
+                    taskLists.find(list => list.id === task.taskListId)?.name
+                  }
                   {...(getTaskTimerProps?.(task) || {})}
                 />
               ))}
@@ -522,6 +548,10 @@ export function DayView({
               onEdit={() => {}}
               onStatusChange={() => {}}
               onDelete={() => {}}
+              showTaskListIndicator={isAllSelected()}
+              taskListName={
+                taskLists.find(list => list.id === draggedTask.taskListId)?.name
+              }
               {...(getTaskTimerProps?.(draggedTask) || {})}
             />
           ) : null}

@@ -1,8 +1,9 @@
 pub mod focus_repository_tests;
+pub mod integration_test;
 pub mod pattern_repository_tests;
+pub mod task_list_repository_tests;
 pub mod task_repository_tests;
 pub mod time_tracking_repository_tests;
-pub mod integration_test;
 
 use sea_orm::{ConnectionTrait, Database, DatabaseConnection, DbErr, Statement};
 use std::sync::Arc;
@@ -41,10 +42,12 @@ async fn create_test_tables(db: &DatabaseConnection) -> Result<(), DbErr> {
             tags TEXT,
             project_id TEXT,
             parent_task_id TEXT,
+            task_list_id TEXT,
             subtasks TEXT,
             completed_at TEXT,
             created_at TEXT NOT NULL,
-            updated_at TEXT NOT NULL
+            updated_at TEXT NOT NULL,
+            FOREIGN KEY (task_list_id) REFERENCES task_lists(id)
         )
     "#;
 
@@ -125,6 +128,17 @@ async fn create_test_tables(db: &DatabaseConnection) -> Result<(), DbErr> {
         )
     "#;
 
+    // Create task_lists table
+    let create_task_lists_sql = r#"
+        CREATE TABLE IF NOT EXISTS task_lists (
+            id TEXT PRIMARY KEY NOT NULL,
+            name TEXT NOT NULL,
+            is_default BOOLEAN NOT NULL DEFAULT FALSE,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        )
+    "#;
+
     // Execute table creation statements
     db.execute(Statement::from_string(
         sea_orm::DatabaseBackend::Sqlite,
@@ -159,6 +173,12 @@ async fn create_test_tables(db: &DatabaseConnection) -> Result<(), DbErr> {
     db.execute(Statement::from_string(
         sea_orm::DatabaseBackend::Sqlite,
         create_ai_interactions_sql.to_string(),
+    ))
+    .await?;
+
+    db.execute(Statement::from_string(
+        sea_orm::DatabaseBackend::Sqlite,
+        create_task_lists_sql.to_string(),
     ))
     .await?;
 

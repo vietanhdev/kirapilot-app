@@ -45,6 +45,7 @@ export interface Task {
   projectId?: string;
   parentTaskId?: string;
   subtasks: string[];
+  taskListId: string; // Foreign key to task list
   completedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -61,6 +62,7 @@ export interface CreateTaskRequest {
   dependencies?: string[];
   projectId?: string;
   parentTaskId?: string;
+  taskListId?: string; // Optional - defaults to current selection or default list
 }
 
 export interface UpdateTaskRequest {
@@ -73,6 +75,45 @@ export interface UpdateTaskRequest {
   scheduledDate?: Date;
   tags?: string[];
   dependencies?: string[];
+  taskListId?: string; // Allow moving tasks between lists
+}
+
+// Task List Types
+export interface TaskList {
+  id: string;
+  name: string;
+  isDefault: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CreateTaskListRequest {
+  name: string;
+}
+
+export interface UpdateTaskListRequest {
+  name: string;
+}
+
+// Special task list identifiers
+export const TASK_LIST_ALL = '__ALL__';
+export const TASK_LIST_DEFAULT = '__DEFAULT__';
+
+// Task list selection state
+export interface TaskListSelection {
+  type: 'all' | 'specific';
+  taskListId?: string;
+  taskList?: TaskList;
+}
+
+// Task list service interface for frontend-backend communication
+export interface TaskListService {
+  getAllTaskLists(): Promise<TaskList[]>;
+  createTaskList(request: CreateTaskListRequest): Promise<TaskList>;
+  updateTaskList(id: string, request: UpdateTaskListRequest): Promise<TaskList>;
+  deleteTaskList(id: string): Promise<void>;
+  getDefaultTaskList(): Promise<TaskList>;
+  moveTaskToList(taskId: string, taskListId: string): Promise<Task>;
 }
 
 export interface TimerSession {
@@ -358,6 +399,7 @@ export interface TaskFilters {
     to?: Date;
   };
   projectId?: string;
+  taskListId?: string; // Filter by task list
   search?: string;
 }
 

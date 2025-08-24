@@ -51,11 +51,47 @@ export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
 
   // Auto-scroll is now handled by the useAutoScroll hook
 
+  // Enhanced focus management
   useEffect(() => {
     if (isOpen && inputRef.current) {
-      setTimeout(() => inputRef.current?.focus(), 100);
+      // Multiple attempts to ensure focus works reliably
+      const focusInput = () => {
+        if (inputRef.current && !inputRef.current.disabled) {
+          inputRef.current.focus();
+        }
+      };
+
+      // Immediate attempt
+      focusInput();
+
+      // Backup attempts with increasing delays
+      const timeouts = [
+        setTimeout(focusInput, 50),
+        setTimeout(focusInput, 150),
+        setTimeout(focusInput, 300),
+      ];
+
+      return () => {
+        timeouts.forEach(clearTimeout);
+      };
     }
   }, [isOpen]);
+
+  // Re-focus input when loading state changes
+  useEffect(() => {
+    if (
+      !isLoading &&
+      isOpen &&
+      inputRef.current &&
+      !inputRef.current.disabled
+    ) {
+      setTimeout(() => {
+        if (inputRef.current && !inputRef.current.disabled) {
+          inputRef.current.focus();
+        }
+      }, 100);
+    }
+  }, [isLoading, isOpen]);
 
   const buildAppContext = (): AppContext => {
     const now = new Date();
@@ -96,6 +132,13 @@ export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
     const context = buildAppContext();
     await sendMessage(message, context);
     setMessage('');
+
+    // Re-focus input after sending message
+    setTimeout(() => {
+      if (inputRef.current && !inputRef.current.disabled) {
+        inputRef.current.focus();
+      }
+    }, 100);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -625,6 +668,12 @@ export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
                 value={message}
                 onChange={e => setMessage(e.target.value)}
                 onKeyDown={handleKeyDown}
+                onFocus={() => {
+                  // Ensure input stays focused when possible
+                  if (inputRef.current && !inputRef.current.disabled) {
+                    inputRef.current.focus();
+                  }
+                }}
                 size='sm'
                 className='flex-1'
                 classNames={{
@@ -633,6 +682,10 @@ export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
                     'bg-content1 border-divider data-[hover=true]:bg-content1 data-[focus=true]:bg-content1 data-[focus=true]:border-primary-500',
                 }}
                 disabled={!isInitialized || isLoading}
+                autoComplete='off'
+                autoCorrect='off'
+                autoCapitalize='off'
+                spellCheck='false'
               />
               <Button
                 isIconOnly

@@ -1,8 +1,9 @@
 // Demo component for weekly planning interface
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Task, TaskStatus } from '../../types';
 import { useDatabase } from '../../hooks/useDatabase';
 import { getTaskRepository } from '../../services/database/repositories';
+import { useTaskList } from '../../contexts/TaskListContext';
 // Mock data removed - using SeaORM backend now
 import { WeeklyPlan } from './WeeklyPlan';
 
@@ -18,6 +19,27 @@ export function Planner({ viewMode = 'week' }: PlanningScreenProps) {
     width: window.innerWidth,
     height: window.innerHeight,
   });
+
+  // Get task list context for filtering
+  const { currentSelection, getSelectedTaskListId, isAllSelected } =
+    useTaskList();
+
+  // Filter tasks based on current task list selection
+  const filteredTasks = useMemo(() => {
+    if (isAllSelected()) {
+      // Show all tasks when "All" is selected
+      return tasks;
+    }
+
+    const selectedTaskListId = getSelectedTaskListId();
+    if (!selectedTaskListId) {
+      // Fallback to all tasks if no specific selection
+      return tasks;
+    }
+
+    // Filter tasks by selected task list
+    return tasks.filter(task => task.taskListId === selectedTaskListId);
+  }, [tasks, currentSelection, getSelectedTaskListId, isAllSelected]);
 
   // Track window size changes
   useEffect(() => {
@@ -160,6 +182,7 @@ export function Planner({ viewMode = 'week' }: PlanningScreenProps) {
           dependencies: task.dependencies || [],
           projectId: task.projectId,
           parentTaskId: task.parentTaskId,
+          taskListId: task.taskListId, // Include task list ID
         });
 
         // Update local state with the task from database
@@ -172,23 +195,21 @@ export function Planner({ viewMode = 'week' }: PlanningScreenProps) {
       }
     } catch (error) {
       console.error('Failed to create task in database:', error);
-      // Fallback: still add to local state
-      setTasks(prev => [task, ...prev]);
+
+      // Re-throw the error so it can be handled by the calling component
+      throw error;
     }
   };
 
   const handleTaskEdit = async (taskId: string, updates: Partial<Task>) => {
-    console.log('Edit task:', taskId, updates);
-
     try {
       // Update in database
       if (isInitialized) {
         const taskRepo = getTaskRepository();
         await taskRepo.update(taskId, updates);
-        console.log('Task updated in database:', updates);
       }
 
-      // Update local state
+      // Update local state only if database update succeeded
       setTasks(prev =>
         prev.map(t =>
           t.id === taskId ? { ...t, ...updates, updatedAt: new Date() } : t
@@ -196,12 +217,9 @@ export function Planner({ viewMode = 'week' }: PlanningScreenProps) {
       );
     } catch (error) {
       console.error('Failed to update task in database:', error);
-      // Still update local state as fallback
-      setTasks(prev =>
-        prev.map(t =>
-          t.id === taskId ? { ...t, ...updates, updatedAt: new Date() } : t
-        )
-      );
+
+      // Re-throw the error so calling components (like TaskModal) can handle it
+      throw error;
     }
   };
 
@@ -316,7 +334,7 @@ export function Planner({ viewMode = 'week' }: PlanningScreenProps) {
     <div className='p-6 min-h-full'>
       {/* Weekly Planning Interface */}
       <WeeklyPlan
-        tasks={tasks}
+        tasks={filteredTasks}
         currentWeek={currentWeek}
         onWeekChange={setCurrentWeek}
         onTaskMove={handleTaskMove}

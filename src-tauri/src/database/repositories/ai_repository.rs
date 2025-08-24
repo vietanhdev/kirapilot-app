@@ -1,5 +1,6 @@
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, DatabaseConnection, DbErr, EntityTrait, QueryFilter, QueryOrder, QuerySelect, Set
+    ActiveModelTrait, ColumnTrait, DatabaseConnection, DbErr, EntityTrait, QueryFilter, QueryOrder,
+    QuerySelect, Set,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -65,7 +66,8 @@ impl AiRepository {
         &self,
         request: CreateAiInteractionRequest,
     ) -> Result<ai_interactions::Model, DbErr> {
-        let tools_json = request.tools_used
+        let tools_json = request
+            .tools_used
             .map(|tools| serde_json::to_string(&tools).unwrap_or_default());
 
         let interaction = ai_interactions::ActiveModel {
@@ -83,9 +85,7 @@ impl AiRepository {
 
     /// Find an AI interaction by ID
     pub async fn find_by_id(&self, id: &str) -> Result<Option<ai_interactions::Model>, DbErr> {
-        ai_interactions::Entity::find_by_id(id)
-            .one(&*self.db)
-            .await
+        ai_interactions::Entity::find_by_id(id).one(&*self.db).await
     }
 
     /// Find all AI interactions with optional filtering
@@ -94,8 +94,8 @@ impl AiRepository {
         limit: Option<u64>,
         offset: Option<u64>,
     ) -> Result<Vec<ai_interactions::Model>, DbErr> {
-        let mut query = ai_interactions::Entity::find()
-            .order_by_desc(ai_interactions::Column::CreatedAt);
+        let mut query =
+            ai_interactions::Entity::find().order_by_desc(ai_interactions::Column::CreatedAt);
 
         if let Some(limit) = limit {
             query = query.limit(limit);
@@ -122,7 +122,10 @@ impl AiRepository {
     }
 
     /// Search AI interactions by message content
-    pub async fn search_interactions(&self, query: &str) -> Result<Vec<ai_interactions::Model>, DbErr> {
+    pub async fn search_interactions(
+        &self,
+        query: &str,
+    ) -> Result<Vec<ai_interactions::Model>, DbErr> {
         let search_pattern = format!("%{}%", query);
 
         ai_interactions::Entity::find()
@@ -182,11 +185,8 @@ impl AiRepository {
         let interactions = ai_interactions::Entity::find().all(&*self.db).await?;
 
         let total_interactions = interactions.len() as u64;
-        
-        let confidences: Vec<f64> = interactions
-            .iter()
-            .filter_map(|i| i.confidence)
-            .collect();
+
+        let confidences: Vec<f64> = interactions.iter().filter_map(|i| i.confidence).collect();
 
         let average_confidence = if !confidences.is_empty() {
             confidences.iter().sum::<f64>() / confidences.len() as f64
@@ -288,7 +288,10 @@ impl AiRepository {
     }
 
     /// Import an AI interaction from backup data
-    pub async fn import_interaction(&self, interaction: ai_interactions::Model) -> Result<ai_interactions::Model, DbErr> {
+    pub async fn import_interaction(
+        &self,
+        interaction: ai_interactions::Model,
+    ) -> Result<ai_interactions::Model, DbErr> {
         let active_interaction = ai_interactions::ActiveModel {
             id: Set(interaction.id),
             message: Set(interaction.message),

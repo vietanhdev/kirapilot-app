@@ -291,6 +291,8 @@ export const vi = {
   'task.modal.placeholder.priority': 'Chọn độ ưu tiên',
   'task.modal.placeholder.timeEstimate': '60',
   'task.modal.placeholder.tag': 'Thêm thẻ...',
+  'task.modal.label.taskList': 'Danh Sách Nhiệm Vụ',
+  'task.modal.placeholder.taskList': 'Chọn danh sách nhiệm vụ',
   'task.modal.button.saveChanges': 'Lưu Thay Đổi',
   'task.modal.button.createTask': 'Tạo Nhiệm Vụ',
 

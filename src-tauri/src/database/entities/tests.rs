@@ -2,7 +2,7 @@
 mod tests {
     use crate::database::entities::{
         ai_interactions, ai_suggestions, focus_sessions, productivity_patterns, task_dependencies,
-        tasks, time_sessions, user_preferences,
+        task_lists, tasks, time_sessions, user_preferences,
     };
     use chrono::Utc;
     use sea_orm::*;
@@ -58,6 +58,12 @@ mod tests {
 
         // Create ai_suggestions table
         let stmt = schema.create_table_from_entity(ai_suggestions::Entity);
+        db.execute(db.get_database_backend().build(&stmt))
+            .await
+            .unwrap();
+
+        // Create task_lists table
+        let stmt = schema.create_table_from_entity(task_lists::Entity);
         db.execute(db.get_database_backend().build(&stmt))
             .await
             .unwrap();
@@ -397,5 +403,177 @@ mod tests {
         let result = invalid_session.insert(&db).await;
         // For now, we just verify the operation completes
         assert!(result.is_ok() || result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_task_list_entity_creation() {
+        let db = setup_test_db().await;
+
+        let task_list = task_lists::ActiveModel {
+            name: Set("Work Projects".to_string()),
+            is_default: Set(false),
+            ..Default::default()
+        };
+
+        let result = task_list.insert(&db).await;
+        assert!(result.is_ok(), "Task list creation should succeed");
+
+        let created_task_list = result.unwrap();
+        assert_eq!(created_task_list.name, "Work Projects");
+        assert!(!created_task_list.is_default);
+        assert!(!created_task_list.id.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_default_task_list_creation() {
+        let db = setup_test_db().await;
+
+        let default_task_list = task_lists::ActiveModel {
+            name: Set("Default".to_string()),
+            is_default: Set(true),
+            ..Default::default()
+        };
+
+        let result = default_task_list.insert(&db).await;
+        assert!(result.is_ok(), "Default task list creation should succeed");
+
+        let created_task_list = result.unwrap();
+        assert_eq!(created_task_list.name, "Default");
+        assert!(created_task_list.is_default);
+    }
+
+    #[tokio::test]
+    async fn test_task_list_task_relationship() {
+        let db = setup_test_db().await;
+
+        // Create a task list first
+        let task_list = task_lists::ActiveModel {
+            name: Set("Personal Tasks".to_string()),
+            is_default: Set(false),
+            ..Default::default()
+        };
+        let task_list = task_list.insert(&db).await.unwrap();
+
+        // Create a task associated with the task list
+        let task = tasks::ActiveModel {
+            title: Set("Personal Task".to_string()),
+            status: Set("pending".to_string()),
+            priority: Set(1),
+            time_estimate: Set(3600),
+            actual_time: Set(0),
+            task_list_id: Set(Some(task_list.id.clone())),
+            ..Default::default()
+        };
+
+        let result = task.insert(&db).await;
+        assert!(
+            result.is_ok(),
+            "Task creation with task list should succeed"
+        );
+
+        let created_task = result.unwrap();
+        assert_eq!(created_task.title, "Personal Task");
+        assert_eq!(created_task.task_list_id, Some(task_list.id.clone()));
+
+        // Test finding related tasks from task list
+        let related_tasks = task_list
+            .find_related(tasks::Entity)
+            .all(&db)
+            .await
+            .unwrap();
+
+        assert_eq!(related_tasks.len(), 1);
+        assert_eq!(related_tasks[0].id, created_task.id);
+        assert_eq!(related_tasks[0].task_list_id, Some(task_list.id));
+    }
+
+    #[tokio::test]
+    async fn test_task_without_task_list() {
+        let db = setup_test_db().await;
+
+        // Create a task without a task list (should be allowed)
+        let task = tasks::ActiveModel {
+            title: Set("Orphaned Task".to_string()),
+            status: Set("pending".to_string()),
+            priority: Set(1),
+            time_estimate: Set(3600),
+            actual_time: Set(0),
+            task_list_id: Set(None),
+            ..Default::default()
+        };
+
+        let result = task.insert(&db).await;
+        assert!(
+            result.is_ok(),
+            "Task creation without task list should succeed"
+        );
+
+        let created_task = result.unwrap();
+        assert_eq!(created_task.title, "Orphaned Task");
+        assert_eq!(created_task.task_list_id, None);
+    }
+
+    #[tokio::test]
+    async fn test_multiple_task_lists_with_tasks() {
+        let db = setup_test_db().await;
+
+        // Create multiple task lists
+        let work_list = task_lists::ActiveModel {
+            name: Set("Work".to_string()),
+            is_default: Set(false),
+            ..Default::default()
+        };
+        let work_list = work_list.insert(&db).await.unwrap();
+
+        let personal_list = task_lists::ActiveModel {
+            name: Set("Personal".to_string()),
+            is_default: Set(false),
+            ..Default::default()
+        };
+        let personal_list = personal_list.insert(&db).await.unwrap();
+
+        // Create tasks for each list
+        let work_task = tasks::ActiveModel {
+            title: Set("Work Task".to_string()),
+            status: Set("pending".to_string()),
+            priority: Set(1),
+            time_estimate: Set(3600),
+            actual_time: Set(0),
+            task_list_id: Set(Some(work_list.id.clone())),
+            ..Default::default()
+        };
+        let work_task = work_task.insert(&db).await.unwrap();
+
+        let personal_task = tasks::ActiveModel {
+            title: Set("Personal Task".to_string()),
+            status: Set("pending".to_string()),
+            priority: Set(2),
+            time_estimate: Set(1800),
+            actual_time: Set(0),
+            task_list_id: Set(Some(personal_list.id.clone())),
+            ..Default::default()
+        };
+        let personal_task = personal_task.insert(&db).await.unwrap();
+
+        // Verify tasks are correctly associated
+        let work_tasks = work_list
+            .find_related(tasks::Entity)
+            .all(&db)
+            .await
+            .unwrap();
+
+        let personal_tasks = personal_list
+            .find_related(tasks::Entity)
+            .all(&db)
+            .await
+            .unwrap();
+
+        assert_eq!(work_tasks.len(), 1);
+        assert_eq!(work_tasks[0].id, work_task.id);
+        assert_eq!(work_tasks[0].title, "Work Task");
+
+        assert_eq!(personal_tasks.len(), 1);
+        assert_eq!(personal_tasks[0].id, personal_task.id);
+        assert_eq!(personal_tasks[0].title, "Personal Task");
     }
 }

@@ -300,6 +300,128 @@ export const TaskSortOptionsSchema = z.object({
   direction: z.enum(['asc', 'desc']),
 });
 
+// Task List validation schemas
+export const CreateTaskListRequestSchema = z.object({
+  name: z
+    .string()
+    .min(1, 'Task list name is required')
+    .max(255, 'Task list name cannot exceed 255 characters')
+    .refine(
+      name => {
+        const trimmed = name.trim();
+        return trimmed.length > 0;
+      },
+      {
+        message: 'Task list name cannot be empty or only whitespace',
+      }
+    )
+    .refine(
+      name => {
+        const reserved = [
+          'All',
+          'ALL',
+          'all',
+          'aLL',
+          'AlL',
+          'aLl',
+          'ALl',
+          'aLl',
+        ];
+        return !reserved.includes(name.trim());
+      },
+      {
+        message: 'Task list name cannot be a reserved name (All)',
+      }
+    )
+    .refine(
+      name => {
+        const trimmed = name.trim();
+        // Check for null characters
+        if (trimmed.includes('\0')) {
+          return false;
+        }
+        // Check for names starting or ending with dots
+        if (trimmed.startsWith('.') || trimmed.endsWith('.')) {
+          return false;
+        }
+        // Check for only dots
+        if (trimmed === '..') {
+          return false;
+        }
+        return true;
+      },
+      {
+        message: 'Task list name contains invalid characters or format',
+      }
+    ),
+});
+
+export const UpdateTaskListRequestSchema = z.object({
+  name: z
+    .string()
+    .min(1, 'Task list name is required')
+    .max(255, 'Task list name cannot exceed 255 characters')
+    .refine(
+      name => {
+        const trimmed = name.trim();
+        return trimmed.length > 0;
+      },
+      {
+        message: 'Task list name cannot be empty or only whitespace',
+      }
+    )
+    .refine(
+      name => {
+        const reserved = [
+          'All',
+          'ALL',
+          'all',
+          'aLL',
+          'AlL',
+          'aLl',
+          'ALl',
+          'aLl',
+        ];
+        return !reserved.includes(name.trim());
+      },
+      {
+        message: 'Task list name cannot be a reserved name (All)',
+      }
+    )
+    .refine(
+      name => {
+        const trimmed = name.trim();
+        // Check for null characters
+        if (trimmed.includes('\0')) {
+          return false;
+        }
+        // Check for names starting or ending with dots
+        if (trimmed.startsWith('.') || trimmed.endsWith('.')) {
+          return false;
+        }
+        // Check for only dots
+        if (trimmed === '..') {
+          return false;
+        }
+        return true;
+      },
+      {
+        message: 'Task list name contains invalid characters or format',
+      }
+    ),
+});
+
+export const TaskListSchema = z.object({
+  id: z.string().uuid('Invalid task list ID'),
+  name: z
+    .string()
+    .min(1, 'Task list name is required')
+    .max(255, 'Task list name too long'),
+  isDefault: z.boolean(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
 // Validation helper functions
 export function validateCreateTaskRequest(data: unknown) {
   return CreateTaskRequestSchema.safeParse(data);
@@ -339,4 +461,16 @@ export function validateTaskFilters(data: unknown) {
 
 export function validateTaskSortOptions(data: unknown) {
   return TaskSortOptionsSchema.safeParse(data);
+}
+
+export function validateCreateTaskListRequest(data: unknown) {
+  return CreateTaskListRequestSchema.safeParse(data);
+}
+
+export function validateUpdateTaskListRequest(data: unknown) {
+  return UpdateTaskListRequestSchema.safeParse(data);
+}
+
+export function validateTaskList(data: unknown) {
+  return TaskListSchema.safeParse(data);
 }

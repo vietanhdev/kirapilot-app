@@ -22,6 +22,7 @@ mod tests {
             tags: None,
             project_id: None,
             parent_task_id: None,
+            task_list_id: None,
         };
 
         let task = repo

@@ -198,6 +198,7 @@ export class MockDatabase {
       actualTime: 0,
       dueDate: taskData.dueDate,
       scheduledDate: taskData.scheduledDate,
+      taskListId: taskData.taskListId || 'default-task-list',
       tags: taskData.tags || [],
       projectId: taskData.projectId,
       parentTaskId: taskData.parentTaskId,

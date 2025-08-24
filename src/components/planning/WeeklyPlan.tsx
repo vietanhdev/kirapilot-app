@@ -1,11 +1,12 @@
 // Weekly planning interface with day and week views
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Task, TaskStatus } from '../../types';
 import { WeekView } from './WeekView';
 import { DayView } from './DayView';
 
 import { TimeHistoryModal } from './TimeHistoryModal';
 import { useTimerContext } from '../../contexts/TimerContext';
+import { useTaskList } from '../../contexts/TaskListContext';
 
 interface WeeklyPlanProps {
   tasks: Task[];
@@ -17,7 +18,7 @@ interface WeeklyPlanProps {
     toColumn: string,
     date?: Date
   ) => void;
-  onTaskCreate: (task: Task) => void;
+  onTaskCreate: (task: Task) => Promise<void>;
   onTaskEdit: (taskId: string, updates: Partial<Task>) => void;
   onTaskStatusChange: (task: Task, status: TaskStatus) => void;
   onTaskDelete?: (task: Task) => void;
@@ -48,6 +49,27 @@ export function WeeklyPlan({
   // Get timer functionality from context
   const { getTaskTimerProps } = useTimerContext();
 
+  // Get task list context for filtering
+  const { currentSelection, getSelectedTaskListId, isAllSelected } =
+    useTaskList();
+
+  // Filter tasks based on current task list selection
+  const filteredTasks = useMemo(() => {
+    if (isAllSelected()) {
+      // Show all tasks when "All" is selected
+      return tasks;
+    }
+
+    const selectedTaskListId = getSelectedTaskListId();
+    if (!selectedTaskListId) {
+      // Fallback to all tasks if no specific selection
+      return tasks;
+    }
+
+    // Filter tasks by selected task list
+    return tasks.filter(task => task.taskListId === selectedTaskListId);
+  }, [tasks, currentSelection, getSelectedTaskListId, isAllSelected]);
+
   // Sync viewMode state when prop changes
   useEffect(() => {
     setViewMode(initialViewMode);
@@ -72,9 +94,9 @@ export function WeeklyPlan({
     }
   };
 
-  const handleTaskCreate = (task: Task) => {
+  const handleTaskCreate = async (task: Task) => {
     if (onTaskCreate) {
-      onTaskCreate(task);
+      await onTaskCreate(task);
     } else {
       console.log('Task created:', task.title);
     }
@@ -121,7 +143,7 @@ export function WeeklyPlan({
       {/* Main View */}
       {viewMode === 'week' ? (
         <WeekView
-          tasks={tasks}
+          tasks={filteredTasks}
           currentWeek={currentWeek}
           onWeekChange={onWeekChange}
           onTaskMove={handleTaskMove}
@@ -136,7 +158,7 @@ export function WeeklyPlan({
         />
       ) : (
         <DayView
-          tasks={tasks}
+          tasks={filteredTasks}
           selectedDate={selectedDate}
           onDateChange={setSelectedDate}
           onTaskMove={handleTaskMove}

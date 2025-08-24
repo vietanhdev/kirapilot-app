@@ -25,6 +25,7 @@ mod tests {
             tags: Some(vec!["tag1".to_string(), "tag2".to_string()]),
             project_id: Some("project1".to_string()),
             parent_task_id: None,
+            task_list_id: None,
         };
 
         let result = repo.create_task(request).await;
@@ -57,6 +58,7 @@ mod tests {
             tags: None,
             project_id: None,
             parent_task_id: None,
+            task_list_id: None,
         };
 
         let created_task = repo
@@ -96,6 +98,7 @@ mod tests {
             tags: None,
             project_id: None,
             parent_task_id: None,
+            task_list_id: None,
         };
 
         let created_task = repo
@@ -117,6 +120,7 @@ mod tests {
             tags: None,
             project_id: None,
             parent_task_id: None,
+            task_list_id: None,
             completed_at: None,
         };
 
@@ -156,6 +160,7 @@ mod tests {
             tags: None,
             project_id: Some("project1".to_string()),
             parent_task_id: None,
+            task_list_id: None,
         };
 
         let request2 = CreateTaskRequest {
@@ -170,6 +175,7 @@ mod tests {
             tags: None,
             project_id: Some("project1".to_string()),
             parent_task_id: None,
+            task_list_id: None,
         };
 
         repo.create_task(request1)
@@ -223,6 +229,7 @@ mod tests {
             tags: None,
             project_id: None,
             parent_task_id: None,
+            task_list_id: None,
         };
 
         repo.create_task(request)
@@ -258,6 +265,7 @@ mod tests {
             tags: None,
             project_id: None,
             parent_task_id: None,
+            task_list_id: None,
         };
 
         let created_task = repo
@@ -298,6 +306,7 @@ mod tests {
             tags: None,
             project_id: None,
             parent_task_id: None,
+            task_list_id: None,
         };
 
         let request2 = CreateTaskRequest {
@@ -312,6 +321,7 @@ mod tests {
             tags: None,
             project_id: None,
             parent_task_id: None,
+            task_list_id: None,
         };
 
         repo.create_task(request1)
@@ -362,6 +372,7 @@ mod tests {
                 tags: None,
                 project_id: None,
                 parent_task_id: None,
+                task_list_id: None,
             },
             CreateTaskRequest {
                 title: "In Progress Task".to_string(),
@@ -375,6 +386,7 @@ mod tests {
                 tags: None,
                 project_id: None,
                 parent_task_id: None,
+                task_list_id: None,
             },
             CreateTaskRequest {
                 title: "Completed Task".to_string(),
@@ -388,6 +400,7 @@ mod tests {
                 tags: None,
                 project_id: None,
                 parent_task_id: None,
+                task_list_id: None,
             },
         ];
 
@@ -405,5 +418,379 @@ mod tests {
         assert!(stats.pending >= 1);
         assert!(stats.in_progress >= 1);
         assert!(stats.completed >= 1);
+    }
+
+    #[tokio::test]
+    async fn test_find_by_task_list() {
+        let db = setup_test_db()
+            .await
+            .expect("Failed to setup test database");
+        let repo = TaskRepository::new(db.clone());
+
+        // First, create a task list using TaskListRepository
+        use crate::database::repositories::task_list_repository::TaskListRepository;
+        let task_list_repo = TaskListRepository::new(db);
+        
+        // Ensure default task list exists
+        let default_task_list = task_list_repo
+            .ensure_default_task_list()
+            .await
+            .expect("Failed to ensure default task list");
+
+        // Create a custom task list
+        let custom_task_list = task_list_repo
+            .create_task_list("Test Project".to_string())
+            .await
+            .expect("Failed to create custom task list");
+
+        // Create tasks in different task lists
+        let request1 = CreateTaskRequest {
+            title: "Default Task".to_string(),
+            description: None,
+            priority: 1,
+            status: Some("pending".to_string()),
+            dependencies: None,
+            time_estimate: None,
+            due_date: None,
+            scheduled_date: None,
+            tags: None,
+            project_id: None,
+            parent_task_id: None,
+            task_list_id: Some(default_task_list.id.clone()),
+        };
+
+        let request2 = CreateTaskRequest {
+            title: "Custom Task".to_string(),
+            description: None,
+            priority: 1,
+            status: Some("pending".to_string()),
+            dependencies: None,
+            time_estimate: None,
+            due_date: None,
+            scheduled_date: None,
+            tags: None,
+            project_id: None,
+            parent_task_id: None,
+            task_list_id: Some(custom_task_list.id.clone()),
+        };
+
+        repo.create_task(request1)
+            .await
+            .expect("Failed to create default task");
+        repo.create_task(request2)
+            .await
+            .expect("Failed to create custom task");
+
+        // Find tasks by default task list
+        let default_tasks = repo
+            .find_by_task_list(&default_task_list.id)
+            .await
+            .expect("Failed to find tasks by default task list");
+        assert!(!default_tasks.is_empty());
+        assert!(default_tasks
+            .iter()
+            .all(|t| t.task_list_id == Some(default_task_list.id.clone())));
+
+        // Find tasks by custom task list
+        let custom_tasks = repo
+            .find_by_task_list(&custom_task_list.id)
+            .await
+            .expect("Failed to find tasks by custom task list");
+        assert!(!custom_tasks.is_empty());
+        assert!(custom_tasks
+            .iter()
+            .all(|t| t.task_list_id == Some(custom_task_list.id.clone())));
+    }
+
+    #[tokio::test]
+    async fn test_move_task_to_list() {
+        let db = setup_test_db()
+            .await
+            .expect("Failed to setup test database");
+        let repo = TaskRepository::new(db.clone());
+
+        // Create task lists
+        use crate::database::repositories::task_list_repository::TaskListRepository;
+        let task_list_repo = TaskListRepository::new(db);
+        
+        let default_task_list = task_list_repo
+            .ensure_default_task_list()
+            .await
+            .expect("Failed to ensure default task list");
+
+        let custom_task_list = task_list_repo
+            .create_task_list("Target Project".to_string())
+            .await
+            .expect("Failed to create custom task list");
+
+        // Create a task in the default task list
+        let request = CreateTaskRequest {
+            title: "Movable Task".to_string(),
+            description: None,
+            priority: 1,
+            status: Some("pending".to_string()),
+            dependencies: None,
+            time_estimate: None,
+            due_date: None,
+            scheduled_date: None,
+            tags: None,
+            project_id: None,
+            parent_task_id: None,
+            task_list_id: Some(default_task_list.id.clone()),
+        };
+
+        let created_task = repo
+            .create_task(request)
+            .await
+            .expect("Failed to create task");
+
+        // Verify task is in default task list
+        assert_eq!(created_task.task_list_id, Some(default_task_list.id.clone()));
+
+        // Move task to custom task list
+        let moved_task = repo
+            .move_task_to_list(&created_task.id, &custom_task_list.id)
+            .await
+            .expect("Failed to move task to custom task list");
+
+        // Verify task is now in custom task list
+        assert_eq!(moved_task.task_list_id, Some(custom_task_list.id.clone()));
+        assert_eq!(moved_task.id, created_task.id);
+        assert_eq!(moved_task.title, created_task.title);
+    }
+
+    #[tokio::test]
+    async fn test_move_task_to_nonexistent_list() {
+        let db = setup_test_db()
+            .await
+            .expect("Failed to setup test database");
+        let repo = TaskRepository::new(db.clone());
+
+        // Create task lists
+        use crate::database::repositories::task_list_repository::TaskListRepository;
+        let task_list_repo = TaskListRepository::new(db);
+        
+        let default_task_list = task_list_repo
+            .ensure_default_task_list()
+            .await
+            .expect("Failed to ensure default task list");
+
+        // Create a task
+        let request = CreateTaskRequest {
+            title: "Test Task".to_string(),
+            description: None,
+            priority: 1,
+            status: Some("pending".to_string()),
+            dependencies: None,
+            time_estimate: None,
+            due_date: None,
+            scheduled_date: None,
+            tags: None,
+            project_id: None,
+            parent_task_id: None,
+            task_list_id: Some(default_task_list.id),
+        };
+
+        let created_task = repo
+            .create_task(request)
+            .await
+            .expect("Failed to create task");
+
+        // Try to move task to non-existent task list
+        let result = repo
+            .move_task_to_list(&created_task.id, "non-existent-id")
+            .await;
+
+        assert!(result.is_err());
+        if let Err(err) = result {
+            assert!(matches!(err, sea_orm::DbErr::RecordNotFound(_)));
+        }
+    }
+
+    #[tokio::test]
+    async fn test_migrate_orphaned_tasks_to_default() {
+        let db = setup_test_db()
+            .await
+            .expect("Failed to setup test database");
+        let repo = TaskRepository::new(db.clone());
+
+        // Create task lists
+        use crate::database::repositories::task_list_repository::TaskListRepository;
+        let task_list_repo = TaskListRepository::new(db);
+        
+        let default_task_list = task_list_repo
+            .ensure_default_task_list()
+            .await
+            .expect("Failed to ensure default task list");
+
+        // Create tasks with null task_list_id (orphaned tasks)
+        let request1 = CreateTaskRequest {
+            title: "Orphaned Task 1".to_string(),
+            description: None,
+            priority: 1,
+            status: Some("pending".to_string()),
+            dependencies: None,
+            time_estimate: None,
+            due_date: None,
+            scheduled_date: None,
+            tags: None,
+            project_id: None,
+            parent_task_id: None,
+            task_list_id: None, // This will be null in the database
+        };
+
+        let request2 = CreateTaskRequest {
+            title: "Orphaned Task 2".to_string(),
+            description: None,
+            priority: 1,
+            status: Some("pending".to_string()),
+            dependencies: None,
+            time_estimate: None,
+            due_date: None,
+            scheduled_date: None,
+            tags: None,
+            project_id: None,
+            parent_task_id: None,
+            task_list_id: None, // This will be null in the database
+        };
+
+        // Create the tasks - they should get the default task list ID due to our create_task logic
+        // But let's manually set them to null to simulate orphaned tasks
+        let task1 = repo.create_task(request1).await.expect("Failed to create task 1");
+        let task2 = repo.create_task(request2).await.expect("Failed to create task 2");
+
+        // Manually set task_list_id to null to simulate orphaned tasks
+        // We'll use the update_task method to set task_list_id to None
+        use crate::database::repositories::task_repository::UpdateTaskRequest;
+        
+        let update_request1 = UpdateTaskRequest {
+            title: None,
+            description: None,
+            priority: None,
+            status: None,
+            dependencies: None,
+            time_estimate: None,
+            actual_time: None,
+            due_date: None,
+            scheduled_date: None,
+            tags: None,
+            project_id: None,
+            parent_task_id: None,
+            task_list_id: Some("".to_string()), // Empty string will be treated as null
+            completed_at: None,
+        };
+
+        let update_request2 = UpdateTaskRequest {
+            title: None,
+            description: None,
+            priority: None,
+            status: None,
+            dependencies: None,
+            time_estimate: None,
+            actual_time: None,
+            due_date: None,
+            scheduled_date: None,
+            tags: None,
+            project_id: None,
+            parent_task_id: None,
+            task_list_id: Some("".to_string()), // Empty string will be treated as null
+            completed_at: None,
+        };
+
+        // Update tasks to set task_list_id to null
+        repo.update_task(&task1.id, update_request1).await.expect("Failed to update task 1");
+        repo.update_task(&task2.id, update_request2).await.expect("Failed to update task 2");
+
+        // Migrate orphaned tasks
+        let migrated_count = repo
+            .migrate_orphaned_tasks_to_default()
+            .await
+            .expect("Failed to migrate orphaned tasks");
+
+        assert_eq!(migrated_count, 2);
+
+        // Verify tasks are now assigned to default task list
+        let all_tasks = repo
+            .find_all(None, None)
+            .await
+            .expect("Failed to find all tasks");
+        
+        let orphaned_tasks: Vec<_> = all_tasks
+            .iter()
+            .filter(|t| t.title.contains("Orphaned"))
+            .collect();
+        
+        assert_eq!(orphaned_tasks.len(), 2);
+        assert!(orphaned_tasks
+            .iter()
+            .all(|t| t.task_list_id == Some(default_task_list.id.clone())));
+    }
+
+    #[tokio::test]
+    async fn test_create_task_with_task_list_id() {
+        let db = setup_test_db()
+            .await
+            .expect("Failed to setup test database");
+        let repo = TaskRepository::new(db.clone());
+
+        // Create task lists
+        use crate::database::repositories::task_list_repository::TaskListRepository;
+        let task_list_repo = TaskListRepository::new(db);
+        
+        let default_task_list = task_list_repo
+            .ensure_default_task_list()
+            .await
+            .expect("Failed to ensure default task list");
+
+        let custom_task_list = task_list_repo
+            .create_task_list("Custom Project".to_string())
+            .await
+            .expect("Failed to create custom task list");
+
+        // Create task with specific task list ID
+        let request_with_list = CreateTaskRequest {
+            title: "Task with List".to_string(),
+            description: None,
+            priority: 1,
+            status: Some("pending".to_string()),
+            dependencies: None,
+            time_estimate: None,
+            due_date: None,
+            scheduled_date: None,
+            tags: None,
+            project_id: None,
+            parent_task_id: None,
+            task_list_id: Some(custom_task_list.id.clone()),
+        };
+
+        let task_with_list = repo
+            .create_task(request_with_list)
+            .await
+            .expect("Failed to create task with list");
+
+        assert_eq!(task_with_list.task_list_id, Some(custom_task_list.id));
+
+        // Create task without task list ID (should use default)
+        let request_without_list = CreateTaskRequest {
+            title: "Task without List".to_string(),
+            description: None,
+            priority: 1,
+            status: Some("pending".to_string()),
+            dependencies: None,
+            time_estimate: None,
+            due_date: None,
+            scheduled_date: None,
+            tags: None,
+            project_id: None,
+            parent_task_id: None,
+            task_list_id: None,
+        };
+
+        let task_without_list = repo
+            .create_task(request_without_list)
+            .await
+            .expect("Failed to create task without list");
+
+        assert_eq!(task_without_list.task_list_id, Some(default_task_list.id));
     }
 }

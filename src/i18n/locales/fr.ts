@@ -294,6 +294,8 @@ export const fr = {
   'task.modal.placeholder.priority': 'Sélectionner la priorité',
   'task.modal.placeholder.timeEstimate': '60',
   'task.modal.placeholder.tag': 'Ajouter une étiquette...',
+  'task.modal.label.taskList': 'Liste de Tâches',
+  'task.modal.placeholder.taskList': 'Sélectionner la liste de tâches',
   'task.modal.button.saveChanges': 'Enregistrer les Modifications',
   'task.modal.button.createTask': 'Créer la Tâche',
 

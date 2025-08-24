@@ -5,7 +5,7 @@ use sea_orm::{
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
-use crate::database::entities::{task_dependencies, tasks};
+use crate::database::entities::{task_dependencies, task_lists, tasks};
 
 /// Request structure for creating a new task
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -21,6 +21,7 @@ pub struct CreateTaskRequest {
     pub tags: Option<Vec<String>>,
     pub project_id: Option<String>,
     pub parent_task_id: Option<String>,
+    pub task_list_id: Option<String>,
 }
 
 /// Request structure for updating an existing task
@@ -38,6 +39,7 @@ pub struct UpdateTaskRequest {
     pub tags: Option<Vec<String>>,
     pub project_id: Option<String>,
     pub parent_task_id: Option<String>,
+    pub task_list_id: Option<String>,
     pub completed_at: Option<chrono::DateTime<chrono::Utc>>,
 }
 
@@ -53,6 +55,43 @@ impl TaskRepository {
 
     /// Create a new task
     pub async fn create_task(&self, request: CreateTaskRequest) -> Result<tasks::Model, DbErr> {
+        // Determine the task list ID to use
+        let task_list_id = if let Some(task_list_id) = request.task_list_id {
+            // If a task list ID is provided, validate it exists
+            if !task_list_id.trim().is_empty() {
+                let task_list_exists = task_lists::Entity::find_by_id(&task_list_id)
+                    .one(&*self.db)
+                    .await?
+                    .is_some();
+                
+                if !task_list_exists {
+                    return Err(DbErr::RecordNotFound(format!("Task list '{}' not found", task_list_id)));
+                }
+                
+                Some(task_list_id)
+            } else {
+                // Empty string provided, use default
+                None
+            }
+        } else {
+            None
+        };
+
+        // If no valid task_list_id, get the default task list
+        let final_task_list_id = if task_list_id.is_some() {
+            task_list_id
+        } else {
+            let default_task_list = task_lists::Entity::find()
+                .filter(task_lists::Column::IsDefault.eq(true))
+                .one(&*self.db)
+                .await?;
+            
+            match default_task_list {
+                Some(tl) => Some(tl.id),
+                None => return Err(DbErr::RecordNotFound("No default task list found. Please create a task list first.".to_string())),
+            }
+        };
+
         let task = tasks::ActiveModel {
             title: Set(request.title),
             description: Set(request.description),
@@ -70,6 +109,7 @@ impl TaskRepository {
                 .map(|tags| serde_json::to_string(&tags).unwrap_or_default())),
             project_id: Set(request.project_id),
             parent_task_id: Set(request.parent_task_id),
+            task_list_id: Set(final_task_list_id),
             subtasks: Set(None),
             completed_at: Set(None),
             ..Default::default()
@@ -151,6 +191,71 @@ impl TaskRepository {
             .await
     }
 
+    /// Find tasks by task list ID
+    pub async fn find_by_task_list(&self, task_list_id: &str) -> Result<Vec<tasks::Model>, DbErr> {
+        tasks::Entity::find()
+            .filter(tasks::Column::TaskListId.eq(Some(task_list_id.to_string())))
+            .order_by_desc(tasks::Column::CreatedAt)
+            .all(&*self.db)
+            .await
+    }
+
+    /// Move a task to a different task list
+    pub async fn move_task_to_list(
+        &self,
+        task_id: &str,
+        task_list_id: &str,
+    ) -> Result<tasks::Model, DbErr> {
+        // Verify the task exists
+        let task = tasks::Entity::find_by_id(task_id)
+            .one(&*self.db)
+            .await?
+            .ok_or_else(|| DbErr::RecordNotFound("Task not found".to_string()))?;
+
+        // Verify the target task list exists
+        let task_list_exists = task_lists::Entity::find_by_id(task_list_id)
+            .one(&*self.db)
+            .await?
+            .is_some();
+
+        if !task_list_exists {
+            return Err(DbErr::RecordNotFound("Task list not found".to_string()));
+        }
+
+        // Update the task's task_list_id
+        let mut task: tasks::ActiveModel = task.into();
+        task.task_list_id = Set(Some(task_list_id.to_string()));
+        task.updated_at = Set(chrono::Utc::now());
+
+        task.update(&*self.db).await
+    }
+
+    /// Migrate orphaned tasks (tasks without a task_list_id) to the default task list
+    pub async fn migrate_orphaned_tasks_to_default(&self) -> Result<u64, DbErr> {
+        // Get the default task list
+        let default_task_list = task_lists::Entity::find()
+            .filter(task_lists::Column::IsDefault.eq(true))
+            .one(&*self.db)
+            .await?
+            .ok_or_else(|| DbErr::RecordNotFound("Default task list not found".to_string()))?;
+
+        // Update all tasks with null task_list_id to use the default task list
+        let result = tasks::Entity::update_many()
+            .col_expr(
+                tasks::Column::TaskListId,
+                sea_orm::sea_query::Expr::value(Some(default_task_list.id)),
+            )
+            .col_expr(
+                tasks::Column::UpdatedAt,
+                sea_orm::sea_query::Expr::value(chrono::Utc::now()),
+            )
+            .filter(tasks::Column::TaskListId.is_null())
+            .exec(&*self.db)
+            .await?;
+
+        Ok(result.rows_affected)
+    }
+
     /// Update a task
     pub async fn update_task(
         &self,
@@ -208,6 +313,13 @@ impl TaskRepository {
         }
         if let Some(parent_task_id) = request.parent_task_id {
             task.parent_task_id = Set(Some(parent_task_id));
+        }
+        if let Some(task_list_id) = request.task_list_id {
+            if task_list_id.is_empty() {
+                task.task_list_id = Set(None);
+            } else {
+                task.task_list_id = Set(Some(task_list_id));
+            }
         }
         if let Some(completed_at) = request.completed_at {
             task.completed_at = Set(Some(completed_at));
@@ -364,17 +476,13 @@ impl TaskRepository {
 
     /// Delete all tasks
     pub async fn delete_all_tasks(&self) -> Result<u64, DbErr> {
-        let result = tasks::Entity::delete_many()
-            .exec(&*self.db)
-            .await?;
+        let result = tasks::Entity::delete_many().exec(&*self.db).await?;
         Ok(result.rows_affected)
     }
 
     /// Get all task dependencies for backup
     pub async fn get_all_dependencies(&self) -> Result<Vec<task_dependencies::Model>, DbErr> {
-        task_dependencies::Entity::find()
-            .all(&*self.db)
-            .await
+        task_dependencies::Entity::find().all(&*self.db).await
     }
 
     /// Import a task from backup data
@@ -393,6 +501,7 @@ impl TaskRepository {
             tags: Set(task.tags),
             project_id: Set(task.project_id),
             parent_task_id: Set(task.parent_task_id),
+            task_list_id: Set(task.task_list_id),
             subtasks: Set(task.subtasks),
             completed_at: Set(task.completed_at),
             created_at: Set(task.created_at),
@@ -403,7 +512,10 @@ impl TaskRepository {
     }
 
     /// Import a task dependency from backup data
-    pub async fn import_dependency(&self, dependency: task_dependencies::Model) -> Result<task_dependencies::Model, DbErr> {
+    pub async fn import_dependency(
+        &self,
+        dependency: task_dependencies::Model,
+    ) -> Result<task_dependencies::Model, DbErr> {
         let active_dependency = task_dependencies::ActiveModel {
             id: Set(dependency.id),
             task_id: Set(dependency.task_id),
@@ -412,6 +524,19 @@ impl TaskRepository {
         };
 
         active_dependency.insert(&*self.db).await
+    }
+
+    /// Count orphaned tasks (tasks without a task_list_id)
+    pub async fn count_orphaned_tasks(&self) -> Result<u64, DbErr> {
+        tasks::Entity::find()
+            .filter(tasks::Column::TaskListId.is_null())
+            .count(&*self.db)
+            .await
+    }
+
+    /// Count all tasks
+    pub async fn count_all_tasks(&self) -> Result<u64, DbErr> {
+        tasks::Entity::find().count(&*self.db).await
     }
 }
 

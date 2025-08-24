@@ -16,6 +16,7 @@ mod integration_test;
 
 use config::{create_connection_with_config, DatabaseConfig};
 use migration::{MigrationStatus, MigrationTestResult};
+use migration::initialization::{DatabaseIntegrityReport, validate_database_integrity, run_post_migration_initialization};
 
 // Global database connection instance
 static DB_CONNECTION: OnceCell<Arc<DatabaseConnection>> = OnceCell::const_new();
@@ -34,6 +35,9 @@ pub async fn initialize_database() -> Result<Arc<DatabaseConnection>, DbErr> {
 
             // Run migrations
             migration::run_migrations(&db).await?;
+
+            // Run post-migration initialization
+            migration::initialization::run_post_migration_initialization(&db).await?;
 
             Ok(Arc::new(db))
         })
@@ -103,6 +107,18 @@ pub async fn rollback_last_migration() -> Result<(), DbErr> {
 pub async fn reset_migrations() -> Result<(), DbErr> {
     let db = get_database().await?;
     migration::reset_migrations(&*db).await
+}
+
+/// Run post-migration initialization
+pub async fn run_post_migration_init() -> Result<(), DbErr> {
+    let db = get_database().await?;
+    run_post_migration_initialization(&*db).await
+}
+
+/// Validate database integrity
+pub async fn validate_db_integrity() -> Result<DatabaseIntegrityReport, DbErr> {
+    let db = get_database().await?;
+    validate_database_integrity(&*db).await
 }
 
 #[derive(Debug, serde::Serialize)]

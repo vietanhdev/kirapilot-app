@@ -201,7 +201,7 @@ describe('Task Creation Integration Test', () => {
     };
 
     await expect(taskService.create(createRequest)).rejects.toThrow(
-      'taskService.error.createFailed: Error: Database connection failed'
+      'Database connection failed'
     );
 
     // Verify the invoke was still called with correct serialization and snake_case fields

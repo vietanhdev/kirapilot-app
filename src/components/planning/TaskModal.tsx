@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Task, Priority, TaskStatus } from '../../types';
 import { generateId } from '../../utils';
 import { useTranslation } from '../../hooks/useTranslation';
+import { useTaskList } from '../../contexts/TaskListContext';
 import {
   Modal,
   ModalContent,
@@ -28,12 +29,19 @@ import {
   PlusCircle,
 } from 'lucide-react';
 import { MinimalRichTextEditor } from '../common/MinimalRichTextEditor';
+import {
+  ErrorDisplay,
+  ErrorType,
+  categorizeError,
+  isErrorRecoverable as checkIfErrorRecoverable,
+} from '../common/ErrorDisplay';
+import { errorHandlingService } from '../../services/errorHandling/ErrorHandlingService';
 
 interface TaskModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onCreateTask?: (task: Task) => void;
-  onUpdateTask?: (updatedTask: Partial<Task>) => void;
+  onCreateTask?: (task: Task) => Promise<void>;
+  onUpdateTask?: (updatedTask: Partial<Task>) => Promise<void>;
   task?: Task | null; // If provided, we're editing; if null/undefined, we're creating
   defaultDate?: Date;
   className?: string;
@@ -47,6 +55,7 @@ interface FormData {
   dueDate?: Date;
   scheduledDate?: Date;
   tags: string[];
+  taskListId: string;
 }
 
 export function TaskModal({
@@ -67,13 +76,32 @@ export function TaskModal({
     dueDate: defaultDate,
     scheduledDate: defaultDate,
     tags: [],
+    taskListId: 'default-task-list',
   });
   const [newTag, setNewTag] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [errorType, setErrorType] = useState<ErrorType>(ErrorType.UNKNOWN);
+  const [isErrorRecoverable, setIsErrorRecoverable] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
+
+  // Get task list context for current selection
+  const {
+    getSelectedTaskListId,
+    isAllSelected,
+    taskLists,
+    moveTaskToList,
+    error: taskListError,
+  } = useTaskList();
 
   // Initialize form data when modal opens or task changes
   useEffect(() => {
     if (isOpen) {
+      // Clear any previous submit errors
+      setSubmitError(null);
+      setErrorType(ErrorType.UNKNOWN);
+      setIsErrorRecoverable(false);
+      setRetryCount(0);
       if (isEditMode && task) {
         setFormData({
           title: task.title,
@@ -83,9 +111,39 @@ export function TaskModal({
           dueDate: task.dueDate,
           scheduledDate: task.scheduledDate,
           tags: task.tags || [],
+          taskListId: task.taskListId,
         });
       } else {
-        // Creating new task
+        // Creating new task - determine default task list
+        let defaultTaskListId: string;
+        if (isAllSelected()) {
+          // When "All" is selected, use the default task list
+          const defaultList = taskLists.find(list => list.isDefault);
+          if (defaultList) {
+            defaultTaskListId = defaultList.id;
+          } else if (taskLists.length > 0) {
+            // Fallback to first available task list
+            defaultTaskListId = taskLists[0].id;
+          } else {
+            // No task lists available - this will cause an error, but we'll handle it in submit
+            defaultTaskListId = '';
+          }
+        } else {
+          // Use the currently selected task list
+          const selectedId = getSelectedTaskListId();
+          if (selectedId) {
+            defaultTaskListId = selectedId;
+          } else if (taskLists.length > 0) {
+            // Fallback to first available task list
+            const defaultList =
+              taskLists.find(list => list.isDefault) || taskLists[0];
+            defaultTaskListId = defaultList.id;
+          } else {
+            // No task lists available
+            defaultTaskListId = '';
+          }
+        }
+
         setFormData({
           title: '',
           description: '',
@@ -94,11 +152,20 @@ export function TaskModal({
           dueDate: defaultDate,
           scheduledDate: defaultDate,
           tags: [],
+          taskListId: defaultTaskListId,
         });
       }
       setNewTag('');
     }
-  }, [isOpen, task, isEditMode, defaultDate]);
+  }, [
+    isOpen,
+    task,
+    isEditMode,
+    defaultDate,
+    isAllSelected,
+    getSelectedTaskListId,
+    taskLists,
+  ]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -107,11 +174,57 @@ export function TaskModal({
       return;
     }
 
-    setIsSubmitting(true);
+    // Validate that a task list is selected
+    if (!formData.taskListId || formData.taskListId.trim() === '') {
+      setSubmitError('Please select a task list');
+      setErrorType(ErrorType.VALIDATION);
+      setIsErrorRecoverable(false);
+      return;
+    }
 
-    try {
-      if (isEditMode && onUpdateTask) {
-        // Edit existing task
+    // Validate that the selected task list exists
+    const selectedTaskList = taskLists.find(
+      list => list.id === formData.taskListId
+    );
+    if (!selectedTaskList) {
+      setSubmitError(
+        'The selected task list is no longer available. Please select a different task list.'
+      );
+      setErrorType(ErrorType.VALIDATION);
+      setIsErrorRecoverable(false);
+      return;
+    }
+
+    setIsSubmitting(true);
+    setSubmitError(null);
+    setErrorType(ErrorType.UNKNOWN);
+    setIsErrorRecoverable(false);
+
+    const executeOperation = async () => {
+      if (isEditMode && onUpdateTask && task) {
+        // Check if task list has changed and handle task movement
+        const taskListChanged = task.taskListId !== formData.taskListId;
+
+        if (taskListChanged) {
+          // Validate the target task list exists
+          const targetTaskList = taskLists.find(
+            tl => tl.id === formData.taskListId
+          );
+          if (!targetTaskList) {
+            throw new Error(
+              `Target task list '${formData.taskListId}' not found in available task lists: ${taskLists.map(tl => tl.id).join(', ')}`
+            );
+          }
+
+          // Move task to new list first using enhanced error handling
+          await errorHandlingService.executeDatabaseOperation(
+            () => moveTaskToList(task.id, formData.taskListId),
+            'move_task_to_list',
+            { component: 'TaskModal', operation: 'update_task' }
+          );
+        }
+
+        // Edit existing task - always include taskListId for local state consistency
         const updatedFields: Partial<Task> = {
           title: formData.title.trim(),
           description: formData.description || '',
@@ -120,12 +233,18 @@ export function TaskModal({
           dueDate: formData.dueDate,
           scheduledDate: formData.scheduledDate,
           tags: formData.tags,
+          taskListId: formData.taskListId, // Always include for local state consistency
           updatedAt: new Date(),
         };
 
-        onUpdateTask(updatedFields);
+        // Wrap onUpdateTask call with error handling since it now re-throws database errors
+        await errorHandlingService.executeDatabaseOperation(
+          () => onUpdateTask(updatedFields),
+          'update_task',
+          { component: 'TaskModal', operation: 'update_task_fields' }
+        );
       } else if (onCreateTask) {
-        // Create new task
+        // Create new task with selected task list
         const newTask: Task = {
           id: generateId(),
           title: formData.title.trim(),
@@ -138,18 +257,40 @@ export function TaskModal({
           subtasks: [],
           dueDate: formData.dueDate,
           scheduledDate: formData.scheduledDate,
+          taskListId: formData.taskListId,
           tags: formData.tags,
           completedAt: undefined,
           createdAt: new Date(),
           updatedAt: new Date(),
         };
 
-        onCreateTask(newTask);
+        await errorHandlingService.executeDatabaseOperation(
+          () => onCreateTask(newTask),
+          'create_task',
+          { component: 'TaskModal', operation: 'create_task' }
+        );
       }
+    };
 
+    try {
+      await executeOperation();
       handleClose();
     } catch (error) {
       console.error('Failed to save task:', error);
+
+      // Use enhanced error handling service
+      const enhancedError = errorHandlingService.processError(error as Error, {
+        operation: isEditMode ? 'update_task' : 'create_task',
+        component: 'TaskModal',
+      });
+
+      const userMessage = errorHandlingService.getUserMessage(enhancedError);
+      const errorCategory = categorizeError(enhancedError);
+      const recoverable = checkIfErrorRecoverable(enhancedError);
+
+      setSubmitError(userMessage);
+      setErrorType(errorCategory);
+      setIsErrorRecoverable(recoverable);
     } finally {
       setIsSubmitting(false);
     }
@@ -158,6 +299,24 @@ export function TaskModal({
   const handleClose = () => {
     setIsSubmitting(false);
     onClose();
+  };
+
+  const handleRetry = async () => {
+    if (retryCount >= 3) {
+      setSubmitError('Maximum retry attempts reached. Please try again later.');
+      setIsErrorRecoverable(false);
+      return;
+    }
+
+    setRetryCount(prev => prev + 1);
+    await handleSubmit({ preventDefault: () => {} } as React.FormEvent);
+  };
+
+  const handleDismissError = () => {
+    setSubmitError(null);
+    setErrorType(ErrorType.UNKNOWN);
+    setIsErrorRecoverable(false);
+    setRetryCount(0);
   };
 
   const addTag = () => {
@@ -181,28 +340,41 @@ export function TaskModal({
     {
       key: Priority.LOW,
       label: t('priority.low'),
-      icon: <CheckCircle2 className='w-3 h-3' />,
+      icon: <CheckCircle2 className='w-4 h-4' />,
     },
     {
       key: Priority.MEDIUM,
       label: t('priority.medium'),
-      icon: <Target className='w-3 h-3' />,
+      icon: <Target className='w-4 h-4' />,
     },
     {
       key: Priority.HIGH,
       label: t('priority.high'),
-      icon: <AlertCircle className='w-3 h-3' />,
+      icon: <AlertCircle className='w-4 h-4' />,
     },
     {
       key: Priority.URGENT,
       label: t('priority.urgent'),
-      icon: <Flame className='w-3 h-3' />,
+      icon: <Flame className='w-4 h-4' />,
     },
   ];
 
   const selectedPriority = priorityOptions.find(
     p => p.key === formData.priority
   );
+
+  // Prevent drag and drop events from propagating when modal is open
+  const handlePreventDragEvents = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handlePreventPointerEvents = (e: React.PointerEvent) => {
+    // Stop pointer events that might trigger drag operations
+    if (e.type === 'pointerdown' && e.button === 0) {
+      e.stopPropagation();
+    }
+  };
 
   return (
     <Modal
@@ -211,19 +383,15 @@ export function TaskModal({
       size='lg'
       scrollBehavior='inside'
       backdrop='blur'
-      onMouseDown={e => e.stopPropagation()}
-      onPointerDown={e => e.stopPropagation()}
     >
       <ModalContent
-        onMouseDown={e => e.stopPropagation()}
-        onPointerDown={e => e.stopPropagation()}
-        onTouchStart={e => e.stopPropagation()}
+        onDragStart={handlePreventDragEvents}
+        onDragEnd={handlePreventDragEvents}
+        onDragOver={handlePreventDragEvents}
+        onDrop={handlePreventDragEvents}
+        onPointerDown={handlePreventPointerEvents}
       >
-        <form
-          onSubmit={handleSubmit}
-          onMouseDown={e => e.stopPropagation()}
-          onPointerDown={e => e.stopPropagation()}
-        >
+        <form onSubmit={handleSubmit}>
           <ModalHeader className='flex flex-col gap-1'>
             <div className='flex items-center gap-2'>
               {isEditMode ? (
@@ -239,205 +407,272 @@ export function TaskModal({
             </div>
           </ModalHeader>
 
-          <ModalBody className='gap-4'>
-            {/* Title */}
-            <Input
-              autoFocus
-              label={t('task.modal.label.title')}
-              placeholder={t('task.modal.placeholder.title')}
-              value={formData.title}
-              onChange={e =>
-                setFormData(prev => ({ ...prev, title: e.target.value }))
-              }
-              isRequired
-              size='sm'
-              classNames={{
-                input: 'text-foreground',
-                inputWrapper:
-                  'bg-content2 border-divider data-[hover=true]:bg-content3 group-data-[focus=true]:bg-content2',
-              }}
-            />
-
-            {/* Description */}
-            <div className='space-y-1'>
-              <label className='text-sm font-medium text-foreground-600'>
-                {t('task.modal.label.description')}
-              </label>
-              <div className='h-32'>
-                <MinimalRichTextEditor
-                  content={formData.description}
-                  onChange={content =>
-                    setFormData(prev => ({ ...prev, description: content }))
-                  }
-                  placeholder={t('task.modal.placeholder.description')}
-                  className='h-full'
-                />
-              </div>
-            </div>
-
-            {/* Priority & Time Row */}
-            <div className='grid grid-cols-2 gap-3'>
-              {/* Priority */}
-              <Select
-                label={t('task.modal.label.priority')}
-                placeholder={t('task.modal.placeholder.priority')}
-                selectedKeys={[formData.priority.toString()]}
-                onSelectionChange={keys => {
-                  const priority = Array.from(keys)[0] as string;
-                  setFormData(prev => ({
-                    ...prev,
-                    priority: parseInt(priority) as Priority,
-                  }));
-                }}
-                size='sm'
-                classNames={{
-                  trigger:
-                    'bg-content2 border-divider data-[hover=true]:bg-content3',
-                  value: 'text-foreground',
-                }}
-                renderValue={() =>
-                  selectedPriority && (
-                    <div className='flex items-center gap-2'>
-                      {selectedPriority.icon}
-                      <span>{selectedPriority.label}</span>
-                    </div>
-                  )
-                }
-              >
-                {priorityOptions.map(priority => (
-                  <SelectItem key={priority.key} startContent={priority.icon}>
-                    {priority.label}
-                  </SelectItem>
-                ))}
-              </Select>
-
-              {/* Time Estimate */}
-              <Input
-                type='number'
-                label={t('task.modal.label.timeEstimate')}
-                placeholder={t('task.modal.placeholder.timeEstimate')}
-                value={formData.timeEstimate.toString()}
-                onChange={e =>
-                  setFormData(prev => ({
-                    ...prev,
-                    timeEstimate: parseInt(e.target.value) || 60,
-                  }))
-                }
-                min={15}
-                step={15}
-                startContent={<Timer className='w-3 h-3' />}
-                classNames={{
-                  input: 'text-foreground',
-                  inputWrapper:
-                    'bg-content2 border-divider data-[hover=true]:bg-content3 group-data-[focus=true]:bg-content2',
-                }}
-              />
-            </div>
-
-            {/* Dates Row */}
-            <div className='grid grid-cols-2 gap-3'>
-              {/* Due Date */}
-              <Input
-                type='date'
-                label={t('task.modal.label.dueDate')}
-                value={
-                  formData.dueDate
-                    ? formData.dueDate.toISOString().split('T')[0]
-                    : ''
-                }
-                onChange={e =>
-                  setFormData(prev => ({
-                    ...prev,
-                    dueDate: e.target.value
-                      ? new Date(e.target.value)
-                      : undefined,
-                  }))
-                }
-                size='sm'
-                startContent={<Calendar className='w-3 h-3' />}
-                classNames={{
-                  input: 'text-foreground',
-                  inputWrapper:
-                    'bg-content2 border-divider data-[hover=true]:bg-content3 group-data-[focus=true]:bg-content2',
-                }}
-              />
-
-              {/* Scheduled Date */}
-              <Input
-                type='date'
-                label={t('task.modal.label.scheduled')}
-                value={
-                  formData.scheduledDate
-                    ? formData.scheduledDate.toISOString().split('T')[0]
-                    : ''
-                }
-                onChange={e =>
-                  setFormData(prev => ({
-                    ...prev,
-                    scheduledDate: e.target.value
-                      ? new Date(e.target.value)
-                      : undefined,
-                  }))
-                }
-                size='sm'
-                startContent={<Calendar className='w-3 h-3' />}
-                classNames={{
-                  input: 'text-foreground',
-                  inputWrapper:
-                    'bg-content2 border-divider data-[hover=true]:bg-content3 group-data-[focus=true]:bg-content2',
-                }}
-              />
-            </div>
-
-            {/* Tags */}
-            <div className='space-y-2'>
-              <div className='flex gap-2'>
-                <Input
-                  placeholder={t('task.modal.placeholder.tag')}
-                  value={newTag}
-                  onChange={e => setNewTag(e.target.value)}
-                  onKeyDown={e =>
-                    e.key === 'Enter' && (e.preventDefault(), addTag())
-                  }
-                  size='sm'
-                  startContent={<Hash className='w-3 h-3' />}
-                  className='flex-1'
-                  classNames={{
-                    input: 'text-foreground',
-                    inputWrapper:
-                      'bg-content2 border-divider data-[hover=true]:bg-content3 group-data-[focus=true]:bg-content2',
-                  }}
-                />
-                <Button
-                  type='button'
-                  onPress={addTag}
-                  color='primary'
-                  variant='flat'
-                  size='sm'
-                  isIconOnly
-                  isDisabled={
-                    !newTag.trim() || formData.tags.includes(newTag.trim())
-                  }
-                >
-                  <Plus className='w-3 h-3' />
-                </Button>
-              </div>
-
-              {formData.tags.length > 0 && (
-                <div className='flex flex-wrap gap-1'>
-                  {formData.tags.map((tag, index) => (
-                    <Chip
-                      key={index}
-                      onClose={() => removeTag(tag)}
-                      variant='flat'
-                      color='primary'
-                      size='sm'
-                    >
-                      {tag}
-                    </Chip>
-                  ))}
+          <ModalBody>
+            <div className='grid grid-cols-1 gap-4'>
+              {/* Basic Information Section */}
+              <div className='grid gap-3'>
+                <div className='flex flex-col gap-1'>
+                  <Input
+                    autoFocus
+                    label={t('task.modal.label.title')}
+                    placeholder={t('task.modal.placeholder.title')}
+                    value={formData.title}
+                    onChange={e =>
+                      setFormData(prev => ({ ...prev, title: e.target.value }))
+                    }
+                    isRequired
+                    size='sm'
+                    autoComplete='off'
+                    autoCorrect='off'
+                    autoCapitalize='off'
+                    classNames={{
+                      input: 'text-foreground',
+                      inputWrapper:
+                        'bg-content2 border-divider data-[hover=true]:bg-content3 group-data-[focus=true]:bg-content2',
+                      label: 'text-foreground-600 font-medium',
+                    }}
+                  />
                 </div>
-              )}
+
+                <div className='flex flex-col gap-1'>
+                  <Select
+                    label={t('task.modal.label.taskList')}
+                    placeholder={t('task.modal.placeholder.taskList')}
+                    selectedKeys={[formData.taskListId]}
+                    onSelectionChange={keys => {
+                      const taskListId = Array.from(keys)[0] as string;
+                      setFormData(prev => ({
+                        ...prev,
+                        taskListId,
+                      }));
+                    }}
+                    size='sm'
+                    classNames={{
+                      trigger:
+                        'bg-content2 border-divider data-[hover=true]:bg-content3',
+                      value: 'text-foreground',
+                      label: 'text-foreground-600 font-medium',
+                    }}
+                    isDisabled={taskLists.length === 0}
+                    errorMessage={taskListError}
+                    isInvalid={!!taskListError}
+                  >
+                    {taskLists.map(taskList => (
+                      <SelectItem key={taskList.id}>{taskList.name}</SelectItem>
+                    ))}
+                  </Select>
+                </div>
+
+                {/* Enhanced Error Display */}
+                {submitError && (
+                  <ErrorDisplay
+                    error={submitError}
+                    type={errorType}
+                    recoverable={isErrorRecoverable && retryCount < 3}
+                    onRetry={isErrorRecoverable ? handleRetry : undefined}
+                    onDismiss={handleDismissError}
+                    size='md'
+                    variant='inline'
+                  />
+                )}
+
+                <div className='flex flex-col gap-1'>
+                  <label className='text-sm font-medium text-foreground-600'>
+                    {t('task.modal.label.description')}
+                  </label>
+                  <div className='h-32'>
+                    <MinimalRichTextEditor
+                      content={formData.description}
+                      onChange={content =>
+                        setFormData(prev => ({ ...prev, description: content }))
+                      }
+                      placeholder={t('task.modal.placeholder.description')}
+                      className='h-full'
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Scheduling Section */}
+              <div className='grid gap-3'>
+                <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
+                  <div className='flex flex-col gap-1'>
+                    <Select
+                      label={t('task.modal.label.priority')}
+                      placeholder={t('task.modal.placeholder.priority')}
+                      selectedKeys={[formData.priority.toString()]}
+                      onSelectionChange={keys => {
+                        const priority = Array.from(keys)[0] as string;
+                        setFormData(prev => ({
+                          ...prev,
+                          priority: parseInt(priority) as Priority,
+                        }));
+                      }}
+                      size='sm'
+                      classNames={{
+                        trigger:
+                          'bg-content2 border-divider data-[hover=true]:bg-content3',
+                        value: 'text-foreground',
+                        label: 'text-foreground-600 font-medium',
+                      }}
+                      renderValue={() =>
+                        selectedPriority && (
+                          <div className='flex items-center gap-2'>
+                            {selectedPriority.icon}
+                            <span>{selectedPriority.label}</span>
+                          </div>
+                        )
+                      }
+                    >
+                      {priorityOptions.map(priority => (
+                        <SelectItem
+                          key={priority.key}
+                          startContent={priority.icon}
+                        >
+                          {priority.label}
+                        </SelectItem>
+                      ))}
+                    </Select>
+                  </div>
+
+                  <div className='flex flex-col gap-1'>
+                    <Input
+                      type='number'
+                      label={t('task.modal.label.timeEstimate')}
+                      placeholder={t('task.modal.placeholder.timeEstimate')}
+                      value={formData.timeEstimate.toString()}
+                      onChange={e =>
+                        setFormData(prev => ({
+                          ...prev,
+                          timeEstimate: parseInt(e.target.value) || 60,
+                        }))
+                      }
+                      min={1}
+                      step={1}
+                      size='sm'
+                      startContent={<Timer className='w-4 h-4' />}
+                      classNames={{
+                        input: 'text-foreground',
+                        inputWrapper:
+                          'bg-content2 border-divider data-[hover=true]:bg-content3 group-data-[focus=true]:bg-content2',
+                        label: 'text-foreground-600 font-medium',
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
+                  <div className='flex flex-col gap-1'>
+                    <Input
+                      type='date'
+                      label={t('task.modal.label.dueDate')}
+                      value={
+                        formData.dueDate
+                          ? formData.dueDate.toISOString().split('T')[0]
+                          : ''
+                      }
+                      onChange={e =>
+                        setFormData(prev => ({
+                          ...prev,
+                          dueDate: e.target.value
+                            ? new Date(e.target.value)
+                            : undefined,
+                        }))
+                      }
+                      size='sm'
+                      startContent={<Calendar className='w-4 h-4' />}
+                      classNames={{
+                        input: 'text-foreground',
+                        inputWrapper:
+                          'bg-content2 border-divider data-[hover=true]:bg-content3 group-data-[focus=true]:bg-content2',
+                        label: 'text-foreground-600 font-medium',
+                      }}
+                    />
+                  </div>
+
+                  <div className='flex flex-col gap-1'>
+                    <Input
+                      type='date'
+                      label={t('task.modal.label.scheduled')}
+                      value={
+                        formData.scheduledDate
+                          ? formData.scheduledDate.toISOString().split('T')[0]
+                          : ''
+                      }
+                      onChange={e =>
+                        setFormData(prev => ({
+                          ...prev,
+                          scheduledDate: e.target.value
+                            ? new Date(e.target.value)
+                            : undefined,
+                        }))
+                      }
+                      size='sm'
+                      startContent={<Calendar className='w-4 h-4' />}
+                      classNames={{
+                        input: 'text-foreground',
+                        inputWrapper:
+                          'bg-content2 border-divider data-[hover=true]:bg-content3 group-data-[focus=true]:bg-content2',
+                        label: 'text-foreground-600 font-medium',
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Tags Section */}
+              <div className='grid gap-3'>
+                <div className='flex flex-col gap-1'>
+                  <div className='flex gap-2'>
+                    <Input
+                      placeholder={t('task.modal.placeholder.tag')}
+                      value={newTag}
+                      onChange={e => setNewTag(e.target.value)}
+                      onKeyDown={e =>
+                        e.key === 'Enter' && (e.preventDefault(), addTag())
+                      }
+                      size='sm'
+                      startContent={<Hash className='w-4 h-4' />}
+                      className='flex-1'
+                      classNames={{
+                        input: 'text-foreground',
+                        inputWrapper:
+                          'bg-content2 border-divider data-[hover=true]:bg-content3 group-data-[focus=true]:bg-content2',
+                        label: 'text-foreground-600 font-medium',
+                      }}
+                    />
+                    <Button
+                      type='button'
+                      onPress={addTag}
+                      color='primary'
+                      variant='flat'
+                      size='sm'
+                      isIconOnly
+                      isDisabled={
+                        !newTag.trim() || formData.tags.includes(newTag.trim())
+                      }
+                    >
+                      <Plus className='w-4 h-4' />
+                    </Button>
+                  </div>
+
+                  {formData.tags.length > 0 && (
+                    <div className='flex flex-wrap gap-1 mt-2'>
+                      {formData.tags.map((tag, index) => (
+                        <Chip
+                          key={index}
+                          onClose={() => removeTag(tag)}
+                          variant='flat'
+                          color='primary'
+                          size='sm'
+                        >
+                          {tag}
+                        </Chip>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </ModalBody>
 
@@ -465,9 +700,9 @@ export function TaskModal({
               startContent={
                 !isSubmitting &&
                 (isEditMode ? (
-                  <Save className='w-3 h-3' />
+                  <Save className='w-4 h-4' />
                 ) : (
-                  <Plus className='w-3 h-3' />
+                  <Plus className='w-4 h-4' />
                 ))
               }
             >

@@ -15,7 +15,16 @@ export interface TaskDbRow extends Record<string, unknown> {
   project_id: string | null;
   parent_task_id: string | null;
   subtasks: string; // JSON string
+  task_list_id: string; // Foreign key to task_lists
   completed_at: string | null; // ISO string
+  created_at: string; // ISO string
+  updated_at: string; // ISO string
+}
+
+export interface TaskListDbRow extends Record<string, unknown> {
+  id: string;
+  name: string;
+  is_default: number; // SQLite boolean (0 or 1)
   created_at: string; // ISO string
   updated_at: string; // ISO string
 }

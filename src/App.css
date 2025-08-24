@@ -13,6 +13,8 @@ html,
 body,
 #root {
   height: 100%;
+  margin: 0;
+  padding: 0;
   overflow: hidden;
   /* Keep overflow hidden on root elements for app container management */
   background: transparent;
@@ -25,6 +27,8 @@ body,
   display: flex;
   flex-direction: column;
   position: relative;
+  margin: 0;
+  padding: 0;
 }
 
 /* Rounded window styling - only when not maximized */
@@ -213,4 +217,28 @@ select,
 .week-scroller {
   padding-bottom: 8px;
   margin-bottom: 8px;
+}
+
+/* Ensure TitleBar always stays on top of modals */
+.title-bar {
+  z-index: 9999 !important;
+  position: relative;
+}
+
+/* Ensure all HeroUI modals stay below the TitleBar */
+[data-slot='backdrop'] {
+  z-index: 9998 !important;
+}
+
+[data-slot='wrapper'] {
+  z-index: 9998 !important;
+}
+
+/* Override HeroUI modal z-index to stay below TitleBar */
+.heroui-modal-wrapper {
+  z-index: 9998 !important;
+}
+
+.heroui-modal-backdrop {
+  z-index: 9998 !important;
 }

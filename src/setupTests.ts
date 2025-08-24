@@ -112,11 +112,32 @@ Object.defineProperty(window, 'performance', {
 global.requestAnimationFrame = jest.fn(cb => setTimeout(cb, 16));
 global.cancelAnimationFrame = jest.fn(id => clearTimeout(id));
 
+// Mock framer-motion to prevent dynamic import issues
+jest.mock('framer-motion', () => ({
+  motion: {
+    div: 'div',
+    span: 'span',
+    button: 'button',
+  },
+  AnimatePresence: ({ children }: { children: React.ReactNode }) => children,
+  useAnimation: () => ({
+    start: jest.fn(),
+    stop: jest.fn(),
+    set: jest.fn(),
+  }),
+  useMotionValue: (initial: unknown) => ({
+    get: () => initial,
+    set: jest.fn(),
+  }),
+  useTransform: (value: unknown, _input: unknown, _output: unknown) => value,
+  domAnimation: {},
+}));
+
 // Mock crypto API for generating IDs
 Object.defineProperty(global, 'crypto', {
   value: {
     randomUUID: jest.fn(
-      () => 'mock-uuid-' + Math.random().toString(36).substr(2, 9)
+      () => 'mock-uuid-' + Math.random().toString(36).substring(2, 11)
     ),
     getRandomValues: jest.fn(arr => {
       for (let i = 0; i < arr.length; i++) {

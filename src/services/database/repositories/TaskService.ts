@@ -30,17 +30,31 @@ export class TaskService {
         dependencies: request.dependencies,
         project_id: request.projectId,
         parent_task_id: request.parentTaskId,
+        task_list_id: request.taskListId,
       };
+
+      console.log('Creating task with request:', serializedRequest);
 
       const result = await invoke<Record<string, unknown>>('create_task', {
         request: serializedRequest,
       });
       return this.transformTaskFromBackend(result);
     } catch (error) {
-      const errorMessage = getDatabaseErrorMessage(
-        'taskService.error.createFailed' as TranslationKey
-      );
-      throw new Error(`${errorMessage}: ${error}`);
+      console.error('Task creation failed with error:', error);
+
+      // Extract the actual error message from the backend
+      let errorMessage = 'Failed to create task';
+      if (typeof error === 'string') {
+        errorMessage = error;
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+
+      // Remove redundant prefixes
+      errorMessage = errorMessage.replace(/^Failed to create task:\s*/, '');
+      errorMessage = errorMessage.replace(/^Database error:\s*/, '');
+
+      throw new Error(errorMessage);
     }
   }
 
@@ -168,6 +182,26 @@ export class TaskService {
   }
 
   /**
+   * Find tasks by task list ID
+   */
+  async findByTaskList(taskListId: string): Promise<Task[]> {
+    try {
+      const result = await invoke<Record<string, unknown>[]>(
+        'get_tasks_by_task_list',
+        {
+          task_list_id: taskListId,
+        }
+      );
+      return result.map(task => this.transformTaskFromBackend(task));
+    } catch (error) {
+      const errorMessage = getDatabaseErrorMessage(
+        'taskService.error.findByTaskListFailed' as TranslationKey
+      );
+      throw new Error(`${errorMessage}: ${error}`);
+    }
+  }
+
+  /**
    * Update task
    */
   async update(id: string, request: UpdateTaskRequest): Promise<Task> {
@@ -201,6 +235,9 @@ export class TaskService {
       }
       if (request.dependencies !== undefined) {
         serializedRequest.dependencies = request.dependencies;
+      }
+      if (request.taskListId !== undefined) {
+        serializedRequest.task_list_id = request.taskListId;
       }
 
       const result = await invoke<Record<string, unknown>>('update_task', {
@@ -411,6 +448,7 @@ export class TaskService {
       projectId: backendTask.project_id as string | undefined,
       parentTaskId: backendTask.parent_task_id as string | undefined,
       subtasks: this.parseJsonField(backendTask.subtasks as string | null, []),
+      taskListId: (backendTask.task_list_id as string) || 'default-task-list',
       completedAt: backendTask.completed_at
         ? new Date(backendTask.completed_at as string)
         : undefined,

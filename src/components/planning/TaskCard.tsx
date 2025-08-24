@@ -40,6 +40,8 @@ interface PlanningTaskCardProps {
   activeTimerTaskId?: string | null;
   isTimerRunning?: boolean;
   elapsedTime?: number;
+  showTaskListIndicator?: boolean;
+  taskListName?: string;
   className?: string;
 }
 
@@ -63,6 +65,8 @@ export function TaskCard({
   activeTimerTaskId,
   isTimerRunning = false,
   elapsedTime = 0,
+  showTaskListIndicator = false,
+  taskListName,
   className = '',
 }: PlanningTaskCardProps) {
   const { t } = useTranslation();
@@ -200,11 +204,18 @@ export function TaskCard({
     setIsEditModalOpen(true);
   };
 
-  const handleSave = (updatedTask: Partial<Task>) => {
-    if (onEdit) {
-      onEdit(updatedTask);
+  const handleSave = async (updatedTask: Partial<Task>) => {
+    try {
+      if (onEdit) {
+        await onEdit(updatedTask);
+      }
+      setIsEditModalOpen(false);
+    } catch (error) {
+      // Let the TaskModal handle the error display
+      // We don't close the modal so user can retry
+      console.error('Failed to update task:', error);
+      throw error;
     }
-    setIsEditModalOpen(false);
   };
 
   // Enhanced note editing handlers
@@ -395,6 +406,14 @@ export function TaskCard({
                     >
                       {task.title}
                     </h4>
+                    {/* Task List Indicator - Only show when "All" view is active */}
+                    {showTaskListIndicator && taskListName && (
+                      <div className='flex items-center mt-0.5'>
+                        <span className='text-xs text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded-sm'>
+                          {taskListName}
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Expand button - Right side of title */}

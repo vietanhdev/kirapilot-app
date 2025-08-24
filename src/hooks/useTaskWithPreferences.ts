@@ -28,6 +28,7 @@ export const useTaskWithPreferences = () => {
       timeEstimate: taskData.timeEstimate || 0,
       actualTime: taskData.actualTime || 0,
       dueDate: taskData.dueDate,
+      taskListId: taskData.taskListId || 'default-task-list',
       scheduledDate:
         taskData.scheduledDate ||
         (autoScheduling

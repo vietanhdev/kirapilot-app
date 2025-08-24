@@ -402,7 +402,7 @@ describe('TaskService - ScheduledDate Functionality', () => {
       };
 
       await expect(service.create(createRequest)).rejects.toThrow(
-        'taskService.error.createFailed: Error: Database connection failed'
+        'Database connection failed'
       );
     });
 

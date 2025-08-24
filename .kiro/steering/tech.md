@@ -62,3 +62,4 @@ npm run type-check       # TypeScript check without emit
 ## Development Requirements
 
 - Run `npm run lint`, `npm run build` and fix all issues before completing any task. RULE: If there is any warning, fix it.
+- Try to use HeroUI components to have consistent styling for the app.

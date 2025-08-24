@@ -294,6 +294,8 @@ export const de = {
   'task.modal.placeholder.priority': 'Priorität auswählen',
   'task.modal.placeholder.timeEstimate': '60',
   'task.modal.placeholder.tag': 'Tag hinzufügen...',
+  'task.modal.label.taskList': 'Aufgabenliste',
+  'task.modal.placeholder.taskList': 'Aufgabenliste auswählen',
   'task.modal.button.saveChanges': 'Änderungen speichern',
   'task.modal.button.createTask': 'Aufgabe erstellen',
 

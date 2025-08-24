@@ -17,6 +17,7 @@ import { TaskCard } from './TaskCard';
 import { TaskModal } from './TaskModal';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useResponsiveColumnWidth } from '../../hooks';
+import { useTaskList } from '../../contexts/TaskListContext';
 import {
   ChevronLeft,
   ChevronRight,
@@ -37,7 +38,7 @@ interface WeekViewProps {
   ) => void;
   onTaskEdit: (task: Task) => void;
   onTaskStatusChange: (task: Task, status: TaskStatus) => void;
-  onTaskCreate: (task: Task) => void;
+  onTaskCreate: (task: Task) => Promise<void>;
   onInlineEdit?: (taskId: string, updates: Partial<Task>) => void;
   onTaskDelete?: (task: Task) => void;
   onViewTimeHistory?: (task: Task) => void;
@@ -64,6 +65,9 @@ export function WeekView({
   const [taskModalColumn, setTaskModalColumn] = useState<string>('');
   const [taskModalDate, setTaskModalDate] = useState<Date | undefined>();
   const [draggedTask, setDraggedTask] = useState<Task | null>(null);
+
+  // Get task list context for indicators
+  const { isAllSelected, taskLists } = useTaskList();
 
   // Auto-scroll to today's column
   useEffect(() => {
@@ -222,7 +226,7 @@ export function WeekView({
     setShowTaskModal(true);
   };
 
-  const handleTaskCreate = (task: Task) => {
+  const handleTaskCreate = async (task: Task) => {
     console.log('Creating task:', {
       title: task.title,
       scheduledDate: task.scheduledDate,
@@ -233,8 +237,14 @@ export function WeekView({
           ? 'Today'
           : 'Date-specific column',
     });
-    onTaskCreate(task);
-    setShowTaskModal(false);
+
+    try {
+      await onTaskCreate(task);
+      setShowTaskModal(false);
+    } catch (error) {
+      // Let the error bubble up to be handled by the TaskModal
+      throw error;
+    }
   };
 
   // Handle drag end event
@@ -411,6 +421,10 @@ export function WeekView({
                   onStatusChange={status => onTaskStatusChange(task, status)}
                   onDelete={onTaskDelete}
                   onViewTimeHistory={onViewTimeHistory}
+                  showTaskListIndicator={isAllSelected()}
+                  taskListName={
+                    taskLists.find(list => list.id === task.taskListId)?.name
+                  }
                   {...(getTaskTimerProps?.(task) || {})}
                 />
               ))}
@@ -442,6 +456,11 @@ export function WeekView({
                       }
                       onDelete={onTaskDelete}
                       onViewTimeHistory={onViewTimeHistory}
+                      showTaskListIndicator={isAllSelected()}
+                      taskListName={
+                        taskLists.find(list => list.id === task.taskListId)
+                          ?.name
+                      }
                       {...(getTaskTimerProps?.(task) || {})}
                     />
                   ))}
@@ -467,6 +486,10 @@ export function WeekView({
                   onStatusChange={status => onTaskStatusChange(task, status)}
                   onDelete={onTaskDelete}
                   onViewTimeHistory={onViewTimeHistory}
+                  showTaskListIndicator={isAllSelected()}
+                  taskListName={
+                    taskLists.find(list => list.id === task.taskListId)?.name
+                  }
                   {...(getTaskTimerProps?.(task) || {})}
                 />
               ))}
@@ -491,6 +514,11 @@ export function WeekView({
             <div className='opacity-75'>
               <TaskCard
                 task={draggedTask}
+                showTaskListIndicator={isAllSelected()}
+                taskListName={
+                  taskLists.find(list => list.id === draggedTask.taskListId)
+                    ?.name
+                }
                 className='shadow-lg border-primary-500 bg-primary-50 dark:bg-primary-900/20'
               />
             </div>

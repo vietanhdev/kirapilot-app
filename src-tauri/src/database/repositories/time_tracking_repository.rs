@@ -251,14 +251,14 @@ impl TimeTrackingRepository {
             // Calculate duration for both completed and active sessions
             let end_time = session.end_time.unwrap_or_else(|| chrono::Utc::now());
             let duration = (end_time - session.start_time).num_minutes();
-            
+
             // Only count sessions with meaningful duration (at least 1 minute)
             if duration > 0 {
                 // Ensure break time is not negative and not more than total duration
                 let break_time_seconds = std::cmp::max(0, session.paused_time) as i64;
                 let break_time_minutes = break_time_seconds / 60; // Convert seconds to minutes
                 let break_time = std::cmp::min(break_time_minutes, duration); // Cap at total duration
-                
+
                 total_sessions += 1;
                 total_time_minutes += duration;
                 total_break_time_minutes += break_time;
@@ -282,7 +282,7 @@ impl TimeTrackingRepository {
         }
 
         let total_work_time_minutes = total_time_minutes - total_break_time_minutes;
-        
+
         let average_session_minutes = if total_sessions > 0 {
             total_time_minutes as f64 / total_sessions as f64
         } else {
@@ -362,21 +362,20 @@ impl TimeTrackingRepository {
 
     /// Delete all time sessions
     pub async fn delete_all_sessions(&self) -> Result<u64, DbErr> {
-        let result = time_sessions::Entity::delete_many()
-            .exec(&*self.db)
-            .await?;
+        let result = time_sessions::Entity::delete_many().exec(&*self.db).await?;
         Ok(result.rows_affected)
     }
 
     /// Get all time sessions for backup
     pub async fn get_all_sessions(&self) -> Result<Vec<time_sessions::Model>, DbErr> {
-        time_sessions::Entity::find()
-            .all(&*self.db)
-            .await
+        time_sessions::Entity::find().all(&*self.db).await
     }
 
     /// Import a time session from backup data
-    pub async fn import_session(&self, session: time_sessions::Model) -> Result<time_sessions::Model, DbErr> {
+    pub async fn import_session(
+        &self,
+        session: time_sessions::Model,
+    ) -> Result<time_sessions::Model, DbErr> {
         let active_session = time_sessions::ActiveModel {
             id: Set(session.id),
             task_id: Set(session.task_id),

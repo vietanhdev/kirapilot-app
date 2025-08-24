@@ -295,6 +295,8 @@ export const en = {
   'task.modal.placeholder.priority': 'Select priority',
   'task.modal.placeholder.timeEstimate': '60',
   'task.modal.placeholder.tag': 'Add tag...',
+  'task.modal.label.taskList': 'Task List',
+  'task.modal.placeholder.taskList': 'Select task list',
   'task.modal.button.saveChanges': 'Save Changes',
   'task.modal.button.createTask': 'Create Task',
 
@@ -621,6 +623,58 @@ export const en = {
   'security.error.decryptFailed': 'Failed to decrypt data',
   'security.error.secureStoreFailed': 'Failed to securely store data',
   'security.error.generateHashFailed': 'Failed to generate hash',
+
+  // Task Lists
+  'taskList.all': 'All Tasks',
+  'taskList.default': 'Default',
+  'taskList.selectTaskList': 'Select task list',
+  'taskList.createNew': 'Create New List...',
+  'taskList.createPlaceholder': 'Enter list name...',
+  'taskList.editCurrent': 'Edit Current List',
+  'taskList.editPlaceholder': 'Edit list name...',
+
+  'taskList.deleteConfirmTitle': 'Delete Task List',
+  'taskList.deleteConfirmMessage':
+    'Are you sure you want to delete "{name}"? All tasks in this list will be moved to the Default list.',
+
+  // Task List Error Messages
+  'taskListService.error.getAllFailed': 'Failed to load task lists',
+  'taskListService.error.createFailed': 'Failed to create task list',
+  'taskListService.error.updateFailed': 'Failed to update task list',
+  'taskListService.error.deleteFailed': 'Failed to delete task list',
+  'taskListService.error.getDefaultFailed': 'Failed to get default task list',
+  'taskListService.error.moveTaskFailed': 'Failed to move task',
+  'taskListService.error.getTasksFailed': 'Failed to get tasks',
+
+  // Task List Validation Errors
+  'taskList.validation.nameRequired': 'Task list name is required',
+  'taskList.validation.nameEmpty': 'Task list name cannot be empty',
+  'taskList.validation.nameTooLong':
+    'Task list name is too long (max 255 characters)',
+  'taskList.validation.nameReserved':
+    'Task list name cannot be "All" (reserved)',
+  'taskList.validation.nameDuplicate':
+    'A task list with this name already exists',
+  'taskList.validation.nameInvalidChars':
+    'Task list name contains invalid characters',
+  'taskList.validation.nameInvalidFormat': 'Task list name format is invalid',
+  'taskList.validation.nameInvalidDots':
+    'Task list name cannot start or end with a dot',
+
+  // Task List Operation Errors
+  'taskList.error.notFound': 'Task list not found',
+  'taskList.error.cannotDeleteDefault': 'Cannot delete the default task list',
+  'taskList.error.cannotEditDefault': 'Cannot edit the default task list name',
+  'taskList.error.operationFailed': 'Task list operation failed',
+  'taskList.error.networkError': 'Network error occurred',
+  'taskList.error.databaseError': 'Database error occurred',
+  'taskList.error.unknownError': 'An unknown error occurred',
+
+  // Task List Success Messages
+  'taskList.success.created': 'Task list created successfully',
+  'taskList.success.updated': 'Task list updated successfully',
+  'taskList.success.deleted': 'Task list deleted successfully',
+  'taskList.success.taskMoved': 'Task moved successfully',
 
   // Common Components
   'common.confirmDialog.confirm': 'Confirm',

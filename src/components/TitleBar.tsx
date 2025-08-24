@@ -2,6 +2,10 @@ import { Minus, X, Maximize2, Minimize2 } from 'lucide-react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { useWindowState } from '../hooks/useWindowState';
 
+/**
+ * Custom title bar component that provides window controls for the Tauri app.
+ * Uses z-index: 9999 to ensure it always stays above HeroUI modals.
+ */
 export default function TitleBar() {
   const { isMaximized, toggleMaximize } = useWindowState();
 
@@ -29,7 +33,7 @@ export default function TitleBar() {
 
   return (
     <div
-      className={`flex items-center justify-between h-8 bg-content2 border-b border-divider select-none shadow-sm ${
+      className={`title-bar flex items-center justify-between h-8 bg-content2 border-b border-divider select-none shadow-sm relative z-[9999] ${
         isMaximized ? '' : 'rounded-t-xl'
       }`}
     >

@@ -3,18 +3,21 @@ import { TaskService } from './TaskService';
 import { TimeTrackingService } from './TimeTrackingService';
 import { FocusService } from './FocusService';
 import { PatternService } from './PatternService';
+import { TaskListService } from './TaskListService';
 
 // Singleton instances
 let taskService: TaskService | null = null;
 let timeTrackingService: TimeTrackingService | null = null;
 let focusService: FocusService | null = null;
 let patternService: PatternService | null = null;
+let taskListService: TaskListService | null = null;
 
 // Export services
 export { TaskService } from './TaskService';
 export { TimeTrackingService } from './TimeTrackingService';
 export { FocusService } from './FocusService';
 export { PatternService } from './PatternService';
+export { TaskListService } from './TaskListService';
 
 /**
  * Get TaskService instance (replaces TaskRepository)
@@ -54,4 +57,14 @@ export function getPatternRepository(): PatternService {
     patternService = new PatternService();
   }
   return patternService;
+}
+
+/**
+ * Get TaskListService instance
+ */
+export function getTaskListRepository(): TaskListService {
+  if (!taskListService) {
+    taskListService = new TaskListService();
+  }
+  return taskListService;
 }

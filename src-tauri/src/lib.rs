@@ -1,18 +1,21 @@
-mod database;
 mod backup;
+mod database;
 
+use backup::{BackupMetadata, BackupService};
 use database::migration::{MigrationStatus, MigrationTestResult};
 use database::repositories::{
     ai_repository::{AiStats, CreateAiInteractionRequest, UpdateAiInteractionRequest},
     task_repository::{CreateTaskRequest, TaskStats, UpdateTaskRequest},
     time_tracking_repository::{CreateTimeSessionRequest, TimeStats, UpdateTimeSessionRequest},
-    AiRepository, TaskRepository, TimeTrackingRepository,
+    task_list_repository::{CreateTaskListRequest, UpdateTaskListRequest, TaskListStats},
+    AiRepository, TaskRepository, TimeTrackingRepository, TaskListRepository,
 };
 use database::{
     check_database_health, get_database, get_migration_status, initialize_database,
-    test_migration_compatibility, DatabaseHealth,
+    test_migration_compatibility, run_post_migration_init, validate_db_integrity, 
+    DatabaseHealth,
 };
-use backup::{BackupService, BackupMetadata};
+use database::migration::initialization::DatabaseIntegrityReport;
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
@@ -28,12 +31,41 @@ fn greet(name: &str) -> String {
 async fn create_task(request: CreateTaskRequest) -> Result<serde_json::Value, String> {
     let db = get_database()
         .await
-        .map_err(|e| format!("Database error: {}", e))?;
+        .map_err(|e| format!("Database connection failed: {}", e))?;
     let repo = TaskRepository::new(db);
 
     match repo.create_task(request).await {
         Ok(task) => Ok(serde_json::to_value(task).unwrap_or_default()),
-        Err(e) => Err(format!("Failed to create task: {}", e)),
+        Err(e) => {
+            // Provide more specific error messages based on the error type
+            let error_msg = match &e {
+                sea_orm::DbErr::RecordNotFound(msg) => {
+                    if msg.contains("task_list") || msg.contains("TaskList") {
+                        "The selected task list no longer exists. Please select a different task list.".to_string()
+                    } else {
+                        format!("Record not found: {}", msg)
+                    }
+                },
+                sea_orm::DbErr::Custom(msg) => {
+                    format!("Database constraint error: {}", msg)
+                },
+                sea_orm::DbErr::Conn(msg) => {
+                    format!("Database connection error: {}", msg)
+                },
+                sea_orm::DbErr::Exec(msg) => {
+                    let msg_str = msg.to_string();
+                    if msg_str.contains("FOREIGN KEY constraint failed") {
+                        "The selected task list is invalid. Please select a valid task list.".to_string()
+                    } else if msg_str.contains("NOT NULL constraint failed") {
+                        "Required field is missing. Please check all required fields.".to_string()
+                    } else {
+                        format!("Database execution error: {}", msg)
+                    }
+                },
+                _ => format!("Database error: {}", e),
+            };
+            Err(error_msg)
+        }
     }
 }
 
@@ -754,7 +786,161 @@ async fn test_migration_compatibility_cmd() -> Result<MigrationTestResult, Strin
     }
 }
 
+#[tauri::command]
+async fn run_post_migration_initialization() -> Result<String, String> {
+    match run_post_migration_init().await {
+        Ok(_) => Ok("Post-migration initialization completed successfully".to_string()),
+        Err(e) => Err(format!("Failed to run post-migration initialization: {}", e)),
+    }
+}
 
+#[tauri::command]
+async fn validate_database_integrity() -> Result<DatabaseIntegrityReport, String> {
+    match validate_db_integrity().await {
+        Ok(report) => Ok(report),
+        Err(e) => Err(format!("Failed to validate database integrity: {}", e)),
+    }
+}
+
+// ============================================================================
+// Task List Management Commands
+// ============================================================================
+
+#[tauri::command]
+async fn get_all_task_lists() -> Result<Vec<serde_json::Value>, String> {
+    let db = get_database()
+        .await
+        .map_err(|e| format!("Database error: {}", e))?;
+
+    let task_list_repo = TaskListRepository::new(db);
+
+    match task_list_repo.find_all_task_lists().await {
+        Ok(task_lists) => {
+            let json_task_lists: Vec<serde_json::Value> = task_lists
+                .into_iter()
+                .map(|task_list| serde_json::to_value(task_list).unwrap())
+                .collect();
+            Ok(json_task_lists)
+        }
+        Err(e) => Err(format!("Failed to get task lists: {}", e)),
+    }
+}
+
+#[tauri::command]
+async fn create_task_list(request: CreateTaskListRequest) -> Result<serde_json::Value, String> {
+    let db = get_database()
+        .await
+        .map_err(|e| format!("Database error: {}", e))?;
+
+    let task_list_repo = TaskListRepository::new(db);
+
+    match task_list_repo.create_task_list(request.name).await {
+        Ok(task_list) => Ok(serde_json::to_value(task_list).unwrap()),
+        Err(e) => Err(format!("Failed to create task list: {}", e)),
+    }
+}
+
+#[tauri::command]
+async fn update_task_list(
+    id: String,
+    request: UpdateTaskListRequest,
+) -> Result<serde_json::Value, String> {
+    let db = get_database()
+        .await
+        .map_err(|e| format!("Database error: {}", e))?;
+
+    let task_list_repo = TaskListRepository::new(db);
+
+    match task_list_repo.update_task_list(&id, request.name).await {
+        Ok(task_list) => Ok(serde_json::to_value(task_list).unwrap()),
+        Err(e) => Err(format!("Failed to update task list: {}", e)),
+    }
+}
+
+#[tauri::command]
+async fn delete_task_list(id: String) -> Result<String, String> {
+    let db = get_database()
+        .await
+        .map_err(|e| format!("Database error: {}", e))?;
+
+    let task_list_repo = TaskListRepository::new(db);
+
+    match task_list_repo.delete_task_list(&id).await {
+        Ok(_) => Ok("Task list deleted successfully".to_string()),
+        Err(e) => Err(format!("Failed to delete task list: {}", e)),
+    }
+}
+
+#[tauri::command]
+async fn get_default_task_list() -> Result<serde_json::Value, String> {
+    let db = get_database()
+        .await
+        .map_err(|e| format!("Database error: {}", e))?;
+
+    let task_list_repo = TaskListRepository::new(db);
+
+    match task_list_repo.get_default_task_list().await {
+        Ok(task_list) => Ok(serde_json::to_value(task_list).unwrap()),
+        Err(e) => Err(format!("Failed to get default task list: {}", e)),
+    }
+}
+
+#[tauri::command]
+async fn move_task_to_list(taskId: String, taskListId: String) -> Result<serde_json::Value, String> {
+    let db = get_database()
+        .await
+        .map_err(|e| format!("Database connection failed: {}", e))?;
+
+    let task_repo = TaskRepository::new(db.clone());
+    let task_list_repo = TaskListRepository::new(db);
+
+    // Validate that the task list exists
+    match task_list_repo.exists(&taskListId).await {
+        Ok(false) => return Err(format!("Task list with ID '{}' not found", taskListId)),
+        Err(e) => return Err(format!("Failed to validate task list: {}", e)),
+        Ok(true) => {}
+    }
+
+    // Perform the move operation
+    match task_repo.move_task_to_list(&taskId, &taskListId).await {
+        Ok(task) => Ok(serde_json::to_value(task).unwrap()),
+        Err(e) => Err(format!("Failed to move task '{}' to list '{}': {}", taskId, taskListId, e)),
+    }
+}
+
+#[tauri::command]
+async fn get_tasks_by_task_list(task_list_id: String) -> Result<Vec<serde_json::Value>, String> {
+    let db = get_database()
+        .await
+        .map_err(|e| format!("Database error: {}", e))?;
+
+    let task_repo = TaskRepository::new(db);
+
+    match task_repo.find_by_task_list(&task_list_id).await {
+        Ok(tasks) => {
+            let json_tasks: Vec<serde_json::Value> = tasks
+                .into_iter()
+                .map(|task| serde_json::to_value(task).unwrap())
+                .collect();
+            Ok(json_tasks)
+        }
+        Err(e) => Err(format!("Failed to get tasks by task list: {}", e)),
+    }
+}
+
+#[tauri::command]
+async fn get_task_list_stats() -> Result<TaskListStats, String> {
+    let db = get_database()
+        .await
+        .map_err(|e| format!("Database error: {}", e))?;
+
+    let task_list_repo = TaskListRepository::new(db);
+
+    match task_list_repo.get_task_list_stats().await {
+        Ok(stats) => Ok(stats),
+        Err(e) => Err(format!("Failed to get task list stats: {}", e)),
+    }
+}
 
 // ============================================================================
 // Backup & Restore Commands
@@ -765,9 +951,9 @@ async fn export_data_to_file(file_path: String) -> Result<BackupMetadata, String
     let db = get_database()
         .await
         .map_err(|e| format!("Database error: {}", e))?;
-    
+
     let backup_service = BackupService::new(db);
-    
+
     match backup_service.export_data(&file_path).await {
         Ok(metadata) => Ok(metadata),
         Err(e) => Err(format!("Failed to export data: {}", e)),
@@ -775,13 +961,16 @@ async fn export_data_to_file(file_path: String) -> Result<BackupMetadata, String
 }
 
 #[tauri::command]
-async fn import_data_from_file(file_path: String, overwrite: bool) -> Result<BackupMetadata, String> {
+async fn import_data_from_file(
+    file_path: String,
+    overwrite: bool,
+) -> Result<BackupMetadata, String> {
     let db = get_database()
         .await
         .map_err(|e| format!("Database error: {}", e))?;
-    
+
     let backup_service = BackupService::new(db);
-    
+
     match backup_service.import_data(&file_path, overwrite).await {
         Ok(metadata) => Ok(metadata),
         Err(e) => Err(format!("Failed to import data: {}", e)),
@@ -793,9 +982,9 @@ async fn validate_backup_file(file_path: String) -> Result<BackupMetadata, Strin
     let db = get_database()
         .await
         .map_err(|e| format!("Database error: {}", e))?;
-    
+
     let backup_service = BackupService::new(db);
-    
+
     match backup_service.validate_backup(&file_path).await {
         Ok(metadata) => Ok(metadata),
         Err(e) => Err(format!("Failed to validate backup: {}", e)),
@@ -803,14 +992,19 @@ async fn validate_backup_file(file_path: String) -> Result<BackupMetadata, Strin
 }
 
 #[tauri::command]
-async fn validate_backup_comprehensive(file_path: String) -> Result<backup::BackupValidationResult, String> {
+async fn validate_backup_comprehensive(
+    file_path: String,
+) -> Result<backup::BackupValidationResult, String> {
     let db = get_database()
         .await
         .map_err(|e| format!("Database error: {}", e))?;
-    
+
     let backup_service = BackupService::new(db);
-    
-    match backup_service.validate_backup_comprehensive(&file_path).await {
+
+    match backup_service
+        .validate_backup_comprehensive(&file_path)
+        .await
+    {
         Ok(result) => Ok(result),
         Err(e) => Err(format!("Failed to validate backup: {}", e)),
     }
@@ -838,6 +1032,8 @@ pub fn run() {
             get_database_health,
             get_migration_status_cmd,
             test_migration_compatibility_cmd,
+            run_post_migration_initialization,
+            validate_database_integrity,
             // Task Management Commands
             create_task,
             get_task,
@@ -853,6 +1049,15 @@ pub fn run() {
             get_task_dependents,
             get_task_stats,
             search_tasks,
+            // Task List Management Commands
+            get_all_task_lists,
+            create_task_list,
+            update_task_list,
+            delete_task_list,
+            get_default_task_list,
+            move_task_to_list,
+            get_tasks_by_task_list,
+            get_task_list_stats,
             // Time Tracking Commands
             create_time_session,
             get_time_session,

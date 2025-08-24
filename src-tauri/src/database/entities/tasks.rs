@@ -19,6 +19,7 @@ pub struct Model {
     pub tags: Option<String>, // JSON string
     pub project_id: Option<String>,
     pub parent_task_id: Option<String>,
+    pub task_list_id: Option<String>,
     pub subtasks: Option<String>, // JSON string
     pub completed_at: Option<DateTimeUtc>,
     pub created_at: DateTimeUtc,
@@ -33,6 +34,12 @@ pub enum Relation {
     TimeSessions,
     #[sea_orm(has_many = "super::focus_sessions::Entity")]
     FocusSessions,
+    #[sea_orm(
+        belongs_to = "super::task_lists::Entity",
+        from = "Column::TaskListId",
+        to = "super::task_lists::Column::Id"
+    )]
+    TaskList,
 }
 
 impl Related<super::task_dependencies::Entity> for Entity {
@@ -50,6 +57,12 @@ impl Related<super::time_sessions::Entity> for Entity {
 impl Related<super::focus_sessions::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::FocusSessions.def()
+    }
+}
+
+impl Related<super::task_lists::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::TaskList.def()
     }
 }
 

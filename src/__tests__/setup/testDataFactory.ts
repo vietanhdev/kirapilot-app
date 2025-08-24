@@ -123,6 +123,7 @@ export class TestDataFactory {
           : undefined,
       tags: randomTags,
       subtasks: [],
+      taskListId: 'default-task-list',
       createdAt: new Date(
         now.getTime() - Math.random() * 30 * 24 * 60 * 60 * 1000
       ), // Within last 30 days

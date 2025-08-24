@@ -2,6 +2,13 @@ import { heroui } from '@heroui/react';
 
 export default heroui({
   defaultTheme: 'dark',
+  layout: {
+    // Ensure modals don't cover the title bar
+    zIndex: {
+      modal: 9998,
+      modalBackdrop: 9998,
+    },
+  },
   themes: {
     light: {
       colors: {
