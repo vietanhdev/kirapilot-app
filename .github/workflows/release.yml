@@ -118,57 +118,82 @@ jobs:
 
             console.log(`Found ${release.assets.length} assets to process`);
 
-            // Define OS mappings based on file patterns
-            const osMapping = {
-              '.app.tar.gz': 'macos-arm64',
-              '.app.tar.gz.sig': 'macos-arm64',
-              '_x64.app.tar.gz': 'macos-x64',
-              '_x64.app.tar.gz.sig': 'macos-x64',
-              '.dmg': 'macos-universal',
-              '.dmg.sig': 'macos-universal',
-              '_x64_en-US.msi': 'windows-x64',
-              '_x64_en-US.msi.zip': 'windows-x64',
-              '_x64_en-US.msi.zip.sig': 'windows-x64',
-              '.AppImage': 'linux-x64',
-              '.AppImage.tar.gz': 'linux-x64',
-              '.AppImage.tar.gz.sig': 'linux-x64',
-              '.deb': 'linux-x64',
-              '.deb.sig': 'linux-x64'
-            };
+            function detectPlatform(filename) {
+              // macOS files
+              if (filename.includes('.app.tar.gz')) {
+                if (filename.includes('aarch64')) return 'macos-arm64';
+                if (filename.includes('x64') || filename.includes('x86_64')) return 'macos-x64';
+                return 'macos-universal';
+              }
+              if (filename.includes('.dmg')) return 'macos-universal';
+              
+              // Windows files
+              if (filename.includes('.exe') || filename.includes('.msi')) return 'windows-x64';
+              
+              // Linux files
+              if (filename.includes('.AppImage') || filename.includes('.deb')) {
+                if (filename.includes('aarch64') || filename.includes('arm64')) return 'linux-arm64';
+                return 'linux-x64';
+              }
+              
+              return null;
+            }
+
+            function generateCleanName(originalName, platform) {
+              // Extract version if present (format like _0.0.13_)
+              const versionMatch = originalName.match(/_(\d+\.\d+\.\d+)_/);
+              const version = versionMatch ? versionMatch[1] : null;
+              
+              // Remove existing architecture indicators to avoid duplication
+              let cleanName = originalName
+                .replace(/_amd64/g, '')
+                .replace(/_x64/g, '')
+                .replace(/_aarch64/g, '')
+                .replace(/_arm64/g, '')
+                .replace(/-setup/g, '')
+                .replace(/_en-US/g, '');
+
+              // Handle different file types
+              if (cleanName.includes('.app.tar.gz')) {
+                // For macOS app bundles: KiraPilot.app.tar.gz -> KiraPilot_0.0.13-macos-arm64.app.tar.gz
+                const baseName = cleanName.replace('.app.tar.gz', '');
+                const versionPart = version ? `_${version}` : '';
+                return `${baseName}${versionPart}-${platform}.app.tar.gz`;
+              } else if (cleanName.includes('.dmg')) {
+                // For DMG files: KiraPilot.dmg -> KiraPilot_0.0.13-macos-universal.dmg
+                const baseName = cleanName.replace('.dmg', '');
+                const versionPart = version ? `_${version}` : '';
+                return `${baseName}${versionPart}-${platform}.dmg`;
+              } else if (cleanName.includes('.tar.gz')) {
+                // For other tar.gz files: file.tar.gz -> file-platform.tar.gz
+                return cleanName.replace('.tar.gz', `-${platform}.tar.gz`);
+              } else {
+                // For single extension files: file.ext -> file-platform.ext
+                const lastDotIndex = cleanName.lastIndexOf('.');
+                if (lastDotIndex !== -1) {
+                  const baseName = cleanName.substring(0, lastDotIndex);
+                  const extension = cleanName.substring(lastDotIndex);
+                  return `${baseName}-${platform}${extension}`;
+                } else {
+                  return `${cleanName}-${platform}`;
+                }
+              }
+            }
 
             // Process each asset
             for (const asset of release.assets) {
               console.log(`Processing asset: ${asset.name}`);
               
-              let newName = asset.name;
-              let osName = null;
-
-              // Determine OS based on file extension patterns
-              for (const [pattern, os] of Object.entries(osMapping)) {
-                if (asset.name.includes(pattern)) {
-                  osName = os;
-                  break;
+              const platform = detectPlatform(asset.name);
+              
+              if (platform) {
+                // Check if the file already has the correct platform identifier
+                if (asset.name.includes(`-${platform}`)) {
+                  console.log(`Asset ${asset.name} already has correct platform identifier`);
+                  continue;
                 }
-              }
-
-              // Special handling for different file types
-              if (asset.name.includes('aarch64') || asset.name.includes('arm64')) {
-                osName = 'macos-arm64';
-              } else if (asset.name.includes('x86_64') && asset.name.includes('.app')) {
-                osName = 'macos-x64';
-              } else if (asset.name.includes('.exe') || asset.name.includes('.msi')) {
-                osName = 'windows-x64';
-              } else if (asset.name.includes('.AppImage') || asset.name.includes('.deb')) {
-                osName = 'linux-x64';
-              }
-
-              // Only rename if we found an OS identifier and it's not already in the name
-              if (osName && !asset.name.includes(osName)) {
-                const fileExtension = asset.name.split('.').slice(-1)[0];
-                const baseName = asset.name.replace(/\.[^/.]+$/, '');
-                const fullExtension = asset.name.substring(baseName.length);
                 
-                newName = `${baseName}-${osName}${fullExtension}`;
+                const newName = generateCleanName(asset.name, platform);
                 
                 console.log(`Renaming: ${asset.name} -> ${newName}`);
 
@@ -184,7 +209,7 @@ jobs:
                   console.error(`Failed to rename asset ${asset.name}:`, error);
                 }
               } else {
-                console.log(`Skipping ${asset.name} - no OS identifier found or already named correctly`);
+                console.log(`Skipping ${asset.name} - could not detect platform`);
               }
             }
 
