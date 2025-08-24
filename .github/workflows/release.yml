@@ -95,11 +95,104 @@ jobs:
           releaseId: ${{ needs.create-release.outputs.release_id }}
           args: ${{ matrix.args }}
 
-  publish-release:
+  rename-assets:
     permissions:
       contents: write
     runs-on: ubuntu-latest
     needs: [create-release, build-tauri]
+
+    steps:
+      - name: rename release assets
+        id: rename-assets
+        uses: actions/github-script@v6
+        env:
+          release_id: ${{ needs.create-release.outputs.release_id }}
+        with:
+          script: |
+            // Get all assets from the release
+            const { data: release } = await github.rest.repos.getRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: process.env.release_id
+            });
+
+            console.log(`Found ${release.assets.length} assets to process`);
+
+            // Define OS mappings based on file patterns
+            const osMapping = {
+              '.app.tar.gz': 'macos-arm64',
+              '.app.tar.gz.sig': 'macos-arm64',
+              '_x64.app.tar.gz': 'macos-x64',
+              '_x64.app.tar.gz.sig': 'macos-x64',
+              '.dmg': 'macos-universal',
+              '.dmg.sig': 'macos-universal',
+              '_x64_en-US.msi': 'windows-x64',
+              '_x64_en-US.msi.zip': 'windows-x64',
+              '_x64_en-US.msi.zip.sig': 'windows-x64',
+              '.AppImage': 'linux-x64',
+              '.AppImage.tar.gz': 'linux-x64',
+              '.AppImage.tar.gz.sig': 'linux-x64',
+              '.deb': 'linux-x64',
+              '.deb.sig': 'linux-x64'
+            };
+
+            // Process each asset
+            for (const asset of release.assets) {
+              console.log(`Processing asset: ${asset.name}`);
+              
+              let newName = asset.name;
+              let osName = null;
+
+              // Determine OS based on file extension patterns
+              for (const [pattern, os] of Object.entries(osMapping)) {
+                if (asset.name.includes(pattern)) {
+                  osName = os;
+                  break;
+                }
+              }
+
+              // Special handling for different file types
+              if (asset.name.includes('aarch64') || asset.name.includes('arm64')) {
+                osName = 'macos-arm64';
+              } else if (asset.name.includes('x86_64') && asset.name.includes('.app')) {
+                osName = 'macos-x64';
+              } else if (asset.name.includes('.exe') || asset.name.includes('.msi')) {
+                osName = 'windows-x64';
+              } else if (asset.name.includes('.AppImage') || asset.name.includes('.deb')) {
+                osName = 'linux-x64';
+              }
+
+              // Only rename if we found an OS identifier and it's not already in the name
+              if (osName && !asset.name.includes(osName)) {
+                const fileExtension = asset.name.split('.').slice(-1)[0];
+                const baseName = asset.name.replace(/\.[^/.]+$/, '');
+                const fullExtension = asset.name.substring(baseName.length);
+                
+                newName = `${baseName}-${osName}${fullExtension}`;
+                
+                console.log(`Renaming: ${asset.name} -> ${newName}`);
+
+                try {
+                  await github.rest.repos.updateReleaseAsset({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    asset_id: asset.id,
+                    name: newName
+                  });
+                  console.log(`Successfully renamed asset to: ${newName}`);
+                } catch (error) {
+                  console.error(`Failed to rename asset ${asset.name}:`, error);
+                }
+              } else {
+                console.log(`Skipping ${asset.name} - no OS identifier found or already named correctly`);
+              }
+            }
+
+  publish-release:
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    needs: [create-release, build-tauri, rename-assets]
 
     steps:
       - name: publish release
