@@ -1,7 +1,7 @@
 {
   "name": "kirapilot-app",
   "private": true,
-  "version": "0.0.13",
+  "version": "0.0.14",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -23,9 +23,9 @@
     "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
     "type-check": "tsc --noEmit",
     "sync-version": "node scripts/sync-version.js",
-    "version:patch": "npm version patch && npm run sync-version",
-    "version:minor": "npm version minor && npm run sync-version",
-    "version:major": "npm version major && npm run sync-version",
+    "version:patch": "npm version patch --no-git-tag-version && npm run sync-version && git add . && git commit -m \"chore: bump version to $(node -p \"require('./package.json').version\")\" && git tag \"v$(node -p \"require('./package.json').version\")\"",
+    "version:minor": "npm version minor --no-git-tag-version && npm run sync-version && git add . && git commit -m \"chore: bump version to $(node -p \"require('./package.json').version\")\" && git tag \"v$(node -p \"require('./package.json').version\")\"",
+    "version:major": "npm version major --no-git-tag-version && npm run sync-version && git add . && git commit -m \"chore: bump version to $(node -p \"require('./package.json').version\")\" && git tag \"v$(node -p \"require('./package.json').version\")\"",
     "i18n:validate": "node -e \"require('./src/utils/translationDevTools.ts').runTranslationValidationCLI()\"",
     "i18n:check": "node -e \"require('./src/utils/translationDevTools.ts').validateCurrentTranslations()\""
   },
