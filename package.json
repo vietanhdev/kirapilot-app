@@ -27,7 +27,11 @@
     "version:minor": "npm version minor --no-git-tag-version && npm run sync-version && git add . && git commit -m \"chore: bump version to $(node -p \"require('./package.json').version\")\" && git tag \"v$(node -p \"require('./package.json').version\")\"",
     "version:major": "npm version major --no-git-tag-version && npm run sync-version && git add . && git commit -m \"chore: bump version to $(node -p \"require('./package.json').version\")\" && git tag \"v$(node -p \"require('./package.json').version\")\"",
     "i18n:validate": "node -e \"require('./src/utils/translationDevTools.ts').runTranslationValidationCLI()\"",
-    "i18n:check": "node -e \"require('./src/utils/translationDevTools.ts').validateCurrentTranslations()\""
+    "i18n:check": "node -e \"require('./src/utils/translationDevTools.ts').validateCurrentTranslations()\"",
+    "docs:start": "cd docs && npm start",
+    "docs:build": "cd docs && npm run build",
+    "docs:serve": "cd docs && npm run serve",
+    "docs:install": "cd docs && npm install"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

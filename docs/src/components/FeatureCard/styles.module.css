@@ -1,0 +1,34 @@
+/* Additional styles specific to FeatureCard component */
+.featureCard {
+  position: relative;
+}
+
+.categoryBadge {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: var(--ifm-color-primary-lightest);
+  color: var(--ifm-color-primary-darkest);
+  padding: 0.25rem 0.75rem;
+  border-radius: 1rem;
+  font-size: 0.75rem;
+  font-weight: var(--ifm-font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+.userCategory {
+  background: var(--kira-success-color);
+  color: white;
+}
+
+.developerCategory {
+  background: var(--ifm-color-primary);
+  color: white;
+}
+
+/* Hover effects for better interactivity */
+.featureCard:hover .categoryBadge {
+  transform: scale(1.05);
+  transition: transform var(--kira-transition-fast);
+}

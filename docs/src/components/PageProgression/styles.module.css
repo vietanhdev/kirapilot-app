@@ -1,0 +1,115 @@
+.pageProgression {
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--ifm-color-emphasis-200);
+}
+
+.progressionContainer {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.progressionLink {
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  border: 1px solid var(--ifm-color-emphasis-200);
+  border-radius: 8px;
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.2s ease;
+  flex: 1;
+  max-width: 45%;
+}
+
+.progressionLink:hover {
+  border-color: var(--ifm-color-primary);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  text-decoration: none;
+  color: inherit;
+}
+
+.progressionPrevious {
+  align-items: flex-start;
+  text-align: left;
+}
+
+.progressionNext {
+  align-items: flex-end;
+  text-align: right;
+}
+
+.progressionDirection {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--ifm-color-emphasis-600);
+  font-weight: 500;
+}
+
+.progressionNext .progressionDirection {
+  flex-direction: row-reverse;
+}
+
+.progressionArrow {
+  font-size: 1rem;
+  color: var(--ifm-color-primary);
+}
+
+.progressionLabel {
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.progressionTitle {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--ifm-color-emphasis-900);
+  line-height: 1.4;
+}
+
+/* Dark mode adjustments */
+[data-theme='dark'] .pageProgression {
+  border-top-color: var(--ifm-color-emphasis-200);
+}
+
+[data-theme='dark'] .progressionLink {
+  border-color: var(--ifm-color-emphasis-200);
+  background-color: var(--ifm-background-color);
+}
+
+[data-theme='dark'] .progressionLink:hover {
+  border-color: var(--ifm-color-primary);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme='dark'] .progressionDirection {
+  color: var(--ifm-color-emphasis-500);
+}
+
+[data-theme='dark'] .progressionTitle {
+  color: var(--ifm-color-emphasis-800);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .progressionContainer {
+    flex-direction: column;
+  }
+
+  .progressionLink {
+    max-width: 100%;
+  }
+
+  .progressionNext {
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  .progressionNext .progressionDirection {
+    flex-direction: row;
+  }
+}

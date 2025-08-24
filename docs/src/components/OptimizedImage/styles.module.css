@@ -1,0 +1,58 @@
+.imageContainer {
+  position: relative;
+  display: inline-block;
+  overflow: hidden;
+}
+
+.image {
+  transition: opacity 0.3s ease-in-out;
+  opacity: 0;
+  width: 100%;
+  height: auto;
+}
+
+.image.loaded {
+  opacity: 1;
+}
+
+.image.loading {
+  opacity: 0;
+}
+
+.placeholder {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--ifm-color-emphasis-200);
+  border-radius: var(--ifm-border-radius);
+}
+
+.placeholderImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: blur(5px);
+  opacity: 0.6;
+}
+
+/* Dark mode adjustments */
+[data-theme='dark'] .placeholder {
+  background-color: var(--ifm-color-emphasis-300);
+}
+
+/* Responsive image handling */
+@media (max-width: 768px) {
+  .imageContainer {
+    width: 100% !important;
+  }
+
+  .image {
+    width: 100%;
+    height: auto;
+  }
+}

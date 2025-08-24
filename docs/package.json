@@ -1,0 +1,61 @@
+{
+  "name": "kirapilot-docs",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Documentation for KiraPilot productivity application",
+  "scripts": {
+    "docusaurus": "docusaurus",
+    "start": "docusaurus start",
+    "build": "docusaurus build",
+    "swizzle": "docusaurus swizzle",
+    "deploy": "docusaurus deploy",
+    "clear": "docusaurus clear",
+    "serve": "docusaurus serve",
+    "write-translations": "docusaurus write-translations",
+    "write-heading-ids": "docusaurus write-heading-ids",
+    "typecheck": "tsc",
+    "generate-api-docs": "node scripts/generate-api-docs.js",
+    "validate-examples": "node scripts/generators/code-validator.js",
+    "docs:api": "npm run generate-api-docs",
+    "docs:validate": "npm run validate-examples",
+    "docs:full": "npm run generate-api-docs && npm run build",
+    "docs:ci": "node scripts/ci-integration.js",
+    "docs:workflow": "node scripts/ci-integration.js generate-workflow",
+    "test:api-generation": "node scripts/__tests__/api-generation.test.js",
+    "analyze": "npm run build && npx webpack-bundle-analyzer build/static/js/*.js",
+    "optimize-images": "node scripts/optimize-images.js"
+  },
+  "dependencies": {
+    "@docusaurus/core": "3.8.1",
+    "@docusaurus/preset-classic": "3.8.1",
+    "@easyops-cn/docusaurus-search-local": "^0.52.1",
+    "@mdx-js/react": "^3.0.0",
+    "clsx": "^2.0.0",
+    "prism-react-renderer": "^2.3.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@docusaurus/module-type-aliases": "3.8.1",
+    "@docusaurus/tsconfig": "3.8.1",
+    "@docusaurus/types": "3.8.1",
+    "typescript": "~5.6.2",
+    "webpack-bundle-analyzer": "^4.10.1",
+    "sharp": "^0.33.1"
+  },
+  "browserslist": {
+    "production": [
+      ">0.5%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 3 chrome version",
+      "last 3 firefox version",
+      "last 5 safari version"
+    ]
+  },
+  "engines": {
+    "node": ">=18.0"
+  }
+}

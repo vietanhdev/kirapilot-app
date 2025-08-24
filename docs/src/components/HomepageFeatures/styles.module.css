@@ -1,0 +1,21 @@
+.features {
+  display: flex;
+  align-items: center;
+  padding: 4rem 0;
+  width: 100%;
+  background: var(--ifm-background-surface-color);
+}
+
+.featureCol {
+  margin-bottom: 2rem;
+  display: flex;
+}
+
+.featureIcon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+  height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
