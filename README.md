@@ -30,8 +30,6 @@ KiraPilot is a cross-platform productivity application that combines task manage
 
 ![Screenshot - Dark](./screenshots/dark.png)
 
-![Screenshot - Light](./screenshots/light.png)
-
 ## ✨ Core Features
 
 - **Task Management**: Rich text descriptions, priority levels, dependencies, and week-based planning
