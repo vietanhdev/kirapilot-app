@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { WeeklyPlan } from '../WeeklyPlan';
-import { Task, TaskStatus, Priority } from '../../../types';
+import { Task, TaskStatus, Priority, TimePreset } from '../../../types';
 import { TaskListProvider } from '../../../contexts/TaskListContext';
 import { TimerProvider } from '../../../contexts/TimerContext';
 
@@ -107,7 +107,9 @@ const mockTasks: Task[] = [
     description: 'Description 1',
     status: TaskStatus.PENDING,
     priority: Priority.MEDIUM,
+    order: 0,
     dependencies: [],
+    timePreset: TimePreset.SIXTY_MIN,
     timeEstimate: 60,
     actualTime: 0,
     tags: [],
@@ -122,7 +124,9 @@ const mockTasks: Task[] = [
     description: 'Description 2',
     status: TaskStatus.PENDING,
     priority: Priority.HIGH,
+    order: 0,
     dependencies: [],
+    timePreset: TimePreset.THIRTY_MIN,
     timeEstimate: 30,
     actualTime: 0,
     tags: [],
@@ -137,7 +141,9 @@ const mockTasks: Task[] = [
     description: 'Description 3',
     status: TaskStatus.COMPLETED,
     priority: Priority.LOW,
+    order: 1,
     dependencies: [],
+    timePreset: TimePreset.NOT_APPLICABLE,
     timeEstimate: 45,
     actualTime: 45,
     tags: [],

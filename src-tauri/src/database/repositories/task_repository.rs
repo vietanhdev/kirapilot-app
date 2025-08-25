@@ -14,6 +14,7 @@ pub struct CreateTaskRequest {
     pub description: Option<String>,
     pub priority: i32,
     pub status: Option<String>,
+    pub order_num: Option<i32>,
     pub dependencies: Option<Vec<String>>,
     pub time_estimate: Option<i32>,
     pub due_date: Option<chrono::DateTime<chrono::Utc>>,
@@ -31,6 +32,7 @@ pub struct UpdateTaskRequest {
     pub description: Option<String>,
     pub priority: Option<i32>,
     pub status: Option<String>,
+    pub order_num: Option<i32>,
     pub dependencies: Option<Vec<String>>,
     pub time_estimate: Option<i32>,
     pub actual_time: Option<i32>,
@@ -97,6 +99,7 @@ impl TaskRepository {
             description: Set(request.description),
             priority: Set(request.priority),
             status: Set(request.status.unwrap_or_else(|| "pending".to_string())),
+            order_num: Set(request.order_num.unwrap_or(0)),
             dependencies: Set(request
                 .dependencies
                 .map(|deps| serde_json::to_string(&deps).unwrap_or_default())),
@@ -287,6 +290,9 @@ impl TaskRepository {
                 // Clear completed_at if status is changed from completed to something else
                 task.completed_at = Set(None);
             }
+        }
+        if let Some(order_num) = request.order_num {
+            task.order_num = Set(order_num);
         }
         if let Some(dependencies) = request.dependencies {
             task.dependencies = Set(Some(
@@ -493,6 +499,7 @@ impl TaskRepository {
             description: Set(task.description),
             priority: Set(task.priority),
             status: Set(task.status),
+            order_num: Set(task.order_num),
             dependencies: Set(task.dependencies),
             time_estimate: Set(task.time_estimate),
             actual_time: Set(task.actual_time),

@@ -31,7 +31,7 @@ pub struct GenerationOptions {
 impl Default for GenerationOptions {
     fn default() -> Self {
         Self {
-            max_tokens: Some(512),
+            max_tokens: Some(4096),
             temperature: Some(0.7),
             top_p: Some(0.9),
             top_k: Some(40),
@@ -233,21 +233,44 @@ impl InternalLlamaService {
             ));
         }
 
-        if tokens_list.len() >= max_tokens as usize {
+        // Check if we have enough space for generation
+        // We need at least some tokens for the response, reserve at least 50 tokens
+        let min_response_tokens = std::cmp::min(50, max_tokens);
+        if tokens_list.len() as i32 + min_response_tokens > n_ctx {
             return Err(LlamaError::GenerationFailed(
-                "Prompt is too long for the requested max_tokens".to_string()
+                format!("Prompt is too long. Prompt uses {} tokens, but context size is only {}. Consider reducing conversation history or system prompt length.", tokens_list.len(), n_ctx)
             ));
         }
 
-        // Create a batch for processing
-        let mut batch = LlamaBatch::new(512, 1);
+        // Create a batch for processing with dynamic size
+        // Calculate required batch size based on tokens and generation needs
+        let prompt_token_count = tokens_list.len();
+        let generation_buffer = std::cmp::min(max_tokens, 256); // Buffer for generation
+        let required_batch_size = prompt_token_count + generation_buffer as usize;
+        
+        // Use the larger of required size or minimum viable size, but cap at context size
+        let batch_size = std::cmp::min(
+            std::cmp::max(required_batch_size, 512), // Minimum 512 for performance
+            n_ctx as usize // Don't exceed context size
+        );
+        
+        info!("Creating dynamic batch: size={}, prompt_tokens={}, max_tokens={}, context_size={}", 
+              batch_size, prompt_token_count, max_tokens, n_ctx);
+        let mut batch = LlamaBatch::new(batch_size, 1);
 
         // Add prompt tokens to batch
         let last_index = (tokens_list.len() - 1) as i32;
         for (i, token) in (0_i32..).zip(tokens_list.into_iter()) {
             let is_last = i == last_index;
             batch.add(token, i, &[0], is_last)
-                .map_err(|e| LlamaError::GenerationFailed(format!("Failed to add token to batch: {}", e)))?;
+                .map_err(|e| {
+                    error!("Failed to add token {} at position {} to batch (capacity: {}): {}", 
+                           token, i, batch_size, e);
+                    LlamaError::GenerationFailed(format!(
+                        "Failed to add token to batch: {}. Batch capacity: {}, Token position: {}, Total tokens: {}. Try reducing conversation history or max_tokens.",
+                        e, batch_size, i, prompt_token_count
+                    ))
+                })?;
         }
 
         // Process the prompt
@@ -300,8 +323,18 @@ impl InternalLlamaService {
 
             // Prepare for next iteration
             batch.clear();
+            
+            // Safety check: ensure we don't exceed batch capacity during generation
+            if n_cur >= batch_size as i32 {
+                warn!("Generation loop reached batch capacity limit at token {}", n_cur);
+                break;
+            }
+            
             batch.add(token, n_cur, &[0], true)
-                .map_err(|e| LlamaError::GenerationFailed(format!("Failed to add generated token to batch: {}", e)))?;
+                .map_err(|e| {
+                    error!("Failed to add generated token {} to batch at position {}: {}", token, n_cur, e);
+                    LlamaError::GenerationFailed(format!("Failed to add generated token to batch: {}", e))
+                })?;
 
             n_cur += 1;
 
@@ -351,7 +384,7 @@ impl LlamaService {
     pub fn new() -> Result<Self, LlamaError> {
         info!("Initializing LlamaService with dedicated thread");
         
-        let context_size = 2048;
+        let context_size = 8192; // Increased from 2048 to accommodate larger prompts
         let threads = Self::detect_optimal_threads();
         
         // Create channel for communication with dedicated thread

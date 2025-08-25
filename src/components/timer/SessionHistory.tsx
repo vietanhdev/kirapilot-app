@@ -112,7 +112,7 @@ export const SessionHistoryModal: React.FC<SessionHistoryModalProps> = ({
             startDate,
             endDate
           );
-          console.log('Session statistics:', stats); // Debug log
+
           setStatistics(stats);
         } catch (error) {
           console.error('Failed to load statistics:', error);

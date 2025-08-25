@@ -56,8 +56,6 @@ export function useSimpleTimer(options: UseSimpleTimerOptions = {}) {
 
   const startTimer = useCallback(
     (task: Task) => {
-      console.log('Starting timer for:', task.title);
-
       // If switching tasks, stop current timer first
       if (state.activeTaskId && state.activeTaskId !== task.id) {
         // Save current task's time before switching
@@ -70,7 +68,6 @@ export function useSimpleTimer(options: UseSimpleTimerOptions = {}) {
 
       if (state.activeTaskId === task.id) {
         // Resuming same task
-        console.log('Resuming timer for same task');
         setState(prev => ({
           ...prev,
           isRunning: true,
@@ -78,7 +75,6 @@ export function useSimpleTimer(options: UseSimpleTimerOptions = {}) {
         }));
       } else {
         // Starting new task
-        console.log('Starting timer for new task');
         pausedTimeRef.current = 0;
         setState({
           isRunning: true,
@@ -115,8 +111,8 @@ export function useSimpleTimer(options: UseSimpleTimerOptions = {}) {
               });
             }
           }
-        } catch (error) {
-          console.log('Notification failed:', error);
+        } catch {
+          // Notification failed silently
         }
       }
     },
@@ -127,8 +123,6 @@ export function useSimpleTimer(options: UseSimpleTimerOptions = {}) {
     if (!state.isRunning) {
       return;
     }
-
-    console.log('Pausing timer');
 
     // Save current elapsed time to pausedTimeRef
     if (state.startTime) {
@@ -167,8 +161,8 @@ export function useSimpleTimer(options: UseSimpleTimerOptions = {}) {
             });
           }
         }
-      } catch (error) {
-        console.log('Notification failed:', error);
+      } catch {
+        // Notification failed silently
       }
     }
   }, [state, enableNotifications]);
@@ -177,8 +171,6 @@ export function useSimpleTimer(options: UseSimpleTimerOptions = {}) {
     if (!state.activeTaskId) {
       return;
     }
-
-    console.log('Stopping timer');
 
     const finalElapsedTime = state.elapsedTime;
     const task = { id: state.activeTaskId } as Task;
@@ -221,8 +213,8 @@ export function useSimpleTimer(options: UseSimpleTimerOptions = {}) {
             });
           }
         }
-      } catch (error) {
-        console.log('Notification failed:', error);
+      } catch {
+        // Notification failed silently
       }
     }
   }, [state, onTimerStop, enableNotifications]);

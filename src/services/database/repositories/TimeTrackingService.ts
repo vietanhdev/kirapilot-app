@@ -435,7 +435,7 @@ export class TimeTrackingService {
     try {
       const activeSession = await this.getActiveSession();
       if (activeSession) {
-        console.log('Active session found:', activeSession.id);
+        // Active session found
       }
     } catch (error) {
       const errorMessage = getDatabaseErrorMessage(

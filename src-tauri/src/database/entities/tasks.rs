@@ -11,6 +11,7 @@ pub struct Model {
     pub description: Option<String>,
     pub priority: i32,
     pub status: String,
+    pub order_num: i32,
     pub dependencies: Option<String>, // JSON string
     pub time_estimate: i32,
     pub actual_time: i32,

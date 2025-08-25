@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Task, Priority, TaskStatus } from '../../types';
+import { Task, Priority, TaskStatus, TimePreset } from '../../types';
 import { generateId } from '../../utils';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useTaskList } from '../../contexts/TaskListContext';
+import { useSettings } from '../../contexts/SettingsContext';
 import {
   Modal,
   ModalContent,
@@ -29,6 +30,7 @@ import {
   PlusCircle,
 } from 'lucide-react';
 import { MinimalRichTextEditor } from '../common/MinimalRichTextEditor';
+import { DatePicker } from '../common/DatePicker';
 import {
   ErrorDisplay,
   ErrorType,
@@ -51,6 +53,7 @@ interface FormData {
   title: string;
   description: string;
   priority: Priority;
+  timePreset: TimePreset;
   timeEstimate: number;
   dueDate?: Date;
   scheduledDate?: Date;
@@ -67,11 +70,13 @@ export function TaskModal({
   defaultDate,
 }: TaskModalProps) {
   const { t } = useTranslation();
+  const { preferences } = useSettings();
   const isEditMode = !!task;
   const [formData, setFormData] = useState<FormData>({
     title: '',
     description: '',
     priority: Priority.MEDIUM,
+    timePreset: TimePreset.SIXTY_MIN,
     timeEstimate: 60,
     dueDate: defaultDate,
     scheduledDate: defaultDate,
@@ -84,6 +89,22 @@ export function TaskModal({
   const [errorType, setErrorType] = useState<ErrorType>(ErrorType.UNKNOWN);
   const [isErrorRecoverable, setIsErrorRecoverable] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
+
+  // Helper function to determine time preset from time estimate
+  const getTimePresetFromEstimate = (timeEstimate: number): TimePreset => {
+    switch (timeEstimate) {
+      case 15:
+        return TimePreset.FIFTEEN_MIN;
+      case 30:
+        return TimePreset.THIRTY_MIN;
+      case 60:
+        return TimePreset.SIXTY_MIN;
+      case 0:
+        return TimePreset.NOT_APPLICABLE;
+      default:
+        return TimePreset.CUSTOM;
+    }
+  };
 
   // Get task list context for current selection
   const {
@@ -103,11 +124,14 @@ export function TaskModal({
       setIsErrorRecoverable(false);
       setRetryCount(0);
       if (isEditMode && task) {
+        const timeEstimate = task.timeEstimate || 60;
         setFormData({
           title: task.title,
           description: task.description || '',
           priority: task.priority,
-          timeEstimate: task.timeEstimate || 60,
+          timePreset:
+            task.timePreset || getTimePresetFromEstimate(timeEstimate),
+          timeEstimate: timeEstimate,
           dueDate: task.dueDate,
           scheduledDate: task.scheduledDate,
           tags: task.tags || [],
@@ -144,12 +168,38 @@ export function TaskModal({
           }
         }
 
+        // Calculate default due date: if scheduled for today, due date should be tomorrow
+        const calculateDefaultDueDate = (
+          scheduledDate?: Date
+        ): Date | undefined => {
+          if (!scheduledDate) {
+            return undefined;
+          }
+
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+
+          const scheduled = new Date(scheduledDate);
+          scheduled.setHours(0, 0, 0, 0);
+
+          // If scheduled for today, set due date to tomorrow
+          if (scheduled.getTime() === today.getTime()) {
+            const tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            return tomorrow;
+          }
+
+          // Otherwise, use the scheduled date as due date
+          return scheduledDate;
+        };
+
         setFormData({
           title: '',
           description: '',
           priority: Priority.MEDIUM,
+          timePreset: TimePreset.SIXTY_MIN,
           timeEstimate: 60,
-          dueDate: defaultDate,
+          dueDate: calculateDefaultDueDate(defaultDate),
           scheduledDate: defaultDate,
           tags: [],
           taskListId: defaultTaskListId,
@@ -229,6 +279,7 @@ export function TaskModal({
           title: formData.title.trim(),
           description: formData.description || '',
           priority: formData.priority,
+          timePreset: formData.timePreset,
           timeEstimate: formData.timeEstimate,
           dueDate: formData.dueDate,
           scheduledDate: formData.scheduledDate,
@@ -251,6 +302,8 @@ export function TaskModal({
           description: formData.description || '',
           status: TaskStatus.PENDING,
           priority: formData.priority,
+          order: 0,
+          timePreset: formData.timePreset,
           timeEstimate: formData.timeEstimate,
           actualTime: 0,
           dependencies: [],
@@ -359,9 +412,53 @@ export function TaskModal({
     },
   ];
 
+  const timePresetOptions = [
+    {
+      key: TimePreset.FIFTEEN_MIN,
+      label: t('timePreset.fifteenMin'),
+      value: 15,
+    },
+    {
+      key: TimePreset.THIRTY_MIN,
+      label: t('timePreset.thirtyMin'),
+      value: 30,
+    },
+    {
+      key: TimePreset.SIXTY_MIN,
+      label: t('timePreset.sixtyMin'),
+      value: 60,
+    },
+    {
+      key: TimePreset.CUSTOM,
+      label: t('timePreset.custom'),
+      value: -1,
+    },
+    {
+      key: TimePreset.NOT_APPLICABLE,
+      label: t('timePreset.notApplicable'),
+      value: 0,
+    },
+  ];
+
   const selectedPriority = priorityOptions.find(
     p => p.key === formData.priority
   );
+
+  const selectedTimePreset = timePresetOptions.find(
+    p => p.key === formData.timePreset
+  );
+
+  const handleTimePresetChange = (preset: TimePreset) => {
+    const presetOption = timePresetOptions.find(p => p.key === preset);
+    if (presetOption) {
+      setFormData(prev => ({
+        ...prev,
+        timePreset: preset,
+        timeEstimate:
+          presetOption.value >= 0 ? presetOption.value : prev.timeEstimate,
+      }));
+    }
+  };
 
   // Prevent drag and drop events from propagating when modal is open
   const handlePreventDragEvents = (e: React.DragEvent) => {
@@ -383,6 +480,10 @@ export function TaskModal({
       size='lg'
       scrollBehavior='inside'
       backdrop='blur'
+      classNames={{
+        base: 'max-h-[90vh]',
+        body: 'max-h-[60vh] overflow-y-auto',
+      }}
     >
       <ModalContent
         onDragStart={handlePreventDragEvents}
@@ -536,87 +637,96 @@ export function TaskModal({
                   </div>
 
                   <div className='flex flex-col gap-1'>
-                    <Input
-                      type='number'
-                      label={t('task.modal.label.timeEstimate')}
-                      placeholder={t('task.modal.placeholder.timeEstimate')}
-                      value={formData.timeEstimate.toString()}
-                      onChange={e =>
-                        setFormData(prev => ({
-                          ...prev,
-                          timeEstimate: parseInt(e.target.value) || 60,
-                        }))
-                      }
-                      min={1}
-                      step={1}
+                    <Select
+                      label={t('task.modal.label.timePreset')}
+                      placeholder={t('task.modal.placeholder.timePreset')}
+                      selectedKeys={[formData.timePreset.toString()]}
+                      onSelectionChange={keys => {
+                        const preset = Array.from(keys)[0] as string;
+                        handleTimePresetChange(parseInt(preset) as TimePreset);
+                      }}
                       size='sm'
-                      startContent={<Timer className='w-4 h-4' />}
                       classNames={{
-                        input: 'text-foreground',
-                        inputWrapper:
-                          'bg-content2 border-divider data-[hover=true]:bg-content3 group-data-[focus=true]:bg-content2',
+                        trigger:
+                          'bg-content2 border-divider data-[hover=true]:bg-content3',
+                        value: 'text-foreground',
                         label: 'text-foreground-600 font-medium',
                       }}
-                    />
+                      renderValue={() =>
+                        selectedTimePreset && (
+                          <div className='flex items-center gap-2'>
+                            <Timer className='w-4 h-4' />
+                            <span>{selectedTimePreset.label}</span>
+                          </div>
+                        )
+                      }
+                    >
+                      {timePresetOptions.map(preset => (
+                        <SelectItem
+                          key={preset.key}
+                          startContent={<Timer className='w-4 h-4' />}
+                        >
+                          {preset.label}
+                        </SelectItem>
+                      ))}
+                    </Select>
+
+                    {/* Custom time input - only show when Custom is selected */}
+                    {formData.timePreset === TimePreset.CUSTOM && (
+                      <Input
+                        type='number'
+                        label={t('task.modal.label.customTime')}
+                        placeholder={t('task.modal.placeholder.customTime')}
+                        value={formData.timeEstimate.toString()}
+                        onChange={e =>
+                          setFormData(prev => ({
+                            ...prev,
+                            timeEstimate: parseInt(e.target.value) || 60,
+                          }))
+                        }
+                        min={1}
+                        step={1}
+                        size='sm'
+                        startContent={<Timer className='w-4 h-4' />}
+                        classNames={{
+                          input: 'text-foreground',
+                          inputWrapper:
+                            'bg-content2 border-divider data-[hover=true]:bg-content3 group-data-[focus=true]:bg-content2',
+                          label: 'text-foreground-600 font-medium',
+                        }}
+                      />
+                    )}
                   </div>
                 </div>
 
                 <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
-                  <div className='flex flex-col gap-1'>
-                    <Input
-                      type='date'
-                      label={t('task.modal.label.dueDate')}
-                      value={
-                        formData.dueDate
-                          ? formData.dueDate.toISOString().split('T')[0]
-                          : ''
-                      }
-                      onChange={e =>
-                        setFormData(prev => ({
-                          ...prev,
-                          dueDate: e.target.value
-                            ? new Date(e.target.value)
-                            : undefined,
-                        }))
-                      }
-                      size='sm'
-                      startContent={<Calendar className='w-4 h-4' />}
-                      classNames={{
-                        input: 'text-foreground',
-                        inputWrapper:
-                          'bg-content2 border-divider data-[hover=true]:bg-content3 group-data-[focus=true]:bg-content2',
-                        label: 'text-foreground-600 font-medium',
-                      }}
-                    />
-                  </div>
+                  <DatePicker
+                    label={t('task.modal.label.dueDate')}
+                    value={formData.dueDate || null}
+                    onChange={date =>
+                      setFormData(prev => ({
+                        ...prev,
+                        dueDate: date || undefined,
+                      }))
+                    }
+                    dateFormat={preferences.dateFormat}
+                    size='sm'
+                    startContent={<Calendar className='w-4 h-4' />}
+                  />
 
-                  <div className='flex flex-col gap-1'>
-                    <Input
-                      type='date'
-                      label={t('task.modal.label.scheduled')}
-                      value={
-                        formData.scheduledDate
-                          ? formData.scheduledDate.toISOString().split('T')[0]
-                          : ''
-                      }
-                      onChange={e =>
-                        setFormData(prev => ({
-                          ...prev,
-                          scheduledDate: e.target.value
-                            ? new Date(e.target.value)
-                            : undefined,
-                        }))
-                      }
-                      size='sm'
-                      startContent={<Calendar className='w-4 h-4' />}
-                      classNames={{
-                        input: 'text-foreground',
-                        inputWrapper:
-                          'bg-content2 border-divider data-[hover=true]:bg-content3 group-data-[focus=true]:bg-content2',
-                        label: 'text-foreground-600 font-medium',
-                      }}
-                    />
-                  </div>
+                  <DatePicker
+                    label={t('task.modal.label.scheduled')}
+                    value={formData.scheduledDate || null}
+                    onChange={date =>
+                      setFormData(prev => ({
+                        ...prev,
+                        scheduledDate: date || undefined,
+                      }))
+                    }
+                    dateFormat={preferences.dateFormat}
+                    size='sm'
+                    startContent={<Calendar className='w-4 h-4' />}
+                  />
                 </div>
               </div>
 

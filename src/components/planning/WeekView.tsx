@@ -1,5 +1,5 @@
 // Weekly kanban view with day columns
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   DndContext,
   closestCenter,
@@ -8,16 +8,20 @@ import {
   useSensor,
   useSensors,
   DragEndEvent,
+  DragOverEvent,
   DragOverlay,
 } from '@dnd-kit/core';
-import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
+import { sortableKeyboardCoordinates, arrayMove } from '@dnd-kit/sortable';
 import { Task, TaskStatus, TaskTimerProps } from '../../types';
 import { TaskColumn } from './TaskColumn';
 import { TaskCard } from './TaskCard';
 import { TaskModal } from './TaskModal';
+// Removed complex placeholder and keyboard navigation utilities
+
 import { useTranslation } from '../../hooks/useTranslation';
 import { useResponsiveColumnWidth } from '../../hooks';
 import { useTaskList } from '../../contexts/TaskListContext';
+
 import {
   ChevronLeft,
   ChevronRight,
@@ -69,6 +73,208 @@ export function WeekView({
   // Get task list context for indicators
   const { isAllSelected, taskLists } = useTaskList();
 
+  // Calculate week boundaries
+  const weekStart = useMemo(() => {
+    const date = new Date(currentWeek);
+    const day = date.getDay();
+    const diff = date.getDate() - day; // Sunday = 0
+    return new Date(date.setDate(diff));
+  }, [currentWeek]);
+
+  const weekEnd = useMemo(() => {
+    const date = new Date(weekStart);
+    date.setDate(date.getDate() + 6);
+    date.setHours(23, 59, 59, 999);
+    return date;
+  }, [weekStart]);
+
+  const isToday = (date: Date) => {
+    const today = new Date();
+    return (
+      date.getDate() === today.getDate() &&
+      date.getMonth() === today.getMonth() &&
+      date.getFullYear() === today.getFullYear()
+    );
+  };
+
+  // Define weekDays before it's used in handleDragEnd
+  const weekDays = useMemo(() => {
+    const days = [];
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(weekStart);
+      date.setDate(date.getDate() + i);
+      days.push({
+        date,
+        name: date.toLocaleDateString('en-US', { weekday: 'long' }),
+        shortName: date.toLocaleDateString('en-US', { weekday: 'short' }),
+        dayNumber: date.getDate(),
+        isToday: isToday(date),
+      });
+    }
+    return days;
+  }, [weekStart]);
+
+  // Helper function to find which column a task belongs to (similar to example)
+  const findTaskColumn = useCallback(
+    (taskId: string | null) => {
+      if (!taskId) {
+        return null;
+      }
+
+      const task = tasks.find(t => t.id === taskId);
+      if (!task) {
+        return null;
+      }
+
+      // Determine column based on task's scheduled date
+      if (!task.scheduledDate) {
+        return { id: 'backlog', name: 'backlog', date: undefined };
+      }
+
+      const taskDate = new Date(task.scheduledDate);
+
+      // Check if it matches any of the week days
+      const matchingDay = weekDays.find(
+        day => taskDate.toDateString() === day.date.toDateString()
+      );
+
+      if (matchingDay) {
+        return {
+          id: matchingDay.shortName.toLowerCase(),
+          name: matchingDay.shortName.toLowerCase(),
+          date: matchingDay.date,
+        };
+      }
+
+      // Check if it's upcoming (future dates not in current week)
+      if (taskDate > weekEnd) {
+        return { id: 'upcoming', name: 'upcoming', date: undefined };
+      }
+
+      return { id: 'backlog', name: 'backlog', date: undefined };
+    },
+    [tasks, weekDays, weekEnd]
+  );
+
+  // Simplified handleDragOver
+  const handleDragOver = useCallback(
+    (event: DragOverEvent) => {
+      const { active, over } = event;
+      if (!active || !over) {
+        return;
+      }
+
+      const activeId = String(active.id);
+      const overId = String(over.id);
+
+      const activeColumn = findTaskColumn(activeId);
+      const overData = over.data.current;
+
+      // If dragging over a column, we'll handle it in dragEnd
+      if (overData?.type === 'column') {
+        return;
+      }
+
+      // If dragging over another task, check if it's cross-column
+      if (overData?.type === 'task') {
+        const overColumn = findTaskColumn(overId);
+
+        if (!activeColumn || !overColumn || activeColumn.id === overColumn.id) {
+          return; // Same column or invalid, let dragEnd handle reordering
+        }
+
+        // Cross-column drag - we could add some visual feedback here if needed
+        return;
+      }
+    },
+    [findTaskColumn]
+  );
+
+  // Simplified handleDragEnd (based on example)
+  const handleDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event;
+
+      // Clean up drag state
+      setDraggedTask(null);
+
+      if (!over || !active) {
+        return;
+      }
+
+      const activeId = String(active.id);
+      const overId = String(over.id);
+      const overData = over.data.current;
+
+      const activeColumn = findTaskColumn(activeId);
+      const overColumn = findTaskColumn(overId);
+
+      // Handle cross-column moves
+      if (overData?.type === 'column') {
+        const toColumnName = overData.title;
+
+        // Determine the new scheduled date based on the column
+        let newDate: Date | undefined;
+
+        if (toColumnName === 'backlog') {
+          newDate = undefined;
+        } else if (toColumnName === 'upcoming') {
+          newDate = new Date();
+          newDate.setDate(newDate.getDate() + 7);
+        } else {
+          // Moving to a specific day column
+          const dayColumn = weekDays.find(
+            day => day.shortName.toLowerCase() === toColumnName
+          );
+          if (dayColumn) {
+            newDate = new Date(dayColumn.date);
+          }
+        }
+
+        onTaskMove(activeId, 'drag', toColumnName, newDate);
+        return;
+      }
+
+      // Handle same-column reordering
+      if (
+        overData?.type === 'task' &&
+        activeColumn &&
+        overColumn &&
+        activeColumn.id === overColumn.id
+      ) {
+        // Get tasks in this column, sorted by current order
+        const columnTasks = tasks
+          .filter(task => {
+            const taskColumn = findTaskColumn(task.id);
+            return taskColumn?.id === activeColumn.id;
+          })
+          .sort((a, b) => (a.order || 0) - (b.order || 0));
+
+        const activeIndex = columnTasks.findIndex(task => task.id === activeId);
+        const overIndex = columnTasks.findIndex(task => task.id === overId);
+
+        if (
+          activeIndex !== -1 &&
+          overIndex !== -1 &&
+          activeIndex !== overIndex
+        ) {
+          // Reorder the tasks using arrayMove
+          const reorderedTasks = arrayMove(columnTasks, activeIndex, overIndex);
+
+          // Update all tasks in the column with new order values
+          reorderedTasks.forEach((task, index) => {
+            if (onInlineEdit) {
+              onInlineEdit(task.id, { order: index });
+            }
+          });
+        }
+      }
+    },
+    [findTaskColumn, tasks, weekDays, onTaskMove, onInlineEdit]
+  );
+
+  // Removed complex keyboard navigation and placeholder management code
+
   // Auto-scroll to today's column
   useEffect(() => {
     const scrollToToday = () => {
@@ -97,53 +303,17 @@ export function WeekView({
     return () => clearTimeout(timeoutId);
   }, [currentWeek]); // Re-run when week changes
 
-  // Drag and drop sensors
+  // Improved sensors with better cursor tracking
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 3, // Require 3px movement before activating drag
+      },
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
-
-  // Calculate week boundaries
-  const weekStart = useMemo(() => {
-    const date = new Date(currentWeek);
-    const day = date.getDay();
-    const diff = date.getDate() - day; // Sunday = 0
-    return new Date(date.setDate(diff));
-  }, [currentWeek]);
-
-  const weekEnd = useMemo(() => {
-    const date = new Date(weekStart);
-    date.setDate(date.getDate() + 6);
-    date.setHours(23, 59, 59, 999);
-    return date;
-  }, [weekStart]);
-
-  const isToday = (date: Date) => {
-    const today = new Date();
-    return (
-      date.getDate() === today.getDate() &&
-      date.getMonth() === today.getMonth() &&
-      date.getFullYear() === today.getFullYear()
-    );
-  };
-
-  const weekDays = useMemo(() => {
-    const days = [];
-    for (let i = 0; i < 7; i++) {
-      const date = new Date(weekStart);
-      date.setDate(date.getDate() + i);
-      days.push({
-        date,
-        name: date.toLocaleDateString('en-US', { weekday: 'long' }),
-        shortName: date.toLocaleDateString('en-US', { weekday: 'short' }),
-        dayNumber: date.getDate(),
-        isToday: isToday(date),
-      });
-    }
-    return days;
-  }, [weekStart]);
 
   // Calculate responsive column widths - 7 day columns + 1 backlog + 1 upcoming = 9 columns total
   const totalColumns = 9;
@@ -164,7 +334,7 @@ export function WeekView({
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    return tasks.filter(task => {
+    const filtered = tasks.filter(task => {
       if (!task.scheduledDate) {
         return false;
       }
@@ -178,25 +348,29 @@ export function WeekView({
 
       return false;
     });
+
+    return filtered.sort((a, b) => (a.order || 0) - (b.order || 0));
   };
 
   // Get backlog tasks (tasks without scheduled date)
   const backlogTasks = useMemo(() => {
-    return tasks.filter(task => {
+    const filtered = tasks.filter(task => {
       // Only tasks with no scheduled date go to backlog
       return !task.scheduledDate;
     });
+    return filtered.sort((a, b) => (a.order || 0) - (b.order || 0));
   }, [tasks]);
 
   // Get upcoming tasks (STRICTLY after this week)
   const upcomingTasks = useMemo(() => {
-    return tasks.filter(task => {
+    const filtered = tasks.filter(task => {
       if (!task.scheduledDate) {
         return false;
       }
       const scheduledDate = new Date(task.scheduledDate);
       return scheduledDate > weekEnd;
     });
+    return filtered.sort((a, b) => (a.order || 0) - (b.order || 0));
   }, [tasks, weekEnd]);
 
   const formatWeekRange = () => {
@@ -247,54 +421,7 @@ export function WeekView({
     }
   };
 
-  // Handle drag end event
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-
-    if (!over || !draggedTask) {
-      setDraggedTask(null);
-      return;
-    }
-
-    const taskId = active.id as string;
-    const droppedColumnData = over.data.current;
-
-    if (droppedColumnData?.type === 'column') {
-      const toColumn = droppedColumnData.title;
-
-      // Determine the new scheduled date based on the column
-      let newDate: Date | undefined;
-
-      if (toColumn === 'backlog') {
-        // Moving to backlog - remove scheduled date
-        newDate = undefined;
-      } else if (toColumn === 'upcoming') {
-        // Moving to upcoming - set to next week
-        newDate = new Date();
-        newDate.setDate(newDate.getDate() + 7);
-      } else {
-        // Moving to a specific day column
-        const dayColumn = weekDays.find(
-          day => day.shortName.toLowerCase() === toColumn
-        );
-        if (dayColumn) {
-          newDate = new Date(dayColumn.date);
-        }
-      }
-
-      console.log('Drag end:', {
-        taskId,
-        toColumn,
-        newDate,
-        taskTitle: draggedTask.title,
-      });
-
-      // Call the move handler with the new date
-      onTaskMove(taskId, 'drag', toColumn, newDate);
-    }
-
-    setDraggedTask(null);
-  };
+  // Old complex drag over handler removed - using simplified version above
 
   // Calculate week statistics
   const weekStats = useMemo(() => {
@@ -322,6 +449,7 @@ export function WeekView({
         const task = tasks.find(t => t.id === event.active.id);
         setDraggedTask(task || null);
       }}
+      onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
       <div
@@ -509,9 +637,19 @@ export function WeekView({
         />
 
         {/* Drag Overlay */}
-        <DragOverlay>
+        <DragOverlay
+          dropAnimation={{
+            duration: 200,
+            easing: 'cubic-bezier(0.18, 0.67, 0.6, 1.22)',
+          }}
+        >
           {draggedTask ? (
-            <div className='opacity-75'>
+            <div
+              className='opacity-90 rotate-2 scale-105 cursor-grabbing'
+              style={{
+                transformOrigin: '0 0',
+              }}
+            >
               <TaskCard
                 task={draggedTask}
                 showTaskListIndicator={isAllSelected()}
@@ -519,7 +657,7 @@ export function WeekView({
                   taskLists.find(list => list.id === draggedTask.taskListId)
                     ?.name
                 }
-                className='shadow-lg border-primary-500 bg-primary-50 dark:bg-primary-900/20'
+                className='shadow-2xl border-2 border-primary-500 bg-white dark:bg-gray-800 ring-4 ring-primary-200 dark:ring-primary-800'
               />
             </div>
           ) : null}

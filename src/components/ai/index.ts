@@ -2,3 +2,8 @@ export { ChatUI } from './ChatUI';
 export { AIFloatingButton } from './AIFloatingButton';
 export { MessageActions } from './MessageActions';
 export { CollapsibleConversation } from './CollapsibleConversation';
+export { LoggingStatusIndicator } from './LoggingStatusIndicator';
+export { LoggingNotifications } from './LoggingNotifications';
+export { LogViewer } from './LogViewer';
+export { LogDetailView } from './LogDetailView';
+export { LogViewerContainer } from './LogViewerContainer';

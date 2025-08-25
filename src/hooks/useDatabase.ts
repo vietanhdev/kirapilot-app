@@ -38,8 +38,6 @@ export function useDatabase() {
         isLoading: false,
         health,
       }));
-
-      console.log('Database initialized successfully via SeaORM backend');
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown database error';

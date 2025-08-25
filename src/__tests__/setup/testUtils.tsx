@@ -207,3 +207,5 @@ export const expectElementToHaveRole = (
 export * from '@testing-library/react';
 export * from '@testing-library/user-event';
 export { default as userEvent } from '@testing-library/user-event';
+// Export TestWrapper for direct use in tests
+export { TestWrapper };

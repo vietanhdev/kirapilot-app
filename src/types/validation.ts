@@ -18,6 +18,7 @@ export const CreateTaskRequestSchema = z.object({
   title: z.string().min(1, 'Title is required').max(200, 'Title too long'),
   description: z.string().max(2000, 'Description too long').optional(),
   priority: PrioritySchema.optional().default(Priority.MEDIUM),
+  order: z.number().min(0, 'Order cannot be negative').optional().default(0),
   timeEstimate: z
     .number()
     .min(1, 'Time estimate must be positive')
@@ -47,6 +48,7 @@ export const UpdateTaskRequestSchema = z.object({
   description: z.string().max(2000, 'Description too long').optional(),
   priority: PrioritySchema.optional(),
   status: TaskStatusSchema.optional(),
+  order: z.number().min(0, 'Order cannot be negative').optional(),
   timeEstimate: z
     .number()
     .min(1, 'Time estimate must be positive')
@@ -67,6 +69,7 @@ export const TaskSchema = z.object({
   description: z.string().max(2000, 'Description too long'),
   priority: PrioritySchema,
   status: TaskStatusSchema,
+  order: z.number().min(0, 'Order cannot be negative'),
   dependencies: z.array(z.string().uuid('Invalid dependency ID')),
   timeEstimate: z.number().min(0, 'Time estimate cannot be negative'),
   actualTime: z.number().min(0, 'Actual time cannot be negative'),
@@ -199,6 +202,55 @@ export const FocusSessionSchema = z.object({
   completedAt: z.date().optional(),
 });
 
+// AI Logging configuration schema - partial for updates
+export const LoggingConfigSchema = z.object({
+  enabled: z.boolean().optional(),
+  logLevel: z.enum(['minimal', 'standard', 'detailed']).optional(),
+  retentionDays: z
+    .number()
+    .min(1, 'Retention period too short')
+    .max(365, 'Retention period too long')
+    .optional(),
+  maxLogSize: z
+    .number()
+    .min(1048576, 'Max log size too small (minimum 1MB)')
+    .max(1073741824, 'Max log size too large (maximum 1GB)')
+    .optional(),
+  maxLogCount: z
+    .number()
+    .min(100, 'Max log count too small (minimum 100)')
+    .max(100000, 'Max log count too large (maximum 100,000)')
+    .optional(),
+  includeSystemPrompts: z.boolean().optional(),
+  includeToolExecutions: z.boolean().optional(),
+  includePerformanceMetrics: z.boolean().optional(),
+  autoCleanup: z.boolean().optional(),
+  exportFormat: z.enum(['json', 'csv']).optional(),
+});
+
+// Full logging configuration schema for complete validation
+export const FullLoggingConfigSchema = z.object({
+  enabled: z.boolean(),
+  logLevel: z.enum(['minimal', 'standard', 'detailed']),
+  retentionDays: z
+    .number()
+    .min(1, 'Retention period too short')
+    .max(365, 'Retention period too long'),
+  maxLogSize: z
+    .number()
+    .min(1048576, 'Max log size too small (minimum 1MB)')
+    .max(1073741824, 'Max log size too large (maximum 1GB)'),
+  maxLogCount: z
+    .number()
+    .min(100, 'Max log count too small (minimum 100)')
+    .max(100000, 'Max log count too large (maximum 100,000)'),
+  includeSystemPrompts: z.boolean(),
+  includeToolExecutions: z.boolean(),
+  includePerformanceMetrics: z.boolean(),
+  autoCleanup: z.boolean(),
+  exportFormat: z.enum(['json', 'csv']),
+});
+
 export const UserPreferencesSchema = z.object({
   workingHours: z
     .object({
@@ -246,6 +298,33 @@ export const UserPreferencesSchema = z.object({
     dailySummary: z.boolean(),
     weeklyReview: z.boolean(),
   }),
+  aiSettings: z.object({
+    conversationHistory: z.boolean(),
+    autoSuggestions: z.boolean(),
+    toolPermissions: z.boolean(),
+    responseStyle: z.enum(['concise', 'balanced', 'detailed']),
+    suggestionFrequency: z.enum(['minimal', 'moderate', 'frequent']),
+    modelType: z.enum(['local', 'gemini']).optional(),
+    geminiApiKey: z.string().optional(),
+    localModelConfig: z
+      .object({
+        threads: z.number().min(1).max(32).optional(),
+        contextSize: z.number().min(512).max(32768).optional(),
+        temperature: z.number().min(0).max(2).optional(),
+        maxTokens: z.number().min(1).max(8192).optional(),
+      })
+      .optional(),
+    logging: LoggingConfigSchema.optional(),
+  }),
+  taskSettings: z.object({
+    defaultPriority: PrioritySchema,
+    autoScheduling: z.boolean(),
+    smartDependencies: z.boolean(),
+    weekStartDay: z.union([z.literal(0), z.literal(1)]),
+    showCompletedTasks: z.boolean(),
+    compactView: z.boolean(),
+  }),
+  dateFormat: z.enum(['DD/MM/YYYY', 'MM/DD/YYYY', 'YYYY-MM-DD']),
   theme: z.enum(['light', 'dark', 'auto']),
   language: z
     .string()
@@ -473,4 +552,12 @@ export function validateUpdateTaskListRequest(data: unknown) {
 
 export function validateTaskList(data: unknown) {
   return TaskListSchema.safeParse(data);
+}
+
+export function validateLoggingConfig(data: unknown) {
+  return LoggingConfigSchema.safeParse(data);
+}
+
+export function validateFullLoggingConfig(data: unknown) {
+  return FullLoggingConfigSchema.safeParse(data);
 }

@@ -15,7 +15,9 @@ import {
   WeeklyPlan,
   PlannedTask,
   WeeklyGoal,
+  TimePreset,
 } from '../../types';
+import { createTestUserPreferences } from '../../utils/testHelpers';
 
 export interface TestDataOptions {
   count?: number;
@@ -110,7 +112,9 @@ export class TestDataFactory {
       description: randomDescription,
       priority: Priority.MEDIUM,
       status: TaskStatus.PENDING,
+      order: 0,
       dependencies: [],
+      timePreset: TimePreset.NOT_APPLICABLE,
       timeEstimate: Math.floor(Math.random() * 120) + 30, // 30-150 minutes
       actualTime: 0,
       dueDate:
@@ -415,49 +419,7 @@ export class TestDataFactory {
   static createUserPreferences(
     overrides: Partial<UserPreferences> = {}
   ): UserPreferences {
-    return {
-      workingHours: {
-        start: '09:00',
-        end: '17:00',
-      },
-      breakPreferences: {
-        shortBreakDuration: 5,
-        longBreakDuration: 15,
-        breakInterval: 25,
-      },
-      focusPreferences: {
-        defaultDuration: 25,
-        distractionLevel: DistractionLevel.MINIMAL,
-        backgroundAudio: {
-          type: 'white_noise',
-          volume: 50,
-        },
-      },
-      notifications: {
-        breakReminders: true,
-        taskDeadlines: true,
-        dailySummary: true,
-        weeklyReview: true,
-      },
-      aiSettings: {
-        conversationHistory: true,
-        autoSuggestions: true,
-        toolPermissions: true,
-        responseStyle: 'balanced',
-        suggestionFrequency: 'moderate',
-      },
-      taskSettings: {
-        defaultPriority: Priority.MEDIUM,
-        autoScheduling: false,
-        smartDependencies: true,
-        weekStartDay: 1,
-        showCompletedTasks: true,
-        compactView: false,
-      },
-      theme: 'auto',
-      language: 'en',
-      ...overrides,
-    };
+    return createTestUserPreferences(overrides);
   }
 
   // AI suggestion generation

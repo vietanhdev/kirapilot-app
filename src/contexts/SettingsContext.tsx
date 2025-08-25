@@ -58,7 +58,7 @@ const defaultPreferences: UserPreferences = {
     geminiApiKey: undefined,
     localModelConfig: {
       threads: 4,
-      contextSize: 2048,
+      contextSize: 4096,
       temperature: 0.7,
       maxTokens: 512,
     },
@@ -71,6 +71,7 @@ const defaultPreferences: UserPreferences = {
     showCompletedTasks: true,
     compactView: false,
   },
+  dateFormat: 'DD/MM/YYYY',
   theme: 'dark',
   language: 'en',
 };

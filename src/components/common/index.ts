@@ -6,6 +6,7 @@ export { ConfirmationDialog } from './ConfirmationDialog';
 export { AppLogo } from './AppLogo';
 export { MinimalRichTextEditor } from './MinimalRichTextEditor';
 export { TaskListDropdown } from './TaskListDropdown';
+export { DatePicker } from './DatePicker';
 export {
   ErrorDisplay,
   ErrorType,

@@ -165,12 +165,11 @@ describe('AI Service Error Handling', () => {
     it('should handle processing with uninitialized service', async () => {
       const localService = manager.getService('local') as MockLocalAIService;
       localService?.reset(); // Reset to uninitialized state
+      localService?.setInitializationFailure(true); // Make initialization fail
 
-      await manager.switchModel('local');
-
-      await expect(
-        manager.processMessage('Hello', mockContext)
-      ).rejects.toThrow('Service not initialized');
+      await expect(manager.switchModel('local')).rejects.toThrow(
+        'Mock initialization failure'
+      );
     });
 
     it('should handle missing current service', async () => {

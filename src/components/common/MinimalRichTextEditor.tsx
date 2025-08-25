@@ -88,7 +88,7 @@ export function MinimalRichTextEditor({
       <div className='flex-1 p-2 overflow-auto min-h-0 bg-content2'>
         <EditorContent
           editor={editor}
-          className='prose prose-sm prose-slate dark:prose-invert max-w-none focus:outline-none h-full [&_.ProseMirror]:min-h-full [&_.ProseMirror]:outline-none [&_.ProseMirror]:p-0 [&_.ProseMirror_p]:my-1 [&_.ProseMirror_p]:leading-relaxed [&_.ProseMirror]:text-foreground [&_.ProseMirror]:caret-primary'
+          className='prose prose-sm prose-slate dark:prose-invert max-w-none focus:outline-none h-full [&_.ProseMirror]:min-h-full [&_.ProseMirror]:outline-none [&_.ProseMirror]:p-0 [&_.ProseMirror_p]:my-1 [&_.ProseMirror_p]:leading-relaxed [&_.ProseMirror]:text-foreground [&_.ProseMirror]:caret-primary [&_.ProseMirror]:word-wrap-break-word [&_.ProseMirror]:overflow-wrap-break-word [&_.ProseMirror_a]:break-all [&_.ProseMirror_*]:max-w-full'
         />
       </div>
     </div>

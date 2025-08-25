@@ -82,30 +82,24 @@ export function WeeklyPlan({
     date?: Date
   ) => {
     // Handle task movement between columns
-    console.log('Move task:', taskId, 'from', fromColumn, 'to', toColumn, date);
     onTaskMove(taskId, fromColumn, toColumn, date);
   };
 
   const handleTaskStatusChange = (task: Task, status: TaskStatus) => {
     if (onTaskStatusChange) {
       onTaskStatusChange(task, status);
-    } else {
-      console.log('Status change:', task.title, 'to', status);
     }
   };
 
   const handleTaskCreate = async (task: Task) => {
     if (onTaskCreate) {
       await onTaskCreate(task);
-    } else {
-      console.log('Task created:', task.title);
     }
   };
 
   // Convert inline edit callback to work with existing components
   const handleTaskEdit = (task: Task) => {
     // This is a wrapper for components that still expect the old interface
-    console.log('Edit task (legacy):', task.title);
     // For now, we'll just call with empty updates - this won't be used with inline editing
     if (onTaskEdit) {
       onTaskEdit(task.id, {});
@@ -114,21 +108,18 @@ export function WeeklyPlan({
 
   // Handler for inline editing (called directly by PlanningTaskCard)
   const handleInlineEdit = (taskId: string, updates: Partial<Task>) => {
-    console.log('Inline edit task:', taskId, updates);
     if (onTaskEdit) {
       onTaskEdit(taskId, updates);
     }
   };
 
   const handleTaskDelete = (task: Task) => {
-    console.log('Delete task:', task.title);
     if (onTaskDelete) {
       onTaskDelete(task);
     }
   };
 
   const handleViewTimeHistory = (task: Task) => {
-    console.log('View time history for:', task.title);
     setTimeHistoryTask(task);
     setShowTimeHistory(true);
   };

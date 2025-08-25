@@ -6,6 +6,7 @@ export interface TaskDbRow extends Record<string, unknown> {
   description: string;
   priority: number;
   status: string;
+  order_num: number; // Sort order within the same column/context
   dependencies: string; // JSON string
   time_estimate: number;
   actual_time: number;

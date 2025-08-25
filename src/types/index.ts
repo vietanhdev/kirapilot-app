@@ -29,6 +29,14 @@ export enum DistractionLevel {
   FULL = 'full',
 }
 
+export enum TimePreset {
+  FIFTEEN_MIN = 15,
+  THIRTY_MIN = 30,
+  SIXTY_MIN = 60,
+  CUSTOM = -1,
+  NOT_APPLICABLE = 0,
+}
+
 // Core Interfaces
 export interface Task {
   id: string;
@@ -36,8 +44,10 @@ export interface Task {
   description: string;
   priority: Priority;
   status: TaskStatus;
+  order: number; // Sort order within the same column/context (0-based)
   dependencies: string[];
-  timeEstimate: number; // in minutes
+  timePreset: TimePreset; // Preset timing option
+  timeEstimate: number; // in minutes - for custom values or calculated from preset
   actualTime: number; // in minutes
   dueDate?: Date;
   scheduledDate?: Date; // When the task is scheduled to be worked on (for day view planning)
@@ -55,6 +65,8 @@ export interface CreateTaskRequest {
   title: string;
   description?: string;
   priority?: Priority;
+  order?: number; // Sort order within the same column/context
+  timePreset?: TimePreset;
   timeEstimate?: number;
   dueDate?: Date;
   scheduledDate?: Date;
@@ -70,6 +82,8 @@ export interface UpdateTaskRequest {
   description?: string;
   priority?: Priority;
   status?: TaskStatus;
+  order?: number; // Sort order within the same column/context
+  timePreset?: TimePreset;
   timeEstimate?: number;
   dueDate?: Date;
   scheduledDate?: Date;
@@ -339,6 +353,17 @@ export interface UserPreferences {
       temperature?: number;
       maxTokens?: number;
     };
+    logging?: {
+      enabled: boolean;
+      logLevel: 'minimal' | 'standard' | 'detailed';
+      retentionDays: number;
+      maxLogSize: number;
+      includeSystemPrompts: boolean;
+      includeToolExecutions: boolean;
+      includePerformanceMetrics: boolean;
+      autoCleanup: boolean;
+      exportFormat: 'json' | 'csv';
+    };
   };
   taskSettings: {
     defaultPriority: Priority;
@@ -348,6 +373,7 @@ export interface UserPreferences {
     showCompletedTasks: boolean;
     compactView: boolean;
   };
+  dateFormat: 'DD/MM/YYYY' | 'MM/DD/YYYY' | 'YYYY-MM-DD';
   theme: 'light' | 'dark' | 'auto';
   language: string;
 }
@@ -435,3 +461,6 @@ export interface SessionStatistics {
   mostProductiveHour: number;
   sessionsPerDay: Record<string, number>;
 }
+
+// Re-export AI logging types
+export * from './aiLogging';

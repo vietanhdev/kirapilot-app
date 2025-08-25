@@ -26,6 +26,24 @@ import {
   FormattedToolResult,
   getToolResultFormatter,
 } from './ToolResultFormatter';
+import { ToolRegistry, getToolRegistry } from './ToolRegistry';
+import {
+  ToolExecutionBridge,
+  getToolExecutionBridge,
+} from './ToolExecutionBridge';
+import {
+  ToolExecutionErrorHandler,
+  ErrorRecoveryContext,
+  getToolExecutionErrorHandler,
+} from './ToolExecutionErrorHandler';
+import {
+  LoggingInterceptor,
+  initializeLoggingInterceptor,
+  RequestContext,
+  ResponseMetadata,
+} from './LoggingInterceptor';
+import { getLogStorageRepository } from '../database/repositories';
+import { LoggingConfigService } from '../database/repositories/LoggingConfigService';
 
 /**
  * Local model configuration interface
@@ -149,8 +167,14 @@ export class LocalAIService implements AIServiceInterface {
   private isModelReady = false;
   private isInitializing = false;
   private _modelPath: string | null = null;
+  private downloadProgress: number | undefined = undefined;
+  private initializationStatus: string = 'not_started';
   private toolExecutionEngine: ToolExecutionEngine;
   private resultFormatter: ToolResultFormatter;
+  private toolRegistry: ToolRegistry;
+  private toolExecutionBridge: ToolExecutionBridge;
+  private errorHandler: ToolExecutionErrorHandler;
+  private loggingInterceptor: LoggingInterceptor | null = null;
   private _translationFunction: TranslationFunction | null = null;
   private conversationHistory: Array<{
     role: 'user' | 'assistant';
@@ -181,8 +205,8 @@ export class LocalAIService implements AIServiceInterface {
     modelName: 'gemma-3-270m-it',
     modelRepo: 'unsloth/gemma-3-270m-it-GGUF',
     modelFile: 'gemma-3-270m-it-Q4_K_M.gguf',
-    contextSize: 2048,
-    maxTokens: 512,
+    contextSize: 8192, // Matches the Rust service context size
+    maxTokens: 1024,
     temperature: 0.7,
     threads: 4,
   };
@@ -194,6 +218,30 @@ export class LocalAIService implements AIServiceInterface {
 
     this.toolExecutionEngine = getToolExecutionEngine();
     this.resultFormatter = getToolResultFormatter();
+    this.toolRegistry = getToolRegistry();
+    this.toolExecutionBridge = getToolExecutionBridge();
+    this.errorHandler = getToolExecutionErrorHandler();
+
+    // Initialize logging interceptor
+    this.initializeLogging();
+  }
+
+  /**
+   * Initialize logging interceptor with database services
+   */
+  private initializeLogging(): void {
+    try {
+      const logStorageService = getLogStorageRepository();
+      const configService = new LoggingConfigService();
+      this.loggingInterceptor = initializeLoggingInterceptor(
+        logStorageService,
+        configService
+      );
+    } catch (error) {
+      console.warn('Failed to initialize logging interceptor:', error);
+      // Continue without logging - silent degradation
+      this.loggingInterceptor = null;
+    }
   }
 
   /**
@@ -213,7 +261,7 @@ export class LocalAIService implements AIServiceInterface {
         this.isInitializing = true;
 
         try {
-          console.log('Initializing local AI model...');
+          this.initializationStatus = 'checking_availability';
 
           // Check circuit breaker
           if (this.isCircuitBreakerOpen()) {
@@ -230,7 +278,7 @@ export class LocalAIService implements AIServiceInterface {
           if (status.is_available && status.is_loaded) {
             this.isModelReady = true;
             this._modelPath = status.model_path || null;
-            console.log('Local model already loaded and ready');
+            this.initializationStatus = 'ready';
 
             // Configure optimal resources and start monitoring
             await this.setupResourceManagement();
@@ -239,11 +287,12 @@ export class LocalAIService implements AIServiceInterface {
           }
 
           // Download and initialize the model
+          this.initializationStatus = 'downloading';
           await this.downloadModelWithRetry();
 
           // Initialize the model
-          const result = await invoke<string>('initialize_local_model');
-          console.log('Model initialization result:', result);
+          this.initializationStatus = 'initializing';
+          await invoke<string>('initialize_local_model');
 
           // Verify the model is ready
           const finalStatus = await this.getModelStatusFromBackend();
@@ -256,15 +305,17 @@ export class LocalAIService implements AIServiceInterface {
 
           this.isModelReady = true;
           this._modelPath = finalStatus.model_path || null;
+          this.initializationStatus = 'ready';
+          this.downloadProgress = undefined; // Clear progress when complete
 
           // Configure optimal resources and start monitoring
           await this.setupResourceManagement();
-
-          console.log('Local model initialized successfully');
           this.recordSuccess();
         } catch (error) {
           console.error('Failed to initialize local model:', error);
           this.isModelReady = false;
+          this.initializationStatus = 'failed';
+          this.downloadProgress = undefined;
           this.recordFailure(error as Error);
 
           throw new ModelInitializationError(
@@ -372,7 +423,19 @@ export class LocalAIService implements AIServiceInterface {
       throw new ModelProcessingError('Local model not initialized');
     }
 
+    const startTime = Date.now();
+    let requestId: string | null = null;
+
     try {
+      // Intercept request for logging
+      if (this.loggingInterceptor) {
+        requestId = await this.loggingInterceptor.interceptRequest(
+          this,
+          message,
+          context
+        );
+      }
+
       // Format the prompt for the local model
       const prompt = this.formatPrompt(message, context);
 
@@ -391,6 +454,27 @@ export class LocalAIService implements AIServiceInterface {
       // Parse the response and extract tool calls
       const parsedResponse = await this.parseResponse(rawResponse, context);
 
+      // Calculate performance metrics
+      const responseTime = Date.now() - startTime;
+      const tokenCount = this.estimateTokenCount(rawResponse);
+
+      // Intercept response for logging
+      if (this.loggingInterceptor && requestId) {
+        const responseMetadata: ResponseMetadata = {
+          responseTime,
+          tokenCount,
+          modelInfo: this.getModelInfo(),
+          sessionId: this.loggingInterceptor.getCurrentSessionId(),
+          timestamp: new Date(),
+        };
+
+        await this.loggingInterceptor.interceptResponse(
+          requestId,
+          parsedResponse,
+          responseMetadata
+        );
+      }
+
       // Add to conversation history
       this.conversationHistory.push(
         { role: 'user', content: message },
@@ -398,13 +482,39 @@ export class LocalAIService implements AIServiceInterface {
       );
 
       // Keep conversation history manageable
-      if (this.conversationHistory.length > 20) {
-        this.conversationHistory = this.conversationHistory.slice(-20);
-      }
+      this.autoTruncateHistory();
 
       return parsedResponse;
     } catch (error) {
       console.error('Local model processing error:', error);
+
+      // Intercept error for logging
+      if (this.loggingInterceptor && requestId) {
+        const requestContext: RequestContext = {
+          message,
+          context,
+          sessionId: this.loggingInterceptor.getCurrentSessionId(),
+          timestamp: new Date(startTime),
+          modelInfo: this.getModelInfo(),
+        };
+
+        await this.loggingInterceptor.interceptError(
+          requestId,
+          error instanceof Error ? error : new Error(String(error)),
+          requestContext
+        );
+      }
+
+      // Provide better error handling for prompt length issues
+      if (
+        error instanceof Error &&
+        error.message.includes('Prompt is too long')
+      ) {
+        throw new ModelProcessingError(
+          'The conversation has grown too long for the local model. Try starting a new conversation or clearing the chat history for better performance.'
+        );
+      }
+
       throw new ModelProcessingError(
         error instanceof Error ? error.message : 'Unknown processing error'
       );
@@ -417,11 +527,14 @@ export class LocalAIService implements AIServiceInterface {
   private formatPrompt(message: string, context: AppContext): string {
     const systemPrompt = this.getSystemPrompt(context);
 
-    // Build conversation context
+    // Build conversation context with dynamic truncation
     let conversationContext = '';
     if (this.conversationHistory.length > 0) {
+      // Start with fewer history items and expand if space allows
+      const historyToUse = Math.min(this.conversationHistory.length, 6);
+
       conversationContext = this.conversationHistory
-        .slice(-10) // Keep last 10 exchanges
+        .slice(-historyToUse)
         .map(
           entry => `<start_of_turn>${entry.role}\n${entry.content}<end_of_turn>`
         )
@@ -429,13 +542,57 @@ export class LocalAIService implements AIServiceInterface {
     }
 
     // Format using Gemma chat template
-    const prompt = `<bos><start_of_turn>system
+    let prompt = `<bos><start_of_turn>system
 ${systemPrompt}<end_of_turn>
 ${conversationContext}
 <start_of_turn>user
 ${message}<end_of_turn>
 <start_of_turn>model
 `;
+
+    // Check and truncate if prompt is too long
+    // Rough token estimation: ~4 characters per token for English text
+    const estimatedTokens = Math.ceil(prompt.length / 4);
+    const maxPromptTokens =
+      this.config.contextSize - this.config.maxTokens - 100; // Reserve space for response + safety margin
+
+    if (estimatedTokens > maxPromptTokens) {
+      console.warn(
+        `Prompt too long (${estimatedTokens} estimated tokens), truncating...`
+      );
+
+      // Try with less conversation history first
+      if (this.conversationHistory.length > 2) {
+        conversationContext = this.conversationHistory
+          .slice(-2) // Keep only last 2 exchanges
+          .map(
+            entry =>
+              `<start_of_turn>${entry.role}\n${entry.content}<end_of_turn>`
+          )
+          .join('\n');
+
+        prompt = `<bos><start_of_turn>system
+${systemPrompt}<end_of_turn>
+${conversationContext}
+<start_of_turn>user
+${message}<end_of_turn>
+<start_of_turn>model
+`;
+      }
+
+      // If still too long, use minimal system prompt
+      const reestimatedTokens = Math.ceil(prompt.length / 4);
+      if (reestimatedTokens > maxPromptTokens) {
+        const minimalSystemPrompt = this.getMinimalSystemPrompt(context);
+
+        prompt = `<bos><start_of_turn>system
+${minimalSystemPrompt}<end_of_turn>
+<start_of_turn>user
+${message}<end_of_turn>
+<start_of_turn>model
+`;
+      }
+    }
 
     return prompt;
   }
@@ -444,17 +601,20 @@ ${message}<end_of_turn>
    * Get system prompt with current context
    */
   private getSystemPrompt(context: AppContext): string {
-    const availableTools = this.toolExecutionEngine.getAvailableTools();
+    const availableTools = this.toolRegistry.getAvailableTools();
 
-    // Get detailed tool information
+    // Get detailed tool information from registry schemas
     const toolDescriptions = availableTools
       .map(toolName => {
-        // Check if getToolInfo method exists before calling it
-        const toolInfo =
-          typeof this.toolExecutionEngine.getToolInfo === 'function'
-            ? this.toolExecutionEngine.getToolInfo(toolName)
-            : null;
-        return `- ${toolName}: ${toolInfo?.description || 'No description available'}`;
+        const toolInfo = this.toolRegistry.getToolInfo(toolName);
+        if (toolInfo) {
+          // Include parameter information for better tool usage
+          const paramInfo = Object.entries(toolInfo.parameters)
+            .map(([name, param]) => `${name}: ${param.description}`)
+            .join(', ');
+          return `- ${toolName}: ${toolInfo.description}${paramInfo ? ` (${paramInfo})` : ''}`;
+        }
+        return `- ${toolName}: No description available`;
       })
       .join('\n');
 
@@ -483,15 +643,51 @@ Guidelines:
 - Respect user privacy - all data stays local
 - Be helpful, concise, and professional
 
-IMPORTANT: When you need to use a tool, format it exactly as:
+CRITICAL: You MUST use tools for any task management actions. When you need to use a tool, format it EXACTLY as shown:
+
 TOOL_CALL: tool_name(arg1="value1", arg2="value2")
 
-Examples:
-- To create a task: TOOL_CALL: create_task(title="Review project proposal", priority=2)
-- To get tasks: TOOL_CALL: get_tasks(filters={"status": ["pending", "in_progress"]})
-- To start timer: TOOL_CALL: start_timer(taskId="task-123")
+REQUIRED EXAMPLES - Use these exact formats:
+- Create task: TOOL_CALL: create_task(title="Review project proposal", priority=2)
+- Get tasks: TOOL_CALL: get_tasks(filters={"status": ["pending", "in_progress"]})
+- Update task: TOOL_CALL: update_task(taskId="task-123", updates={"status": "completed"})
+- Start timer: TOOL_CALL: start_timer(taskId="task-123")
+- Stop timer: TOOL_CALL: stop_timer(sessionId="session-456", notes="Completed review")
 
-Think through each user request carefully and use the appropriate tools to help them achieve their productivity goals.`;
+ALWAYS use tools for:
+- Creating, updating, or retrieving tasks
+- Starting or stopping timers
+- Getting time data or productivity analysis
+
+Format: First explain what you'll do, then use the TOOL_CALL on a new line.
+
+ALWAYS use tools for:
+- Creating, updating, or retrieving tasks
+- Starting or stopping timers
+- Getting time data or productivity analysis
+
+Format: First explain what you'll do, then use the TOOL_CALL on a new line.`;
+  }
+
+  /**
+   * Get minimal system prompt for when full prompt is too long
+   */
+  private getMinimalSystemPrompt(context: AppContext): string {
+    const availableTools = this.toolRegistry.getAvailableTools().slice(0, 5); // Limit to first 5 tools
+
+    const toolList = availableTools.join(', ');
+
+    return `You are Kira, an AI assistant for KiraPilot productivity app.
+
+Available tools: ${toolList}
+
+Current context:
+- Task: ${context.currentTask ? context.currentTask.title : 'None'}
+- Focus: ${context.focusMode ? 'On' : 'Off'}
+
+MUST use TOOL_CALL: tool_name(args) format for any task/timer actions.
+Example: TOOL_CALL: create_task(title="New task", priority=1)
+Be helpful and always use tools for task management.`;
   }
 
   /**
@@ -504,6 +700,7 @@ Think through each user request carefully and use the appropriate tools to help 
     const actions: AIAction[] = [];
     const suggestions: AISuggestion[] = [];
     let cleanedMessage = response;
+
     const formattedResults: FormattedToolResult[] = [];
 
     // Extract tool calls using multiple patterns for better compatibility
@@ -536,10 +733,22 @@ Think through each user request carefully and use the appropriate tools to help 
         );
 
         // Format the result
+        let parsedData: Record<string, unknown>;
+        try {
+          if (typeof executionResult.data === 'string') {
+            parsedData = JSON.parse(executionResult.data || '{}');
+          } else {
+            parsedData =
+              (executionResult.data as Record<string, unknown>) || {};
+          }
+        } catch {
+          parsedData = {};
+        }
+
         const formattedResult = this.resultFormatter.format(
           toolCall.name,
           executionResult,
-          JSON.parse((executionResult.data as string) || '{}')
+          parsedData
         );
 
         formattedResults.push(formattedResult);
@@ -664,14 +873,14 @@ Think through each user request carefully and use the appropriate tools to help 
 
     // Pattern 3: Function call style - tool_name(args)
     const functionCallRegex = /(?:^|\n)\s*(\w+)\((.*?)\)(?:\s*$|\s*\n)/g;
-    const availableTools = this.toolExecutionEngine.getAvailableTools();
+    const availableTools = this.toolRegistry.getAvailableTools();
 
     while ((match = functionCallRegex.exec(response)) !== null) {
       const toolName = match[1];
       const argsString = match[2];
       const originalText = match[0];
 
-      // Only process if it's a known tool
+      // Only process if it's a known tool in the registry
       if (availableTools.includes(toolName)) {
         try {
           const args = this.parseToolArguments(argsString);
@@ -746,7 +955,7 @@ Think through each user request carefully and use the appropriate tools to help 
   }
 
   /**
-   * Execute a tool using a simplified approach for local model
+   * Execute a tool using the tool registry with enhanced error handling
    */
   private async executeTool(
     toolName: string,
@@ -755,66 +964,83 @@ Think through each user request carefully and use the appropriate tools to help 
     const startTime = Date.now();
 
     try {
-      // For now, simulate tool execution since we don't have actual tool implementations
-      // In a full implementation, this would call actual tool functions
+      // Use the tool registry to execute the actual tool
+      const result = await this.toolRegistry.executeTool(toolName, args);
 
-      let result:
-        | { tasks?: unknown[]; count?: number; error?: string }
-        | unknown;
-      let userMessage: string;
+      // Calculate execution time
+      const executionTime = Date.now() - startTime;
 
-      switch (toolName) {
-        case 'get_tasks':
-          result = { tasks: [], count: 0 };
-          userMessage = '✅ Retrieved 0 tasks';
-          break;
-        case 'create_task':
-          result = { id: 'task-' + Date.now(), title: args.title };
-          userMessage = `✅ Created task: ${args.title}`;
-          break;
-        case 'update_task':
-          result = { id: args.id, updated: true };
-          userMessage = `✅ Updated task: ${args.id}`;
-          break;
-        case 'start_timer':
-          result = { sessionId: 'session-' + Date.now(), started: true };
-          userMessage = '✅ Timer started';
-          break;
-        case 'stop_timer':
-          result = { stopped: true };
-          userMessage = '✅ Timer stopped';
-          break;
-        default:
-          result = { executed: true };
-          userMessage = `✅ ${toolName} executed successfully`;
+      // Update execution time in metadata
+      if (result.metadata) {
+        result.metadata.executionTime = executionTime;
       }
 
-      const executionTime = Date.now() - startTime;
+      // Log tool execution if logging is enabled
+      if (this.loggingInterceptor) {
+        // Note: We don't have the interaction log ID here, so we'll log it separately
+        // This will be handled by the LoggingInterceptor when processing the full response
+        try {
+          await this.loggingInterceptor.logToolExecution(
+            'pending', // Will be updated when the full interaction is logged
+            toolName,
+            args,
+            result,
+            executionTime
+          );
+        } catch (logError) {
+          // Silent degradation for logging errors
+          console.warn('Failed to log tool execution:', logError);
+        }
+      }
 
-      return {
-        success: true,
-        data: result,
-        userMessage,
-        metadata: {
-          executionTime,
-          toolName,
-          permissions: [],
-        },
-      };
+      return result;
     } catch (error) {
-      const executionTime = Date.now() - startTime;
+      console.error(`Failed to execute tool ${toolName}:`, error);
 
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-        userMessage: `❌ ${toolName} failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        metadata: {
-          executionTime,
-          toolName,
-          permissions: [],
-        },
+      // Create error recovery context
+      const context: ErrorRecoveryContext = {
+        toolName,
+        arguments: args,
+        permissions: [], // Will be populated by the error handler
+        attempt: 1,
+        maxAttempts: 3,
+        previousErrors: [],
       };
+
+      // Use the error handler to process the error and provide recovery strategies
+      const result = await this.errorHandler.handleError(
+        error instanceof Error ? error : new Error(String(error)),
+        context
+      );
+
+      // Log failed tool execution if logging is enabled
+      if (this.loggingInterceptor) {
+        const executionTime = Date.now() - startTime;
+        try {
+          await this.loggingInterceptor.logToolExecution(
+            'pending', // Will be updated when the full interaction is logged
+            toolName,
+            args,
+            result,
+            executionTime
+          );
+        } catch (logError) {
+          // Silent degradation for logging errors
+          console.warn('Failed to log failed tool execution:', logError);
+        }
+      }
+
+      return result;
     }
+  }
+
+  /**
+   * Estimate token count for text (rough approximation)
+   */
+  private estimateTokenCount(text: string): number {
+    // Rough estimation: ~4 characters per token for English text
+    // This is a simplified approach - actual tokenization would be more accurate
+    return Math.ceil(text.length / 4);
   }
 
   /**
@@ -910,12 +1136,25 @@ Think through each user request carefully and use the appropriate tools to help 
    * Get current service status
    */
   getStatus(): ModelStatus {
+    let error: string | undefined;
+
+    if (!this.isModelReady && !this.isInitializing) {
+      if (this.initializationStatus === 'failed') {
+        error = 'Model initialization failed';
+      } else {
+        error = 'Model not initialized';
+      }
+    } else if (this.isInitializing) {
+      error = undefined; // No error when initializing
+    }
+
     return {
       type: 'local',
       isReady: this.isModelReady,
       isLoading: this.isInitializing,
-      error: this.isModelReady ? undefined : 'Model not initialized',
+      error,
       modelInfo: this.getModelInfo(),
+      downloadProgress: this.downloadProgress,
     };
   }
 
@@ -925,6 +1164,16 @@ Think through each user request carefully and use the appropriate tools to help 
   setTranslationFunction(fn: TranslationFunction): void {
     this._translationFunction = fn;
     this.toolExecutionEngine.setTranslationFunction(fn);
+    this.toolRegistry.setTranslationFunction(fn);
+    this.toolExecutionBridge.setTranslationFunction(fn);
+    this.errorHandler.setTranslationFunction(fn);
+  }
+
+  /**
+   * Set logging interceptor for AI interaction logging
+   */
+  setLoggingInterceptor(interceptor: LoggingInterceptor): void {
+    this.loggingInterceptor = interceptor;
   }
 
   /**
@@ -932,6 +1181,17 @@ Think through each user request carefully and use the appropriate tools to help 
    */
   clearConversation(): void {
     this.conversationHistory = [];
+  }
+
+  /**
+   * Auto-truncate conversation history when it gets too long
+   */
+  private autoTruncateHistory(): void {
+    const maxHistoryItems = 10;
+    if (this.conversationHistory.length > maxHistoryItems) {
+      this.conversationHistory =
+        this.conversationHistory.slice(-maxHistoryItems);
+    }
   }
 
   /**
@@ -977,11 +1237,9 @@ Think through each user request carefully and use the appropriate tools to help 
     try {
       // Configure optimal resources based on system capabilities
       await invoke<string>('configure_optimal_resources');
-      console.log('Optimal resource configuration applied');
 
       // Start resource monitoring
       await invoke<string>('start_resource_monitoring');
-      console.log('Resource monitoring started');
     } catch (error) {
       console.warn('Failed to setup resource management:', error);
       // Don't throw error as this is not critical for basic functionality
@@ -1038,7 +1296,6 @@ Think through each user request carefully and use the appropriate tools to help 
 
       // Update local config
       this.config = { ...this.config, ...config };
-      console.log('Resource configuration updated successfully');
     } catch (error) {
       console.error('Failed to update resource configuration:', error);
       throw new Error(
@@ -1072,9 +1329,6 @@ Think through each user request carefully and use the appropriate tools to help 
         const result = await operation();
 
         // Reset circuit breaker on success
-        if (attempt > 1) {
-          console.log(`${operationType} succeeded on attempt ${attempt}`);
-        }
         this.recordSuccess();
 
         return result;
@@ -1223,7 +1477,6 @@ Think through each user request carefully and use the appropriate tools to help 
       this.circuitBreakerState.nextRetryTime &&
       new Date() >= this.circuitBreakerState.nextRetryTime
     ) {
-      console.log('Circuit breaker timeout expired, allowing retry attempt');
       this.circuitBreakerState.isOpen = false;
       this.circuitBreakerState.failureCount = Math.max(
         0,
@@ -1236,43 +1489,69 @@ Think through each user request carefully and use the appropriate tools to help 
   }
 
   /**
-   * Download model with retry logic
+   * Download model with retry logic and progress tracking
    */
   private async downloadModelWithRetry(): Promise<void> {
     return this.executeWithRetry(
       async () => {
         try {
-          console.log(
-            `Downloading model ${this.config.modelFile} from ${this.config.modelRepo}...`
+          // Check if model is already downloaded
+          const cachedModels = await this.getCachedModels();
+          const targetModel = cachedModels.find(
+            model =>
+              model.repo === this.config.modelRepo &&
+              model.filename === this.config.modelFile
           );
 
-          // Try enhanced download first
-          try {
-            const result = await invoke<string>(
-              'download_model_with_progress',
-              {
-                repo: this.config.modelRepo,
-                filename: this.config.modelFile,
-              }
-            );
-            console.log('Enhanced model download result:', result);
+          if (targetModel) {
+            this.downloadProgress = 100;
             return;
-          } catch (enhancedError) {
-            console.warn(
-              'Enhanced download failed, falling back to legacy method:',
-              enhancedError
-            );
           }
 
-          // Fallback to legacy download
-          const result = await invoke<string>('download_model', {
-            repo: this.config.modelRepo,
-            model: this.config.modelFile,
-          });
+          // Start download with progress tracking
+          this.downloadProgress = 0;
 
-          console.log('Legacy model download result:', result);
+          // Start a progress monitoring interval
+          const progressInterval = setInterval(async () => {
+            try {
+              // Try to get download progress from backend
+              const progress = await this.getDownloadProgress();
+              if (progress) {
+                this.downloadProgress = progress.percentage;
+              }
+            } catch {
+              // Ignore progress errors
+            }
+          }, 1000);
+
+          try {
+            // Try enhanced download first
+            try {
+              await invoke<string>('download_model_with_progress', {
+                repo: this.config.modelRepo,
+                filename: this.config.modelFile,
+              });
+              this.downloadProgress = 100;
+              return;
+            } catch (enhancedError) {
+              console.warn(
+                'Enhanced download failed, falling back to legacy method:',
+                enhancedError
+              );
+            }
+
+            // Fallback to legacy download
+            await invoke<string>('download_model', {
+              repo: this.config.modelRepo,
+              model: this.config.modelFile,
+            });
+            this.downloadProgress = 100;
+          } finally {
+            clearInterval(progressInterval);
+          }
         } catch (error) {
           console.error('Failed to download model:', error);
+          this.downloadProgress = undefined; // Clear progress on failure
           throw new ModelInitializationError(
             'local',
             `Model download failed: ${error instanceof Error ? error.message : 'Unknown error'}`
@@ -1282,6 +1561,18 @@ Think through each user request carefully and use the appropriate tools to help 
       'model download',
       { maxRetries: 5, baseDelay: 2000, maxDelay: 60000 } // More retries for downloads
     );
+  }
+
+  /**
+   * Get download progress from backend
+   */
+  private async getDownloadProgress(): Promise<DownloadProgress | null> {
+    try {
+      return await invoke<DownloadProgress>('get_download_progress');
+    } catch {
+      // Progress tracking is optional, don't throw
+      return null;
+    }
   }
 
   /**
@@ -1379,7 +1670,6 @@ Think through each user request carefully and use the appropriate tools to help 
 
         // Then cleanup the model
         await invoke('cleanup_model');
-        console.log('Local model cleaned up successfully');
       }
     } catch (error) {
       console.error('Failed to cleanup local model:', error);

@@ -1,11 +1,23 @@
 import { render, screen } from '@testing-library/react';
 import { TaskCard } from '../TaskCard';
-import { Task, TaskStatus, Priority } from '../../../types';
+import { Task, TaskStatus, Priority, TimePreset } from '../../../types';
 
 // Mock the hooks
 jest.mock('../../../hooks/useTranslation', () => ({
   useTranslation: () => ({
     t: (key: string) => key,
+  }),
+}));
+
+// Mock the settings context
+jest.mock('../../../contexts/SettingsContext', () => ({
+  useSettings: () => ({
+    preferences: {
+      dateFormat: 'DD/MM/YYYY' as const,
+      timeFormat: '24h' as const,
+      theme: 'system' as const,
+      language: 'en' as const,
+    },
   }),
 }));
 
@@ -18,6 +30,25 @@ jest.mock('@dnd-kit/core', () => ({
     transform: null,
     isDragging: false,
   }),
+}));
+
+jest.mock('@dnd-kit/sortable', () => ({
+  useSortable: () => ({
+    attributes: {},
+    listeners: {},
+    setNodeRef: jest.fn(),
+    transform: null,
+    transition: null,
+    isDragging: false,
+  }),
+}));
+
+jest.mock('@dnd-kit/utilities', () => ({
+  CSS: {
+    Transform: {
+      toString: () => '',
+    },
+  },
 }));
 
 // Mock the modal components
@@ -44,7 +75,9 @@ const mockTask: Task = {
   description: 'Test Description',
   status: TaskStatus.PENDING,
   priority: Priority.MEDIUM,
+  order: 0,
   dependencies: [],
+  timePreset: TimePreset.SIXTY_MIN,
   timeEstimate: 60,
   actualTime: 0,
   tags: ['test'],
@@ -60,6 +93,81 @@ const defaultProps = {
   onStatusChange: jest.fn(),
   onDelete: jest.fn(),
 };
+
+describe('TaskCard Time Display', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('shows both used time and estimated time when both are available and estimate is not N/A', () => {
+    const taskWithBothTimes = {
+      ...mockTask,
+      timePreset: TimePreset.SIXTY_MIN,
+      timeEstimate: 60,
+      actualTime: 45,
+    };
+
+    render(<TaskCard {...defaultProps} task={taskWithBothTimes} />);
+
+    expect(screen.getByText('45/60min')).toBeInTheDocument();
+  });
+
+  it('shows only used time when available but estimated time is N/A', () => {
+    const taskWithUsedTimeOnly = {
+      ...mockTask,
+      timePreset: TimePreset.NOT_APPLICABLE,
+      timeEstimate: 0,
+      actualTime: 30,
+    };
+
+    render(<TaskCard {...defaultProps} task={taskWithUsedTimeOnly} />);
+
+    expect(screen.getByText('30min')).toBeInTheDocument();
+    expect(screen.queryByText('30/0min')).not.toBeInTheDocument();
+  });
+
+  it('shows only estimated time when no used time but estimate is available', () => {
+    const taskWithEstimateOnly = {
+      ...mockTask,
+      timePreset: TimePreset.THIRTY_MIN,
+      timeEstimate: 30,
+      actualTime: 0,
+    };
+
+    render(<TaskCard {...defaultProps} task={taskWithEstimateOnly} />);
+
+    expect(screen.getByText('30min')).toBeInTheDocument();
+  });
+
+  it('shows no time display when both times are zero/N/A', () => {
+    const taskWithNoTime = {
+      ...mockTask,
+      timePreset: TimePreset.NOT_APPLICABLE,
+      timeEstimate: 0,
+      actualTime: 0,
+    };
+
+    render(<TaskCard {...defaultProps} task={taskWithNoTime} />);
+
+    expect(screen.queryByText(/min/)).not.toBeInTheDocument();
+  });
+
+  it('shows used time only when estimate is zero but preset is not N/A', () => {
+    const taskWithUsedTimeAndZeroEstimate = {
+      ...mockTask,
+      timePreset: TimePreset.CUSTOM,
+      timeEstimate: 0,
+      actualTime: 25,
+    };
+
+    render(
+      <TaskCard {...defaultProps} task={taskWithUsedTimeAndZeroEstimate} />
+    );
+
+    expect(screen.getByText('25min')).toBeInTheDocument();
+    expect(screen.queryByText('25/0min')).not.toBeInTheDocument();
+  });
+});
 
 describe('TaskCard Task List Indicator', () => {
   beforeEach(() => {
@@ -106,13 +214,14 @@ describe('TaskCard Task List Indicator', () => {
       />
     );
 
-    const indicator = screen.getByText('Personal Tasks');
+    const indicatorText = screen.getByText('Personal Tasks');
+    const indicator = indicatorText.parentElement;
     expect(indicator).toHaveClass('text-xs');
-    expect(indicator).toHaveClass('text-slate-500');
-    expect(indicator).toHaveClass('bg-slate-100');
+    expect(indicator).toHaveClass('text-slate-600');
+    expect(indicator).toHaveClass('bg-slate-50');
     expect(indicator).toHaveClass('px-1.5');
     expect(indicator).toHaveClass('py-0.5');
-    expect(indicator).toHaveClass('rounded-sm');
+    expect(indicator).toHaveClass('rounded');
   });
 
   it('shows different task list names correctly', () => {

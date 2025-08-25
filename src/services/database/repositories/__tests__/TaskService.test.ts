@@ -2,20 +2,21 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { TaskService } from '../TaskService';
 import { Priority, TaskStatus } from '../../../../types';
-import { initializeDatabase } from '../../index';
 
 // Mock the Tauri invoke function
-const mockInvoke = jest.fn();
-jest.mock('@tauri-apps/api/core', () => ({
-  invoke: mockInvoke,
+jest.mock('@tauri-apps/api/core');
+import { invoke } from '@tauri-apps/api/core';
+const mockInvoke = invoke as jest.MockedFunction<typeof invoke>;
+
+// Mock the database initialization
+jest.mock('../../index', () => ({
+  initializeDatabase: jest.fn().mockResolvedValue(undefined),
 }));
 
 describe('TaskService', () => {
   let service: TaskService;
 
   beforeEach(async () => {
-    // Initialize SeaORM database for testing
-    await initializeDatabase();
     service = new TaskService();
     mockInvoke.mockClear();
   });
@@ -55,7 +56,20 @@ describe('TaskService', () => {
       const task = await service.create(taskRequest);
 
       expect(mockInvoke).toHaveBeenCalledWith('create_task', {
-        request: taskRequest,
+        request: {
+          title: taskRequest.title,
+          description: taskRequest.description,
+          priority: taskRequest.priority,
+          order_num: 0,
+          time_estimate: taskRequest.timeEstimate,
+          due_date: undefined,
+          scheduled_date: undefined,
+          tags: taskRequest.tags,
+          dependencies: undefined,
+          project_id: undefined,
+          parent_task_id: undefined,
+          task_list_id: undefined,
+        },
       });
       expect(task.id).toBe('test-id');
       expect(task.title).toBe(taskRequest.title);
@@ -77,7 +91,7 @@ describe('TaskService', () => {
       mockInvoke.mockRejectedValue(new Error('Backend error'));
 
       await expect(service.create(taskRequest)).rejects.toThrow(
-        'Failed to create task: Error: Backend error'
+        'Backend error'
       );
     });
   });

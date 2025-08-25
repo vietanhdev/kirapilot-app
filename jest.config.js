@@ -13,10 +13,7 @@ export default {
     '**/__tests__/**/*.(test|spec).+(ts|tsx|js)',
     '**/*.(test|spec).+(ts|tsx|js)',
   ],
-  testPathIgnorePatterns: [
-    '/node_modules/',
-    '/src/services/database/repositories/__tests__/', // Skip repository tests in Jest
-  ],
+  testPathIgnorePatterns: ['/node_modules/'],
   setupFilesAfterEnv: ['<rootDir>/src/setupTests.ts'],
   transform: {
     '^.+\\.(ts|tsx)$': 'ts-jest',
@@ -28,7 +25,6 @@ export default {
     'src/**/*.{ts,tsx}',
     '!src/**/*.d.ts',
     '!src/**/__tests__/**',
-    '!src/services/database/repositories/**', // Exclude repositories from coverage
   ],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',

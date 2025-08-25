@@ -190,6 +190,7 @@ export function TaskColumn({
       {/* Drop Zone */}
       <div
         ref={setNodeRef}
+        data-column-id={title.toLowerCase()}
         className={`
           overflow-y-auto p-2 space-y-2 transition-all duration-300
           scrollbar-thin scrollbar-thumb-gray-400 dark:scrollbar-thumb-gray-600 

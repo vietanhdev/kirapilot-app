@@ -148,6 +148,22 @@ describe('Validation Schemas', () => {
           dailySummary: false,
           weeklyReview: true,
         },
+        aiSettings: {
+          conversationHistory: true,
+          autoSuggestions: true,
+          toolPermissions: true,
+          responseStyle: 'balanced' as const,
+          suggestionFrequency: 'moderate' as const,
+        },
+        taskSettings: {
+          defaultPriority: 1,
+          autoScheduling: false,
+          smartDependencies: true,
+          weekStartDay: 1 as const,
+          showCompletedTasks: true,
+          compactView: false,
+        },
+        dateFormat: 'YYYY-MM-DD' as const,
         theme: 'dark' as const,
         language: 'en',
       };

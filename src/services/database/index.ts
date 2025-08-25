@@ -38,7 +38,6 @@ export function getDatabaseErrorMessage(
 export async function initializeDatabase(): Promise<void> {
   try {
     await invoke<string>('init_database');
-    console.log('Database initialized successfully via SeaORM backend');
   } catch (error) {
     const errorMessage = getDatabaseErrorMessage(
       'database.error.initFailed' as TranslationKey

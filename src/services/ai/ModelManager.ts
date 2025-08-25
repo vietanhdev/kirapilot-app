@@ -9,6 +9,10 @@ import { ReactAIService } from './ReactAIService';
 import { LocalAIService } from './LocalAIService';
 import { TranslationFunction } from './ToolExecutionEngine';
 import { AIResponse, AppContext, PatternAnalysis } from '../../types';
+import {
+  LoggingInterceptor,
+  getLoggingInterceptor,
+} from './LoggingInterceptor';
 
 /**
  * Model type enumeration
@@ -34,10 +38,22 @@ export class ModelManager {
   private modelType: ModelType = 'gemini';
   private services: Map<ModelType, AIServiceInterface> = new Map();
   private translationFunction: TranslationFunction | null = null;
+  private loggingInterceptor: LoggingInterceptor | null = null;
   private isInitializing = false;
   private initializationPromise: Promise<void> | null = null;
+  private backgroundInitPromises: Map<ModelType, Promise<void>> = new Map();
+  private preloadingServices: Set<ModelType> = new Set();
+  private currentSessionId: string | null = null;
 
   constructor() {
+    // Initialize logging interceptor if available
+    try {
+      this.loggingInterceptor = getLoggingInterceptor();
+    } catch {
+      // Logging interceptor not initialized yet
+      this.loggingInterceptor = null;
+    }
+
     // Initialize with Gemini service by default
     this.initializeGeminiService();
   }
@@ -51,6 +67,9 @@ export class ModelManager {
       if (this.translationFunction) {
         geminiService.setTranslationFunction(this.translationFunction);
       }
+      if (this.loggingInterceptor) {
+        geminiService.setLoggingInterceptor(this.loggingInterceptor);
+      }
       this.services.set('gemini', geminiService);
 
       // Set as current service if none is set
@@ -60,6 +79,8 @@ export class ModelManager {
       }
     } catch (error) {
       console.error('Failed to initialize Gemini service:', error);
+      // Log service initialization error
+      this.logServiceError('gemini', 'initialization', error as Error);
     }
   }
 
@@ -76,6 +97,9 @@ export class ModelManager {
         if (this.translationFunction) {
           localService.setTranslationFunction(this.translationFunction);
         }
+        if (this.loggingInterceptor) {
+          localService.setLoggingInterceptor(this.loggingInterceptor);
+        }
 
         // Initialize the service
         await localService.initialize();
@@ -88,6 +112,8 @@ export class ModelManager {
           `Failed to initialize local service (attempt ${attempt}/${maxRetries}):`,
           error
         );
+        // Log service initialization error
+        this.logServiceError('local', 'initialization', error as Error);
 
         // Don't retry for configuration errors
         if (
@@ -124,6 +150,24 @@ export class ModelManager {
       // Wait for current initialization to complete
       if (this.initializationPromise) {
         await this.initializationPromise;
+      }
+    }
+
+    // Check if service is already being preloaded in background
+    const backgroundPromise = this.backgroundInitPromises.get(type);
+    if (backgroundPromise) {
+      try {
+        await backgroundPromise;
+        // If background initialization succeeded, just switch to it
+        const service = this.services.get(type);
+        if (service && service.isInitialized()) {
+          this.currentService = service;
+          this.modelType = type;
+          return;
+        }
+      } catch (error) {
+        console.warn(`Background initialization of ${type} failed:`, error);
+        // Continue with normal initialization
       }
     }
 
@@ -188,11 +232,33 @@ export class ModelManager {
         service.setTranslationFunction(this.translationFunction);
       }
 
+      // Set logging interceptor if available
+      if (this.loggingInterceptor) {
+        if ('setLoggingInterceptor' in service) {
+          (service as ReactAIService | LocalAIService).setLoggingInterceptor(
+            this.loggingInterceptor
+          );
+        }
+      }
+
+      // Start new session when switching services to maintain session consistency
+      if (this.loggingInterceptor) {
+        this.currentSessionId = this.loggingInterceptor.startNewSession();
+      }
+
       // Switch to the new service
       this.currentService = service;
       this.modelType = type;
+
+      // Start preloading the other service in background for faster switching
+      this.startBackgroundPreloading(
+        type === 'local' ? 'gemini' : 'local',
+        config
+      );
     } catch (error) {
       console.error(`Failed to switch to ${type} model:`, error);
+      // Log service switching error
+      this.logServiceError(type, 'switching', error as Error);
 
       // If switching fails and we don't have a current service, fall back to Gemini
       if (!this.currentService) {
@@ -205,6 +271,8 @@ export class ModelManager {
           }
         } catch (fallbackError) {
           console.error('Fallback to Gemini also failed:', fallbackError);
+          // Log fallback error
+          this.logServiceError('gemini', 'fallback', fallbackError as Error);
         }
       }
 
@@ -234,6 +302,16 @@ export class ModelManager {
    */
   getModelStatus(): ModelStatus {
     if (!this.currentService) {
+      // Check if we're preloading the current model type
+      if (this.isPreloading(this.modelType)) {
+        return {
+          type: this.modelType,
+          isReady: false,
+          isLoading: true,
+          error: undefined,
+        };
+      }
+
       return {
         type: this.modelType,
         isReady: false,
@@ -242,7 +320,17 @@ export class ModelManager {
       };
     }
 
-    return this.currentService.getStatus();
+    const status = this.currentService.getStatus();
+
+    // If the service isn't ready but we're preloading it, show loading state
+    if (!status.isReady && this.isPreloading(this.modelType)) {
+      return {
+        ...status,
+        isLoading: true,
+      };
+    }
+
+    return status;
   }
 
   /**
@@ -288,7 +376,12 @@ export class ModelManager {
     }
 
     try {
-      return await this.currentService.processMessage(message, context);
+      const response = await this.currentService.processMessage(
+        message,
+        context
+      );
+
+      return response;
     } catch (error) {
       console.error(
         'Error processing message with',
@@ -303,8 +396,6 @@ export class ModelManager {
         this.shouldAttemptFallback(error as Error)
       ) {
         try {
-          console.log('Attempting automatic fallback to Gemini service...');
-
           // Store original model type for potential recovery
           const originalModelType = this.modelType;
 
@@ -319,10 +410,6 @@ export class ModelManager {
             // Switch to Gemini service
             this.currentService = geminiService;
             this.modelType = 'gemini';
-
-            console.log(
-              'Successfully switched to Gemini, retrying message processing...'
-            );
             const response = await this.currentService.processMessage(
               message,
               context
@@ -402,13 +489,11 @@ export class ModelManager {
     setTimeout(
       async () => {
         try {
-          console.log(`Attempting to recover ${originalModelType} service...`);
-
           // Try to switch back to original model
           await this.switchModel(originalModelType);
 
           if (this.currentService && this.currentService.isInitialized()) {
-            console.log(`Successfully recovered ${originalModelType} service`);
+            // Successfully recovered service
           }
         } catch (recoveryError) {
           console.warn(
@@ -438,6 +523,72 @@ export class ModelManager {
     for (const service of this.services.values()) {
       service.setTranslationFunction(fn);
     }
+  }
+
+  /**
+   * Set logging interceptor for all services
+   * @param interceptor - Logging interceptor instance
+   */
+  setLoggingInterceptor(interceptor: LoggingInterceptor): void {
+    this.loggingInterceptor = interceptor;
+
+    // Apply to all existing services
+    for (const service of this.services.values()) {
+      if ('setLoggingInterceptor' in service) {
+        (service as ReactAIService | LocalAIService).setLoggingInterceptor(
+          interceptor
+        );
+      }
+    }
+
+    // Start new session
+    this.currentSessionId = interceptor.startNewSession();
+  }
+
+  /**
+   * Get current session ID
+   * @returns Current session ID or null if logging is not enabled
+   */
+  getCurrentSessionId(): string | null {
+    return this.currentSessionId;
+  }
+
+  /**
+   * Start a new logging session
+   * @returns New session ID or null if logging is not enabled
+   */
+  startNewSession(): string | null {
+    if (this.loggingInterceptor) {
+      this.currentSessionId = this.loggingInterceptor.startNewSession();
+      return this.currentSessionId;
+    }
+    return null;
+  }
+
+  /**
+   * Log service errors for debugging and monitoring
+   * @param modelType - Type of model that encountered the error
+   * @param operation - Operation that failed (initialization, switching, fallback)
+   * @param error - Error that occurred
+   */
+  private logServiceError(
+    modelType: ModelType,
+    operation: string,
+    error: Error
+  ): void {
+    // This could be enhanced to use a proper logging service
+    // For now, we'll use console logging with structured information
+    console.error(`ModelManager ${operation} error:`, {
+      modelType,
+      operation,
+      error: error.message,
+      stack: error.stack,
+      timestamp: new Date().toISOString(),
+      sessionId: this.currentSessionId,
+    });
+
+    // If we have a logging interceptor, we could potentially log this as a system event
+    // This would require extending the logging system to handle system events
   }
 
   /**
@@ -477,9 +628,173 @@ export class ModelManager {
   }
 
   /**
+   * Start background preloading of a service for faster switching
+   * @param type - Model type to preload
+   * @param config - Optional configuration for the model
+   */
+  private startBackgroundPreloading(
+    type: ModelType,
+    config?: ModelConfig
+  ): void {
+    // Don't preload if already preloading or if service already exists and is ready
+    if (this.preloadingServices.has(type)) {
+      return;
+    }
+
+    const existingService = this.services.get(type);
+    if (existingService && existingService.isInitialized()) {
+      return;
+    }
+    this.preloadingServices.add(type);
+
+    const preloadPromise = this.preloadService(type, config);
+    this.backgroundInitPromises.set(type, preloadPromise);
+
+    // Clean up after completion
+    preloadPromise.finally(() => {
+      this.preloadingServices.delete(type);
+      this.backgroundInitPromises.delete(type);
+    });
+  }
+
+  /**
+   * Preload a service in the background without switching to it
+   * @param type - Model type to preload
+   * @param config - Optional configuration for the model
+   */
+  private async preloadService(
+    type: ModelType,
+    config?: ModelConfig
+  ): Promise<void> {
+    try {
+      let service = this.services.get(type);
+
+      if (!service) {
+        // Initialize the service if it doesn't exist
+        if (type === 'gemini') {
+          this.initializeGeminiService();
+          service = this.services.get('gemini');
+        } else if (type === 'local') {
+          await this.initializeLocalService();
+          service = this.services.get('local');
+        }
+
+        if (!service) {
+          throw new ModelInitializationError(
+            type,
+            'Service creation failed during preload'
+          );
+        }
+      }
+
+      // Configure the service if config is provided
+      if (config) {
+        if (config.apiKey && 'setApiKey' in service) {
+          (service as ReactAIService).setApiKey(config.apiKey);
+        }
+      }
+
+      // Initialize the service if it has an initialize method
+      if (service.initialize && !service.isInitialized()) {
+        await service.initialize();
+      }
+
+      // Set translation function if available
+      if (this.translationFunction) {
+        service.setTranslationFunction(this.translationFunction);
+      }
+
+      // Set logging interceptor if available
+      if (this.loggingInterceptor) {
+        if ('setLoggingInterceptor' in service) {
+          (service as ReactAIService | LocalAIService).setLoggingInterceptor(
+            this.loggingInterceptor
+          );
+        }
+      }
+    } catch (error) {
+      console.warn(`Failed to preload ${type} service:`, error);
+      // Don't throw - this is background preloading, failures are acceptable
+    }
+  }
+
+  /**
+   * Auto-load local model when switching from Gemini to local
+   * This method starts the local model initialization immediately when the preference changes
+   * @param config - Optional configuration for the local model
+   */
+  async autoLoadLocalModel(config?: ModelConfig): Promise<void> {
+    if (this.modelType === 'local') {
+      // Already on local model
+      return;
+    }
+
+    // Start background initialization immediately
+    this.startBackgroundPreloading('local', config);
+
+    // Wait for the background initialization to complete
+    const backgroundPromise = this.backgroundInitPromises.get('local');
+    if (backgroundPromise) {
+      try {
+        await backgroundPromise;
+      } catch (error) {
+        console.warn('Local model auto-loading failed:', error);
+        // Don't throw - the user can still manually switch later
+      }
+    }
+  }
+
+  /**
+   * Check if a service is currently being preloaded
+   * @param type - Model type to check
+   * @returns True if the service is being preloaded
+   */
+  isPreloading(type: ModelType): boolean {
+    return this.preloadingServices.has(type);
+  }
+
+  /**
+   * Get preloading status for all services
+   * @returns Object with preloading status for each model type
+   */
+  getPreloadingStatus(): Record<ModelType, boolean> {
+    return {
+      local: this.isPreloading('local'),
+      gemini: this.isPreloading('gemini'),
+    };
+  }
+
+  /**
+   * Force preload a specific service
+   * @param type - Model type to preload
+   * @param config - Optional configuration for the model
+   */
+  async preloadServiceManually(
+    type: ModelType,
+    config?: ModelConfig
+  ): Promise<void> {
+    if (type === this.modelType) {
+      // Already the current service
+      return;
+    }
+
+    this.startBackgroundPreloading(type, config);
+
+    const backgroundPromise = this.backgroundInitPromises.get(type);
+    if (backgroundPromise) {
+      await backgroundPromise;
+    }
+  }
+
+  /**
    * Cleanup all services and resources
    */
   cleanup(): void {
+    // Cancel any ongoing background initializations
+    // Note: We can't actually cancel the promises, but we clear the references
+    this.backgroundInitPromises.clear();
+    this.preloadingServices.clear();
+
     for (const service of this.services.values()) {
       if (service.cleanup) {
         service.cleanup();

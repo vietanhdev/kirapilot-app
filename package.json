@@ -63,6 +63,7 @@
     "recharts": "^3.1.2",
     "rehype-highlight": "^7.0.2",
     "remark-gfm": "^4.0.1",
+    "uuid": "^11.1.0",
     "vite-tsconfig-paths": "^5.1.4",
     "zod": "^4.0.15"
   },
@@ -79,6 +80,7 @@
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "@types/react-router-dom": "^5.3.3",
+    "@types/uuid": "^10.0.0",
     "@typescript-eslint/eslint-plugin": "^8.39.1",
     "@typescript-eslint/parser": "^8.39.1",
     "@vitejs/plugin-react": "^4.6.0",

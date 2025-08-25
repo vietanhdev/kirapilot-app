@@ -8,6 +8,7 @@ import {
   Priority,
   TaskStatus,
   DistractionLevel,
+  TimePreset,
 } from '../types';
 import { generateId } from './index';
 
@@ -23,7 +24,9 @@ export function createTaskRequestToTask(request: CreateTaskRequest): Task {
     description: request.description || '',
     priority: request.priority || Priority.MEDIUM,
     status: TaskStatus.PENDING,
+    order: request.order || 0,
     dependencies: request.dependencies || [],
+    timePreset: request.timePreset || TimePreset.NOT_APPLICABLE,
     timeEstimate: request.timeEstimate || 0,
     actualTime: 0,
     dueDate: request.dueDate,
@@ -68,6 +71,9 @@ export function applyTaskUpdate(task: Task, update: UpdateTaskRequest): Task {
       updatedTask.completedAt = undefined;
     }
   }
+  if (update.order !== undefined) {
+    updatedTask.order = update.order;
+  }
   if (update.timeEstimate !== undefined) {
     updatedTask.timeEstimate = update.timeEstimate;
   }
@@ -97,6 +103,7 @@ export function taskToDbRow(task: Task): Record<string, unknown> {
     description: task.description,
     priority: task.priority,
     status: task.status,
+    order_num: task.order || 0,
     dependencies: JSON.stringify(task.dependencies),
     time_estimate: task.timeEstimate,
     actual_time: task.actualTime,
@@ -141,7 +148,9 @@ export function dbRowToTask(row: Record<string, unknown>): Task {
     description: row.description as string,
     priority: row.priority as Priority,
     status: row.status as TaskStatus,
+    order: (row.order_num as number) || 0,
     dependencies: safeJsonParse<string[]>(row.dependencies as string, []),
+    timePreset: (row.time_preset as TimePreset) || TimePreset.NOT_APPLICABLE,
     timeEstimate: (row.time_estimate as number) || 0,
     actualTime: (row.actual_time as number) || 0,
     dueDate: row.due_date ? new Date(row.due_date as string) : undefined,

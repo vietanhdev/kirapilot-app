@@ -14,6 +14,7 @@ import {
   TaskStatus,
   Priority,
   DistractionLevel,
+  TimePreset,
 } from '../../types';
 import { invoke } from '@tauri-apps/api/core';
 
@@ -66,6 +67,8 @@ describe('Error Recovery and Fallback Integration Tests', () => {
         description: 'A test task',
         status: TaskStatus.PENDING,
         priority: Priority.MEDIUM,
+        order: 0,
+        timePreset: TimePreset.SIXTY_MIN,
         timeEstimate: 60,
         actualTime: 0,
         dependencies: [],

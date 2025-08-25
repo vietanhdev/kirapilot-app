@@ -7,6 +7,7 @@ import {
   TaskListService as ITaskListService,
   Task,
   TaskStatus,
+  TimePreset,
 } from '../../../types';
 import { getDatabaseErrorMessage } from '../index';
 import { TranslationKey } from '../../../i18n';
@@ -220,10 +221,13 @@ export class TaskListService implements ITaskListService {
       description: (backendTask.description as string) || '',
       priority: backendTask.priority as number,
       status: backendTask.status as TaskStatus,
+      order: (backendTask.order_num as number) || 0,
       dependencies: this.parseJsonField(
         backendTask.dependencies as string | null,
         []
       ),
+      timePreset:
+        (backendTask.time_preset as TimePreset) || TimePreset.NOT_APPLICABLE,
       timeEstimate: (backendTask.time_estimate as number) || 0,
       actualTime: (backendTask.actual_time as number) || 0,
       dueDate: backendTask.due_date

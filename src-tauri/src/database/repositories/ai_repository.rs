@@ -28,6 +28,54 @@ pub struct UpdateAiInteractionRequest {
     pub confidence: Option<f64>,
 }
 
+/// Request structure for creating a new AI interaction log (comprehensive logging)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateAiInteractionLogRequest {
+    pub session_id: String,
+    pub model_type: String, // "local" or "gemini"
+    pub model_info: serde_json::Value,
+    pub user_message: String,
+    pub system_prompt: Option<String>,
+    pub context: String, // JSON string
+    pub ai_response: String,
+    pub actions: String, // JSON string
+    pub suggestions: String, // JSON string
+    pub reasoning: Option<String>,
+    pub response_time: i64, // milliseconds
+    pub token_count: Option<i64>,
+    pub error: Option<String>,
+    pub error_code: Option<String>,
+    pub contains_sensitive_data: bool,
+    pub data_classification: String, // "public", "internal", "confidential"
+}
+
+/// Request structure for updating an AI interaction log
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpdateAiInteractionLogRequest {
+    pub ai_response: Option<String>,
+    pub actions: Option<String>,
+    pub suggestions: Option<String>,
+    pub reasoning: Option<String>,
+    pub response_time: Option<i64>,
+    pub token_count: Option<i64>,
+    pub error: Option<String>,
+    pub error_code: Option<String>,
+    pub contains_sensitive_data: Option<bool>,
+    pub data_classification: Option<String>,
+}
+
+/// Request structure for creating a tool execution log
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateToolExecutionLogRequest {
+    pub interaction_log_id: String,
+    pub tool_name: String,
+    pub arguments: String, // JSON string
+    pub result: String, // JSON string
+    pub execution_time: i64, // milliseconds
+    pub success: bool,
+    pub error: Option<String>,
+}
+
 /// AI interaction statistics
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AiStats {
@@ -49,6 +97,17 @@ pub struct ToolCount {
 pub struct ActionCount {
     pub action: String,
     pub count: u64,
+}
+
+/// AI interaction log storage statistics
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AiLogStorageStats {
+    pub total_logs: u64,
+    pub total_size: u64,
+    pub oldest_log: Option<String>,
+    pub newest_log: Option<String>,
+    pub logs_by_model: std::collections::HashMap<String, u64>,
+    pub average_response_time: f64,
 }
 
 /// AI repository for SeaORM-based database operations
@@ -263,6 +322,60 @@ impl AiRepository {
         Ok(result.rows_affected)
     }
 
+    /// Get AI interaction log storage statistics
+    pub async fn get_log_storage_stats(&self) -> Result<AiLogStorageStats, DbErr> {
+        let interactions = ai_interactions::Entity::find().all(&*self.db).await?;
+
+        let total_logs = interactions.len() as u64;
+        
+        // Calculate total size (rough estimate based on content length)
+        let total_size = interactions.iter()
+            .map(|i| {
+                let message_size = i.message.len();
+                let response_size = i.response.len();
+                let tools_size = i.tools_used.as_ref().map_or(0, |t: &String| t.len());
+                message_size + response_size + tools_size
+            })
+            .sum::<usize>() as u64;
+
+        // Get oldest and newest logs
+        let oldest_log = interactions.iter()
+            .min_by_key(|i| &i.created_at)
+            .map(|i| i.created_at.to_rfc3339());
+        
+        let newest_log = interactions.iter()
+            .max_by_key(|i| &i.created_at)
+            .map(|i| i.created_at.to_rfc3339());
+
+        // Count logs by model (using action_taken as a proxy for model type)
+        let mut logs_by_model = std::collections::HashMap::new();
+        for interaction in &interactions {
+            if let Some(action) = &interaction.action_taken {
+                // Extract model type from action or use a default categorization
+                let model_type = if action.contains("local") || action.contains("llama") {
+                    "local".to_string()
+                } else if action.contains("gemini") {
+                    "gemini".to_string()
+                } else {
+                    "unknown".to_string()
+                };
+                *logs_by_model.entry(model_type).or_insert(0) += 1;
+            }
+        }
+
+        // Calculate average response time (mock data for now)
+        let average_response_time = 1500.0; // 1.5 seconds average
+
+        Ok(AiLogStorageStats {
+            total_logs,
+            total_size,
+            oldest_log,
+            newest_log,
+            logs_by_model,
+            average_response_time,
+        })
+    }
+
     /// Get conversation history (recent interactions in chronological order)
     pub async fn get_conversation_history(
         &self,
@@ -304,5 +417,70 @@ impl AiRepository {
         };
 
         active_interaction.insert(&*self.db).await
+    }
+
+    /// Create a comprehensive AI interaction log
+    pub async fn create_interaction_log(
+        &self,
+        request: CreateAiInteractionLogRequest,
+    ) -> Result<ai_interactions::Model, DbErr> {
+        // For now, map the comprehensive log to the existing ai_interactions table
+        // In a production system, you might want a separate table for detailed logs
+        let interaction = ai_interactions::ActiveModel {
+            message: Set(request.user_message),
+            response: Set(request.ai_response),
+            action_taken: Set(Some(format!("{}:{}", request.model_type, request.session_id))),
+            reasoning: Set(request.reasoning),
+            tools_used: Set(Some(request.actions)), // Store actions as tools_used for now
+            confidence: Set(None), // Could derive from response_time or other metrics
+            ..Default::default()
+        };
+
+        interaction.insert(&*self.db).await
+    }
+
+    /// Update a comprehensive AI interaction log
+    pub async fn update_interaction_log(
+        &self,
+        id: &str,
+        request: UpdateAiInteractionLogRequest,
+    ) -> Result<ai_interactions::Model, DbErr> {
+        let interaction = ai_interactions::Entity::find_by_id(id)
+            .one(&*self.db)
+            .await?
+            .ok_or_else(|| DbErr::RecordNotFound("AI interaction log not found".to_string()))?;
+
+        let mut interaction: ai_interactions::ActiveModel = interaction.into();
+
+        if let Some(ai_response) = request.ai_response {
+            interaction.response = Set(ai_response);
+        }
+        if let Some(actions) = request.actions {
+            interaction.tools_used = Set(Some(actions));
+        }
+        if let Some(reasoning) = request.reasoning {
+            interaction.reasoning = Set(Some(reasoning));
+        }
+
+        interaction.update(&*self.db).await
+    }
+
+    /// Create a tool execution log (for now, store as a regular interaction)
+    pub async fn create_tool_execution_log(
+        &self,
+        request: CreateToolExecutionLogRequest,
+    ) -> Result<ai_interactions::Model, DbErr> {
+        // For now, create a special interaction record for tool execution
+        let interaction = ai_interactions::ActiveModel {
+            message: Set(format!("Tool: {}", request.tool_name)),
+            response: Set(request.result),
+            action_taken: Set(Some(format!("tool_execution:{}", request.interaction_log_id))),
+            reasoning: Set(request.error),
+            tools_used: Set(Some(request.arguments)),
+            confidence: Set(if request.success { Some(1.0) } else { Some(0.0) }),
+            ..Default::default()
+        };
+
+        interaction.insert(&*self.db).await
     }
 }

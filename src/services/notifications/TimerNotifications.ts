@@ -97,7 +97,7 @@ export class TimerNotifications {
         return null; // Tauri notifications don't return Notification objects
       }
     } catch {
-      console.log(this.t('notifications.fallbackToWeb' as TranslationKey));
+      // Fallback to web notifications silently
     }
 
     // Fallback to web notifications

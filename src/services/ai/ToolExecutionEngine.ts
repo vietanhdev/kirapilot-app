@@ -32,6 +32,11 @@ export interface ToolExecutionResult {
     executionTime: number;
     toolName: string;
     permissions: PermissionLevel[];
+    retryAfter?: number;
+    attempt?: number;
+    maxAttempts?: number;
+    suggestions?: unknown[];
+    requiredPermissions?: PermissionLevel[];
   };
 }
 

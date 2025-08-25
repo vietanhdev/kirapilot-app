@@ -8,11 +8,30 @@ import {
   TaskFilters,
   TaskSortOptions,
   ValidationResult,
+  TimePreset,
 } from '../../../types';
 import { getDatabaseErrorMessage } from '../index';
 import { TranslationKey } from '../../../i18n';
 
 export class TaskService {
+  /**
+   * Helper method to determine time preset from time estimate
+   */
+  private getTimePresetFromEstimate(timeEstimate: number): TimePreset {
+    switch (timeEstimate) {
+      case 15:
+        return TimePreset.FIFTEEN_MIN;
+      case 30:
+        return TimePreset.THIRTY_MIN;
+      case 60:
+        return TimePreset.SIXTY_MIN;
+      case 0:
+        return TimePreset.NOT_APPLICABLE;
+      default:
+        return TimePreset.CUSTOM;
+    }
+  }
+
   /**
    * Create a new task
    */
@@ -23,6 +42,7 @@ export class TaskService {
         title: request.title,
         description: request.description,
         priority: request.priority ?? 1,
+        order_num: request.order ?? 0,
         time_estimate: request.timeEstimate,
         due_date: request.dueDate?.toISOString(),
         scheduled_date: request.scheduledDate?.toISOString(),
@@ -32,8 +52,6 @@ export class TaskService {
         parent_task_id: request.parentTaskId,
         task_list_id: request.taskListId,
       };
-
-      console.log('Creating task with request:', serializedRequest);
 
       const result = await invoke<Record<string, unknown>>('create_task', {
         request: serializedRequest,
@@ -220,6 +238,9 @@ export class TaskService {
       }
       if (request.status !== undefined) {
         serializedRequest.status = request.status;
+      }
+      if (request.order !== undefined) {
+        serializedRequest.order_num = request.order;
       }
       if (request.timeEstimate !== undefined) {
         serializedRequest.time_estimate = request.timeEstimate;
@@ -432,11 +453,15 @@ export class TaskService {
       description: (backendTask.description as string) || '',
       priority: backendTask.priority as number,
       status: backendTask.status as TaskStatus,
+      order: (backendTask.order_num as number) || 0,
       dependencies: this.parseJsonField(
         backendTask.dependencies as string | null,
         []
       ),
       timeEstimate: (backendTask.time_estimate as number) || 0,
+      timePreset: this.getTimePresetFromEstimate(
+        (backendTask.time_estimate as number) || 0
+      ),
       actualTime: (backendTask.actual_time as number) || 0,
       dueDate: backendTask.due_date
         ? new Date(backendTask.due_date as string)

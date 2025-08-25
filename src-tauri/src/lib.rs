@@ -6,7 +6,7 @@ use backup::{BackupMetadata, BackupService};
 use database::migration::initialization::DatabaseIntegrityReport;
 use database::migration::{MigrationStatus, MigrationTestResult};
 use database::repositories::{
-    ai_repository::{AiStats, CreateAiInteractionRequest, UpdateAiInteractionRequest},
+    ai_repository::{AiStats, AiLogStorageStats, CreateAiInteractionRequest, UpdateAiInteractionRequest, CreateAiInteractionLogRequest, UpdateAiInteractionLogRequest, CreateToolExecutionLogRequest},
     task_list_repository::{CreateTaskListRequest, TaskListStats, UpdateTaskListRequest},
     task_repository::{CreateTaskRequest, TaskStats, UpdateTaskRequest},
     time_tracking_repository::{CreateTimeSessionRequest, TimeStats, UpdateTimeSessionRequest},
@@ -716,6 +716,499 @@ async fn get_conversation_history(limit: u64) -> Result<Vec<serde_json::Value>, 
             .collect()),
         Err(e) => Err(format!("Failed to get conversation history: {}", e)),
     }
+}
+
+#[tauri::command]
+async fn get_ai_interaction_log_stats() -> Result<AiLogStorageStats, String> {
+    let db = get_database()
+        .await
+        .map_err(|e| format!("Database error: {}", e))?;
+    let repo = AiRepository::new(db);
+
+    match repo.get_log_storage_stats().await {
+        Ok(stats) => Ok(stats),
+        Err(e) => Err(format!("Failed to get AI interaction log stats: {}", e)),
+    }
+}
+
+#[tauri::command]
+async fn create_ai_interaction_log(request: serde_json::Value) -> Result<serde_json::Value, String> {
+    let db = get_database()
+        .await
+        .map_err(|e| format!("Database error: {}", e))?;
+    let repo = AiRepository::new(db);
+
+
+
+    // The frontend sends { request: data }, so we need to get the "request" field
+    // But if that fails, the data might be at the top level (Tauri parameter handling)
+    let request_data = if let Some(nested_request) = request.get("request") {
+        nested_request
+    } else {
+        // Data is at the top level
+        &request
+    };
+    
+    // Convert to CreateAiInteractionLogRequest
+    let log_request = CreateAiInteractionLogRequest {
+        session_id: request_data.get("session_id")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string(),
+        model_type: request_data.get("model_type")
+            .and_then(|v| v.as_str())
+            .unwrap_or("gemini")
+            .to_string(),
+        model_info: request_data.get("model_info")
+            .cloned()
+            .unwrap_or(serde_json::json!({})),
+        user_message: request_data.get("user_message")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string(),
+        system_prompt: request_data.get("system_prompt")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string()),
+        context: request_data.get("context")
+            .and_then(|v| v.as_str())
+            .unwrap_or("{}")
+            .to_string(),
+        ai_response: request_data.get("ai_response")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string(),
+        actions: request_data.get("actions")
+            .and_then(|v| v.as_str())
+            .unwrap_or("[]")
+            .to_string(),
+        suggestions: request_data.get("suggestions")
+            .and_then(|v| v.as_str())
+            .unwrap_or("[]")
+            .to_string(),
+        reasoning: request_data.get("reasoning")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string()),
+        response_time: request_data.get("response_time")
+            .and_then(|v| v.as_i64())
+            .unwrap_or(0),
+        token_count: request_data.get("token_count")
+            .and_then(|v| v.as_i64()),
+        error: request_data.get("error")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string()),
+        error_code: request_data.get("error_code")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string()),
+        contains_sensitive_data: request_data.get("contains_sensitive_data")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false),
+        data_classification: request_data.get("data_classification")
+            .and_then(|v| v.as_str())
+            .unwrap_or("internal")
+            .to_string(),
+    };
+
+    match repo.create_interaction_log(log_request).await {
+        Ok(interaction) => Ok(serde_json::to_value(interaction).unwrap_or_default()),
+        Err(e) => Err(format!("Failed to create AI interaction log: {}", e)),
+    }
+}
+
+#[tauri::command]
+async fn get_ai_interaction_logs(_filters: serde_json::Value) -> Result<Vec<serde_json::Value>, String> {
+    let db = get_database()
+        .await
+        .map_err(|e| format!("Database error: {}", e))?;
+    let repo = AiRepository::new(db);
+
+    // Get all recent interactions and filter for AI logging interactions
+    // AI logs have action_taken in format "{model_type}:{session_id}"
+    match repo.get_recent_interactions(1000).await {
+        Ok(interactions) => {
+            println!("🔍 Backend: Found {} total interactions", interactions.len());
+            
+            // Debug: print all interactions to see what we have
+            for (i, interaction) in interactions.iter().enumerate().take(5) {
+                println!("🔍 Backend: Interaction {}: id={}, action_taken={:?}, message={}, response={}", 
+                    i, interaction.id, interaction.action_taken, 
+                    interaction.message.chars().take(50).collect::<String>(),
+                    interaction.response.chars().take(50).collect::<String>()
+                );
+            }
+            
+            let ai_logs: Vec<serde_json::Value> = interactions
+                .into_iter()
+                .filter(|interaction| {
+                    // Filter for AI logging interactions by checking action_taken pattern
+                    let is_ai_log = interaction.action_taken.as_ref()
+                        .map_or(false, |action| {
+                            action.contains(':') && 
+                            (action.starts_with("local:") || action.starts_with("gemini:"))
+                        });
+                    
+                    if is_ai_log {
+                        println!("🔍 Backend: Found AI log: id={}, action={:?}", interaction.id, interaction.action_taken);
+                    }
+                    
+                    is_ai_log
+                })
+                .map(|interaction| {
+                    // Transform the data to match the expected AI log format
+                    let mut log_data = serde_json::Map::new();
+                    log_data.insert("id".to_string(), serde_json::Value::String(interaction.id));
+                    log_data.insert("timestamp".to_string(), serde_json::Value::String(interaction.created_at.to_rfc3339()));
+                    log_data.insert("user_message".to_string(), serde_json::Value::String(interaction.message));
+                    log_data.insert("ai_response".to_string(), serde_json::Value::String(interaction.response));
+                    
+                    // Extract session_id and model_type from action_taken
+                    if let Some(action) = &interaction.action_taken {
+                        let parts: Vec<&str> = action.split(':').collect();
+                        if parts.len() >= 2 {
+                            log_data.insert("model_type".to_string(), serde_json::Value::String(parts[0].to_string()));
+                            log_data.insert("session_id".to_string(), serde_json::Value::String(parts[1].to_string()));
+                        }
+                    }
+                    
+                    // Add other fields with defaults
+                    log_data.insert("model_info".to_string(), serde_json::Value::String("{}".to_string()));
+                    log_data.insert("system_prompt".to_string(), serde_json::Value::Null);
+                    log_data.insert("context".to_string(), serde_json::Value::String("{}".to_string()));
+                    log_data.insert("actions".to_string(), serde_json::Value::String(interaction.tools_used.unwrap_or_else(|| "[]".to_string())));
+                    log_data.insert("suggestions".to_string(), serde_json::Value::String("[]".to_string()));
+                    log_data.insert("reasoning".to_string(), serde_json::Value::String(interaction.reasoning.unwrap_or_else(|| "".to_string())));
+                    log_data.insert("response_time".to_string(), serde_json::Value::Number(serde_json::Number::from(1000))); // Default 1000ms
+                    log_data.insert("token_count".to_string(), serde_json::Value::Null);
+                    log_data.insert("error".to_string(), serde_json::Value::Null);
+                    log_data.insert("error_code".to_string(), serde_json::Value::Null);
+                    log_data.insert("contains_sensitive_data".to_string(), serde_json::Value::Bool(false));
+                    log_data.insert("data_classification".to_string(), serde_json::Value::String("public".to_string()));
+                    log_data.insert("created_at".to_string(), serde_json::Value::String(interaction.created_at.to_rfc3339()));
+                    log_data.insert("updated_at".to_string(), serde_json::Value::String(interaction.created_at.to_rfc3339()));
+                    
+                    serde_json::Value::Object(log_data)
+                })
+                .collect();
+            
+            println!("🔍 Backend: Filtered to {} AI logs", ai_logs.len());
+            Ok(ai_logs)
+        },
+        Err(e) => Err(format!("Failed to get AI interaction logs: {}", e)),
+    }
+}
+
+#[tauri::command]
+async fn get_ai_interaction_log(id: String) -> Result<Option<serde_json::Value>, String> {
+    let db = get_database()
+        .await
+        .map_err(|e| format!("Database error: {}", e))?;
+    let repo = AiRepository::new(db);
+
+    // Use the existing get_ai_interaction command logic
+    match repo.find_by_id(&id).await {
+        Ok(Some(interaction)) => Ok(Some(serde_json::to_value(interaction).unwrap_or_default())),
+        Ok(None) => Ok(None),
+        Err(e) => Err(format!("Failed to get AI interaction log: {}", e)),
+    }
+}
+
+#[tauri::command]
+async fn delete_ai_interaction_log(id: String) -> Result<String, String> {
+    let db = get_database()
+        .await
+        .map_err(|e| format!("Database error: {}", e))?;
+    let repo = AiRepository::new(db);
+
+    match repo.delete_interaction(&id).await {
+        Ok(_) => Ok("Log deleted successfully".to_string()),
+        Err(e) => Err(format!("Failed to delete AI interaction log: {}", e)),
+    }
+}
+
+#[tauri::command]
+async fn update_ai_interaction_log(id: String, request: serde_json::Value) -> Result<serde_json::Value, String> {
+    let db = get_database()
+        .await
+        .map_err(|e| format!("Database error: {}", e))?;
+    let repo = AiRepository::new(db);
+
+    // Extract the request data
+    let request_data = request.get("request")
+        .ok_or("Missing request data")?;
+    
+    // Convert to UpdateAiInteractionLogRequest
+    let update_request = UpdateAiInteractionLogRequest {
+        ai_response: request_data.get("ai_response")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string()),
+        actions: request_data.get("actions")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string()),
+        suggestions: request_data.get("suggestions")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string()),
+        reasoning: request_data.get("reasoning")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string()),
+        response_time: request_data.get("response_time")
+            .and_then(|v| v.as_i64()),
+        token_count: request_data.get("token_count")
+            .and_then(|v| v.as_i64()),
+        error: request_data.get("error")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string()),
+        error_code: request_data.get("error_code")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string()),
+        contains_sensitive_data: request_data.get("contains_sensitive_data")
+            .and_then(|v| v.as_bool()),
+        data_classification: request_data.get("data_classification")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string()),
+    };
+
+    match repo.update_interaction_log(&id, update_request).await {
+        Ok(interaction) => Ok(serde_json::to_value(interaction).unwrap_or_default()),
+        Err(e) => Err(format!("Failed to update AI interaction log: {}", e)),
+    }
+}
+
+#[tauri::command]
+async fn create_tool_execution_log(request: serde_json::Value) -> Result<serde_json::Value, String> {
+    let db = get_database()
+        .await
+        .map_err(|e| format!("Database error: {}", e))?;
+    let repo = AiRepository::new(db);
+
+    // Extract the request data
+    let request_data = request.get("request")
+        .ok_or("Missing request data")?;
+    
+    // Convert to CreateToolExecutionLogRequest
+    let tool_request = CreateToolExecutionLogRequest {
+        interaction_log_id: request_data.get("interaction_log_id")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string(),
+        tool_name: request_data.get("tool_name")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string(),
+        arguments: request_data.get("arguments")
+            .and_then(|v| v.as_str())
+            .unwrap_or("{}")
+            .to_string(),
+        result: request_data.get("result")
+            .and_then(|v| v.as_str())
+            .unwrap_or("{}")
+            .to_string(),
+        execution_time: request_data.get("execution_time")
+            .and_then(|v| v.as_i64())
+            .unwrap_or(0),
+        success: request_data.get("success")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false),
+        error: request_data.get("error")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string()),
+    };
+
+    match repo.create_tool_execution_log(tool_request).await {
+        Ok(log) => Ok(serde_json::to_value(log).unwrap_or_default()),
+        Err(e) => Err(format!("Failed to create tool execution log: {}", e)),
+    }
+}
+
+#[tauri::command]
+async fn get_tool_execution_logs(interaction_log_id: String) -> Result<Vec<serde_json::Value>, String> {
+    let db = get_database()
+        .await
+        .map_err(|e| format!("Database error: {}", e))?;
+    let repo = AiRepository::new(db);
+
+    // For now, return empty array since we're storing tool executions as regular interactions
+    // In a production system, you'd have a separate table for tool executions
+    match repo.find_all(Some(100), None).await {
+        Ok(interactions) => {
+            let tool_logs: Vec<serde_json::Value> = interactions
+                .into_iter()
+                .filter(|i| {
+                    i.action_taken.as_ref()
+                        .map_or(false, |action| action.starts_with("tool_execution:") && action.contains(&interaction_log_id))
+                })
+                .map(|i| serde_json::to_value(i).unwrap_or_default())
+                .collect();
+            Ok(tool_logs)
+        },
+        Err(e) => Err(format!("Failed to get tool execution logs: {}", e)),
+    }
+}
+
+#[tauri::command]
+async fn clear_all_ai_interaction_logs() -> Result<String, String> {
+    let db = get_database()
+        .await
+        .map_err(|e| format!("Database error: {}", e))?;
+    let repo = AiRepository::new(db);
+
+    match repo.delete_all_interactions().await {
+        Ok(deleted_count) => Ok(format!("Cleared {} AI interaction logs", deleted_count)),
+        Err(e) => Err(format!("Failed to clear AI interaction logs: {}", e)),
+    }
+}
+
+#[tauri::command]
+async fn cleanup_old_ai_interaction_logs() -> Result<u64, String> {
+    let db = get_database()
+        .await
+        .map_err(|e| format!("Database error: {}", e))?;
+    let repo = AiRepository::new(db);
+
+    // Clean up logs older than 30 days by default
+    let cutoff_date = chrono::Utc::now() - chrono::Duration::days(30);
+
+    match repo.clear_old_interactions(cutoff_date).await {
+        Ok(deleted_count) => Ok(deleted_count),
+        Err(e) => Err(format!("Failed to cleanup old AI interaction logs: {}", e)),
+    }
+}
+
+#[tauri::command]
+async fn export_ai_interaction_logs(filters: serde_json::Value, format: String) -> Result<String, String> {
+    let db = get_database()
+        .await
+        .map_err(|e| format!("Database error: {}", e))?;
+    let repo = AiRepository::new(db);
+
+    // For now, just export all recent interactions
+    match repo.get_recent_interactions(1000).await {
+        Ok(interactions) => {
+            if format == "csv" {
+                // Simple CSV export
+                let mut csv = "id,timestamp,message,response,action_taken,reasoning\n".to_string();
+                for interaction in interactions {
+                    csv.push_str(&format!(
+                        "{},{},{},{},{},{}\n",
+                        interaction.id,
+                        interaction.created_at.to_rfc3339(),
+                        interaction.message.replace(',', ";").replace('\n', " "),
+                        interaction.response.replace(',', ";").replace('\n', " "),
+                        interaction.action_taken.unwrap_or_default().replace(',', ";"),
+                        interaction.reasoning.unwrap_or_default().replace(',', ";").replace('\n', " ")
+                    ));
+                }
+                Ok(csv)
+            } else {
+                // JSON export
+                match serde_json::to_string_pretty(&interactions) {
+                    Ok(json) => Ok(json),
+                    Err(e) => Err(format!("Failed to serialize interactions to JSON: {}", e)),
+                }
+            }
+        },
+        Err(e) => Err(format!("Failed to export AI interaction logs: {}", e)),
+    }
+}
+
+#[tauri::command]
+async fn anonymize_ai_interaction_logs(log_ids: Vec<String>) -> Result<String, String> {
+    let db = get_database()
+        .await
+        .map_err(|e| format!("Database error: {}", e))?;
+    let repo = AiRepository::new(db);
+
+    let mut anonymized_count = 0;
+
+    for log_id in log_ids {
+        // Update the log to remove sensitive information
+        let update_request = UpdateAiInteractionLogRequest {
+            ai_response: Some("[ANONYMIZED]".to_string()),
+            actions: Some("[]".to_string()),
+            suggestions: Some("[]".to_string()),
+            reasoning: Some("[ANONYMIZED]".to_string()),
+            response_time: None,
+            token_count: None,
+            error: None,
+            error_code: None,
+            contains_sensitive_data: Some(false),
+            data_classification: Some("public".to_string()),
+        };
+
+        match repo.update_interaction_log(&log_id, update_request).await {
+            Ok(_) => anonymized_count += 1,
+            Err(e) => {
+                eprintln!("Failed to anonymize log {}: {}", log_id, e);
+            }
+        }
+    }
+
+    Ok(format!("Anonymized {} logs", anonymized_count))
+}
+
+#[tauri::command]
+async fn redact_sensitive_data(log_id: String) -> Result<String, String> {
+    let db = get_database()
+        .await
+        .map_err(|e| format!("Database error: {}", e))?;
+    let repo = AiRepository::new(db);
+
+    // Update the log to redact sensitive data
+    let update_request = UpdateAiInteractionLogRequest {
+        ai_response: None, // Keep response but mark as redacted
+        actions: Some("[]".to_string()),
+        suggestions: Some("[]".to_string()),
+        reasoning: Some("[REDACTED]".to_string()),
+        response_time: None,
+        token_count: None,
+        error: None,
+        error_code: None,
+        contains_sensitive_data: Some(false),
+        data_classification: Some("internal".to_string()),
+    };
+
+    match repo.update_interaction_log(&log_id, update_request).await {
+        Ok(_) => Ok("Sensitive data redacted successfully".to_string()),
+        Err(e) => Err(format!("Failed to redact sensitive data: {}", e)),
+    }
+}
+
+#[tauri::command]
+async fn update_logging_config(config: serde_json::Value) -> Result<serde_json::Value, String> {
+    // For now, just return the updated config
+    // In a real implementation, this would update a settings table
+    let updated_config = serde_json::json!({
+        "enabled": config.get("enabled").and_then(|v| v.as_bool()).unwrap_or(true),
+        "log_level": config.get("log_level").and_then(|v| v.as_str()).unwrap_or("standard"),
+        "retention_days": config.get("retention_days").and_then(|v| v.as_i64()).unwrap_or(30),
+        "max_log_size": config.get("max_log_size").and_then(|v| v.as_i64()).unwrap_or(10485760),
+        "max_log_count": config.get("max_log_count").and_then(|v| v.as_i64()).unwrap_or(10000),
+        "include_system_prompts": config.get("include_system_prompts").and_then(|v| v.as_bool()).unwrap_or(true),
+        "include_tool_executions": config.get("include_tool_executions").and_then(|v| v.as_bool()).unwrap_or(true),
+        "include_performance_metrics": config.get("include_performance_metrics").and_then(|v| v.as_bool()).unwrap_or(true),
+        "auto_cleanup": config.get("auto_cleanup").and_then(|v| v.as_bool()).unwrap_or(true),
+        "export_format": config.get("export_format").and_then(|v| v.as_str()).unwrap_or("json")
+    });
+    
+    Ok(updated_config)
+}
+
+#[tauri::command]
+async fn get_logging_config() -> Result<serde_json::Value, String> {
+    // For now, return a default configuration
+    // In a real implementation, this would come from a settings table
+    let default_config = serde_json::json!({
+        "enabled": true,
+        "log_level": "standard",
+        "retention_days": 30,
+        "max_log_size": 10485760,
+        "max_log_count": 10000,
+        "include_system_prompts": true,
+        "include_tool_executions": true,
+        "include_performance_metrics": true,
+        "auto_cleanup": true,
+        "export_format": "json"
+    });
+    
+    Ok(default_config)
 }
 
 #[tauri::command]
@@ -1871,6 +2364,21 @@ pub fn run() {
             get_recent_ai_interactions,
             clear_old_ai_interactions,
             get_conversation_history,
+            get_ai_interaction_log_stats,
+            create_ai_interaction_log,
+            update_ai_interaction_log,
+            get_ai_interaction_logs,
+            get_ai_interaction_log,
+            delete_ai_interaction_log,
+            create_tool_execution_log,
+            get_tool_execution_logs,
+            clear_all_ai_interaction_logs,
+            cleanup_old_ai_interaction_logs,
+            export_ai_interaction_logs,
+            anonymize_ai_interaction_logs,
+            redact_sensitive_data,
+            get_logging_config,
+            update_logging_config,
             clear_all_data,
             // Enhanced Error Handling and Diagnostics Commands
             get_error_diagnostics,

@@ -7,6 +7,7 @@ import {
   Play,
   Square,
   History,
+  FileText,
 } from 'lucide-react';
 import { useTimerContext } from '../../contexts/TimerContext';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -68,7 +69,7 @@ export const Header: React.FC<HeaderProps> = ({
   return (
     <header className='flex items-center justify-between px-4 sm:px-6 py-4 border-b border-divider bg-content1 shadow-sm'>
       <div className='flex items-center gap-2 sm:gap-3 min-w-0 flex-1'>
-        <AppLogo size={36} />
+        <AppLogo size={36} onClick={() => onViewChange('week')} />
 
         {/* Task List Dropdown */}
         <TaskListDropdown className='flex-shrink-0' />
@@ -163,6 +164,7 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Other Navigation Buttons */}
         {[
           { icon: BarChart3, label: t('nav.reports'), id: 'reports' },
+          { icon: FileText, label: t('nav.logs'), id: 'logs' },
           { icon: Settings, label: t('nav.settings'), id: 'settings' },
         ].map(({ icon: Icon, label, id }) => (
           <button

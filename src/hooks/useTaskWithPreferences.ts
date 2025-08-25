@@ -1,5 +1,5 @@
 import { useUserPreferences } from './useUserPreferences';
-import { Task, Priority, TaskStatus } from '../types';
+import { Task, Priority, TaskStatus, TimePreset } from '../types';
 
 export const useTaskWithPreferences = () => {
   const {
@@ -23,7 +23,9 @@ export const useTaskWithPreferences = () => {
       description: taskData.description || '',
       priority: taskData.priority ?? defaultPriority,
       status: taskData.status || TaskStatus.PENDING,
+      order: taskData.order || 0,
       dependencies: taskData.dependencies || [],
+      timePreset: taskData.timePreset || TimePreset.NOT_APPLICABLE,
       subtasks: taskData.subtasks || [],
       timeEstimate: taskData.timeEstimate || 0,
       actualTime: taskData.actualTime || 0,

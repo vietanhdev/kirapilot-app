@@ -16,9 +16,14 @@ import { useAI } from '../../contexts/AIContext';
 import { useTimerContext } from '../../contexts/TimerContext';
 import { useNavigation } from '../../contexts/NavigationContext';
 import { useSettings } from '../../contexts/SettingsContext';
+import { useLoggingStatus } from '../../contexts/LoggingStatusContext';
 import { AppContext, Priority } from '../../types';
 import { MarkdownRenderer, MessageSkeleton } from '../common';
-import { MessageActions, CollapsibleConversation } from './';
+import {
+  CollapsibleConversation,
+  LoggingStatusIndicator,
+  LoggingNotifications,
+} from './';
 import { useAutoScroll } from '../../hooks/useAutoScroll';
 import { useTranslation } from '../../hooks/useTranslation';
 
@@ -48,6 +53,8 @@ export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
   const { activeTask, activeTaskId, hasActiveTimer } = useTimerContext();
   const { navigateTo } = useNavigation();
   const { preferences } = useSettings();
+  const { recordCapture, recordCaptureError, isLoggingEnabled } =
+    useLoggingStatus();
 
   // Auto-scroll is now handled by the useAutoScroll hook
 
@@ -130,15 +137,31 @@ export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
     }
 
     const context = buildAppContext();
-    await sendMessage(message, context);
-    setMessage('');
 
-    // Re-focus input after sending message
-    setTimeout(() => {
-      if (inputRef.current && !inputRef.current.disabled) {
-        inputRef.current.focus();
+    try {
+      const response = await sendMessage(message, context);
+
+      // Record successful capture if logging is enabled
+      if (isLoggingEnabled && response) {
+        recordCapture();
       }
-    }, 100);
+
+      setMessage('');
+
+      // Re-focus input after sending message
+      setTimeout(() => {
+        if (inputRef.current && !inputRef.current.disabled) {
+          inputRef.current.focus();
+        }
+      }, 100);
+    } catch (error) {
+      // Record capture error if logging is enabled
+      if (isLoggingEnabled) {
+        recordCaptureError(
+          error instanceof Error ? error.message : 'Unknown error'
+        );
+      }
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -169,15 +192,6 @@ export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
         return 'default';
       default:
         return 'default';
-    }
-  };
-
-  const handleRegenerateResponse = async (conversationId: string) => {
-    // Find the conversation and resend the original message
-    const conversation = conversations.find(c => c.id === conversationId);
-    if (conversation) {
-      const context = buildAppContext();
-      await sendMessage(conversation.message, context);
     }
   };
 
@@ -224,6 +238,12 @@ export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
               </div>
             </div>
             <div className='flex items-center gap-2'>
+              <LoggingStatusIndicator
+                size='sm'
+                variant='detailed'
+                showOperations={true}
+                className='mr-1'
+              />
               <Button
                 isIconOnly
                 variant='light'
@@ -304,10 +324,6 @@ export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
                       {/* User Message */}
                       <div className='flex justify-end'>
                         <div className='flex items-start gap-2 max-w-[80%] group'>
-                          <MessageActions
-                            content={conversation.message}
-                            className='mt-1 mr-1'
-                          />
                           <div className='bg-primary-500 text-white px-3 py-2 rounded-lg text-sm flex-1'>
                             <MarkdownRenderer
                               content={conversation.message}
@@ -388,14 +404,6 @@ export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
                                 content={conversation.response}
                               />
                             </div>
-
-                            <MessageActions
-                              content={conversation.response}
-                              onRegenerate={() =>
-                                handleRegenerateResponse(conversation.id)
-                              }
-                              className='absolute -top-2 -right-2'
-                            />
                           </div>
                         </div>
                       </div>
@@ -433,10 +441,6 @@ export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
                               {/* User Message */}
                               <div className='flex justify-end'>
                                 <div className='flex items-start gap-2 max-w-[80%] group'>
-                                  <MessageActions
-                                    content={conversation.message}
-                                    className='mt-1 mr-1'
-                                  />
                                   <div className='bg-primary-500 text-white px-3 py-2 rounded-lg text-sm flex-1'>
                                     <MarkdownRenderer
                                       content={conversation.message}
@@ -467,15 +471,6 @@ export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
                                         content={conversation.response}
                                       />
                                     </div>
-                                    <MessageActions
-                                      content={conversation.response}
-                                      onRegenerate={() =>
-                                        handleRegenerateResponse(
-                                          conversation.id
-                                        )
-                                      }
-                                      className='absolute -top-2 -right-2'
-                                    />
                                   </div>
                                 </div>
                               </div>
@@ -500,10 +495,6 @@ export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
                         {/* User Message */}
                         <div className='flex justify-end'>
                           <div className='flex items-start gap-2 max-w-[80%] group'>
-                            <MessageActions
-                              content={conversation.message}
-                              className='mt-1 mr-1'
-                            />
                             <div className='bg-primary-500 text-white px-3 py-2 rounded-lg text-sm flex-1'>
                               <MarkdownRenderer
                                 content={conversation.message}
@@ -586,14 +577,6 @@ export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
                                   content={conversation.response}
                                 />
                               </div>
-
-                              <MessageActions
-                                content={conversation.response}
-                                onRegenerate={() =>
-                                  handleRegenerateResponse(conversation.id)
-                                }
-                                className='absolute -top-2 -right-2'
-                              />
                             </div>
                           </div>
                         </div>
@@ -705,6 +688,9 @@ export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
           </div>
         </CardBody>
       </Card>
+
+      {/* Logging notifications */}
+      <LoggingNotifications position='bottom-right' />
     </>
   );
 }

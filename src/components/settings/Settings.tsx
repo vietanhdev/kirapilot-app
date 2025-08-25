@@ -28,6 +28,7 @@ import { useSettings } from '../../contexts/SettingsContext';
 import { useTranslation } from '../../hooks/useTranslation';
 import { languages } from '../../i18n';
 import { DataManagement } from './DataManagement';
+import { LoggingSettings } from './LoggingSettings';
 import { useAI } from '../../contexts/AIContext';
 import {
   LocalAIService,
@@ -786,6 +787,10 @@ export const Settings: React.FC<SettingsProps> = ({
                     </div>
                   </div>
                 )}
+
+                {/* AI Interaction Logging */}
+                <Divider className='my-6' />
+                <LoggingSettings />
               </div>
             </Tab>
 

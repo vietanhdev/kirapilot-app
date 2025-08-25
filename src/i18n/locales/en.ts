@@ -27,6 +27,7 @@ export const en = {
   'nav.week': 'Week',
   'nav.day': 'Day',
   'nav.reports': 'Reports',
+  'nav.logs': 'Logs',
   'nav.settings': 'Settings',
 
   // Settings
@@ -94,7 +95,168 @@ export const en = {
   'settings.ai.threadPlural': 'threads',
   'settings.ai.threadCountDescription':
     'Number of CPU threads to use for local model inference',
+
+  // Settings - AI Logging
+  'settings.ai.logging.title': 'AI Interaction Logging',
+  'settings.ai.logging.enabled': 'Enable Logging',
+  'settings.ai.logging.enabledDescription':
+    'Log all AI interactions for debugging and analysis',
+  'settings.ai.logging.statusLoading': 'Loading...',
+  'settings.ai.logging.statusActive': 'Active',
+  'settings.ai.logging.statusDisabled': 'Disabled',
+  'settings.ai.logging.statusError': 'Error',
+  'settings.ai.logging.configLoadError': 'Failed to load logging configuration',
+
+  'settings.ai.logging.logLevel': 'Log Detail Level',
+  'settings.ai.logging.logLevel.minimal': 'Minimal',
+  'settings.ai.logging.logLevel.standard': 'Standard',
+  'settings.ai.logging.logLevel.detailed': 'Detailed',
+  'settings.ai.logging.logLevel.minimalDescription':
+    'Log only basic request/response data',
+  'settings.ai.logging.logLevel.standardDescription':
+    'Log requests, responses, and performance metrics',
+  'settings.ai.logging.logLevel.detailedDescription':
+    'Log everything including system prompts and tool executions',
+
+  'settings.ai.logging.storageManagement': 'Storage Management',
+  'settings.ai.logging.storageUsage': 'Storage Usage',
+  'settings.ai.logging.totalLogs': 'Total Logs',
+  'settings.ai.logging.averageResponseTime': 'Avg Response Time',
+  'settings.ai.logging.oldestLog': 'Oldest Log',
+  'settings.ai.logging.newestLog': 'Newest Log',
+
+  'settings.ai.logging.retentionPeriod': 'Log Retention Period',
+  'settings.ai.logging.retentionDescription':
+    'Automatically delete logs older than this period',
+  'settings.ai.logging.retention.7days': '7 days',
+  'settings.ai.logging.retention.14days': '14 days',
+  'settings.ai.logging.retention.30days': '30 days',
+  'settings.ai.logging.retention.60days': '60 days',
+  'settings.ai.logging.retention.90days': '90 days',
+  'settings.ai.logging.retention.1year': '1 year',
+
+  'settings.ai.logging.autoCleanup': 'Automatic Cleanup',
+  'settings.ai.logging.autoCleanupDescription':
+    'Automatically delete old logs based on retention period',
+
+  'settings.ai.logging.actions': 'Actions',
+  'settings.ai.logging.exportLogs': 'Export Logs',
+  'settings.ai.logging.clearAllLogs': 'Clear All Logs',
+  'settings.ai.logging.exportFormat': 'Export Format',
+
+  // Export Dialog
+  'settings.ai.logging.export.title': 'Export AI Interaction Logs',
+  'settings.ai.logging.export.filters': 'Export Filters',
+  'settings.ai.logging.export.dateRange': 'Date Range',
+  'settings.ai.logging.export.startDate': 'Start date',
+  'settings.ai.logging.export.endDate': 'End date',
+  'settings.ai.logging.export.modelType': 'AI Service',
+  'settings.ai.logging.export.allModels': 'All Services',
+  'settings.ai.logging.export.localModel': 'Local AI',
+  'settings.ai.logging.export.geminiModel': 'Gemini',
+  'settings.ai.logging.export.errorFilter': 'Error Filter',
+  'settings.ai.logging.export.allLogs': 'All Logs',
+  'settings.ai.logging.export.onlyErrors': 'Only Errors',
+  'settings.ai.logging.export.onlySuccess': 'Only Successful',
+  'settings.ai.logging.export.toolCallsFilter': 'Tool Calls Filter',
+  'settings.ai.logging.export.withToolCalls': 'With Tool Calls',
+  'settings.ai.logging.export.withoutToolCalls': 'Without Tool Calls',
+  'settings.ai.logging.export.format': 'Export Format',
+  'settings.ai.logging.export.jsonDescription':
+    'Complete data with full structure and metadata',
+  'settings.ai.logging.export.csvDescription':
+    'Tabular format suitable for spreadsheet analysis',
+  'settings.ai.logging.export.preview': 'Export Preview',
+  'settings.ai.logging.export.totalLogs': 'Total Logs',
+  'settings.ai.logging.export.estimatedSize': 'Estimated Size',
+  'settings.ai.logging.export.modelBreakdown': 'Model Breakdown',
+  'settings.ai.logging.export.noData': 'No data in range',
+  'settings.ai.logging.export.noPreview': 'No data to preview',
+  'settings.ai.logging.export.privacyWarning': 'Privacy Warning',
+  'settings.ai.logging.export.privacyWarningDescription':
+    'This export contains logs marked as sensitive data. Please handle with care and ensure compliance with your privacy policies.',
+  'settings.ai.logging.export.export': 'Export',
+  'settings.ai.logging.export.exporting': 'Exporting...',
+  'settings.ai.logging.export.preparingData': 'Preparing export data...',
+  'settings.ai.logging.export.downloadStarting': 'Download starting...',
+  'settings.ai.logging.export.success':
+    'Export completed successfully: {filename}',
+  'settings.ai.logging.export.privacyOptions': 'Privacy & Data Protection',
+  'settings.ai.logging.export.includeSensitiveData': 'Include sensitive data',
+  'settings.ai.logging.export.includeSensitiveDataDescription':
+    'Export logs containing personal information, API keys, or confidential data',
+  'settings.ai.logging.export.anonymizeData': 'Anonymize personal information',
+  'settings.ai.logging.export.anonymizeDataDescription':
+    'Replace names, emails, and other identifying information with generic placeholders',
+  'settings.ai.logging.export.privacyWarningTitle': 'Privacy Warning',
+  'settings.ai.logging.export.privacyWarningMessage':
+    'This export may contain sensitive personal information. Ensure you handle the exported data securely and in compliance with privacy regulations.',
+
+  'settings.ai.logging.clearLogsConfirmTitle': 'Clear All Logs',
+  'settings.ai.logging.clearLogsConfirmMessage':
+    'This will permanently delete all AI interaction logs. This action cannot be undone.',
+  'settings.ai.logging.clearLogsConfirm': 'Clear Logs',
+
+  'settings.ai.logging.advancedSettings': 'Advanced Settings',
+
+  // AI Logging Status Indicators
+  'ai.logging.statusCapturing': 'Capturing...',
+  'ai.logging.justNow': 'Just now',
+  'ai.logging.minutesAgo': '{count} min ago',
+  'ai.logging.hoursAgo': '{count}h ago',
+  'ai.logging.lastCapture': 'Last capture',
+  'ai.logging.activeOperations': 'Active Operations',
+  'ai.logging.recentOperations': 'Recent Operations',
+  'ai.logging.operationCapture': 'Capturing interaction',
+  'ai.logging.operationExport': 'Exporting logs',
+  'ai.logging.operationClear': 'Clearing logs',
+  'ai.logging.operationCleanup': 'Cleaning up old logs',
+  'ai.logging.disabledMessage':
+    'AI interaction logging is disabled. Enable it in Settings to track conversations.',
+  'ai.logging.captureSuccess': 'Interaction logged successfully',
+  'ai.logging.captureError': 'Failed to log interaction: {error}',
+  'ai.logging.troubleshooting': 'Troubleshooting',
+  'ai.logging.troubleshootingTips':
+    'Try refreshing the page or check your storage space.',
+  'settings.ai.logging.includeSystemPrompts': 'Include System Prompts',
+  'settings.ai.logging.includeSystemPromptsDescription':
+    'Log system prompts and context information',
+  'settings.ai.logging.includeToolExecutions': 'Include Tool Executions',
+  'settings.ai.logging.includeToolExecutionsDescription':
+    'Log all tool calls and their results',
+  'settings.ai.logging.includePerformanceMetrics':
+    'Include Performance Metrics',
+  'settings.ai.logging.includePerformanceMetricsDescription':
+    'Log response times and token counts',
+
+  // Log Retention and Cleanup
+  'settings.ai.logging.maxLogCount': 'Maximum Log Count',
+  'settings.ai.logging.maxLogCountDescription':
+    'Maximum number of logs to keep before cleanup',
+  'settings.ai.logging.maxCount.1000': '1,000 logs',
+  'settings.ai.logging.maxCount.5000': '5,000 logs',
+  'settings.ai.logging.maxCount.10000': '10,000 logs',
+  'settings.ai.logging.maxCount.25000': '25,000 logs',
+  'settings.ai.logging.maxCount.50000': '50,000 logs',
+
+  'settings.ai.logging.storageWarnings': 'Storage Warnings',
+  'settings.ai.logging.warning.age': 'Log Age Warning',
+  'settings.ai.logging.warning.count': 'Log Count Warning',
+  'settings.ai.logging.warning.size': 'Storage Size Warning',
+
+  'settings.ai.logging.manualCleanup': 'Manual Cleanup',
+  'settings.ai.logging.manualCleanupDescription':
+    'Run cleanup now to remove old logs based on retention policies',
+  'settings.ai.logging.runCleanup': 'Run Cleanup',
+  'settings.ai.logging.cleanupRunning': 'Running...',
+  'settings.ai.logging.cleanupProgress': 'Cleanup Progress',
+  'settings.ai.logging.deletedLogs': 'Deleted Logs',
+  'settings.ai.logging.freedSpace': 'Freed Space',
+  'settings.ai.logging.cleanup.success':
+    'Cleanup completed: {deletedCount} logs deleted, {freedSpace} freed',
+
   'common.refresh': 'Refresh',
+  'common.dismiss': 'Dismiss',
 
   // Settings - Time Tracking
   'settings.time': 'Time Tracking',
@@ -217,6 +379,15 @@ export const en = {
   'tasks.expandEditor': 'Expand editor',
   'tasks.collapseEditor': 'Collapse editor',
 
+  // Task Sorting
+  'tasks.sort.title': 'Title',
+  'tasks.sort.priority': 'Priority',
+  'tasks.sort.dueDate': 'Due Date',
+  'tasks.sort.createdAt': 'Created',
+  'tasks.sort.updatedAt': 'Updated',
+  'tasks.sort.ascending': 'Sort ascending',
+  'tasks.sort.descending': 'Sort descending',
+
   // Timer
   'timer.start': 'Start',
   'timer.pause': 'Pause',
@@ -324,15 +495,26 @@ export const en = {
   'task.modal.label.description': 'Description',
   'task.modal.label.priority': 'Priority',
   'task.modal.label.timeEstimate': 'Time (min)',
+  'task.modal.label.timePreset': 'Time Estimate',
+  'task.modal.label.customTime': 'Custom Time (minutes)',
   'task.modal.label.dueDate': 'Due Date',
   'task.modal.label.scheduled': 'Scheduled',
   'task.modal.placeholder.priority': 'Select priority',
   'task.modal.placeholder.timeEstimate': '60',
+  'task.modal.placeholder.timePreset': 'Select time estimate',
+  'task.modal.placeholder.customTime': 'Enter minutes',
   'task.modal.placeholder.tag': 'Add tag...',
   'task.modal.label.taskList': 'Task List',
   'task.modal.placeholder.taskList': 'Select task list',
   'task.modal.button.saveChanges': 'Save Changes',
   'task.modal.button.createTask': 'Create Task',
+
+  // Time Presets
+  'timePreset.fifteenMin': '15 min',
+  'timePreset.thirtyMin': '30 min',
+  'timePreset.sixtyMin': '60 min',
+  'timePreset.custom': 'Custom',
+  'timePreset.notApplicable': 'N/A',
 
   // Settings - Additional
   'settings.appearance': 'Appearance',
@@ -644,6 +826,12 @@ export const en = {
   'taskService.error.searchFailed': 'Failed to search tasks',
   'taskService.error.getStatisticsFailed': 'Failed to get statistics',
 
+  // Log Storage Service Error Messages
+  'logStorageService.error.getStatsFailed':
+    'Failed to get log storage statistics',
+  'logStorageService.error.getConfigFailed':
+    'Failed to get logging configuration',
+
   // Focus Service Error Messages
   'focusService.error.notImplemented':
     'Focus sessions not yet implemented in SeaORM backend',
@@ -778,4 +966,80 @@ export const en = {
   'common.richTextEditor.undo': 'Undo',
   'common.richTextEditor.redo': 'Redo',
   'common.markdownRenderer.code': 'code',
+
+  // AI Log Viewer
+  'logViewer.title': 'AI Interaction Logs',
+  'logViewer.totalLogs': 'total logs',
+  'logViewer.refresh': 'Refresh',
+  'logViewer.filters': 'Filters',
+  'logViewer.search.placeholder': 'Search logs...',
+  'logViewer.filters.clearAll': 'Clear All',
+  'logViewer.filters.dateRange': 'Date Range',
+  'logViewer.filters.startDate': 'Start date',
+  'logViewer.filters.endDate': 'End date',
+  'logViewer.filters.aiService': 'AI Service',
+  'logViewer.filters.allServices': 'All Services',
+  'logViewer.filters.localAI': 'Local AI',
+  'logViewer.filters.gemini': 'Gemini',
+  'logViewer.filters.interactionType': 'Interaction Type',
+  'logViewer.filters.allInteractions': 'All Interactions',
+  'logViewer.filters.errorsOnly': 'Errors Only',
+  'logViewer.filters.withToolCalls': 'With Tool Calls',
+  'logViewer.noLogs': 'No logs found',
+  'logViewer.noLogsDescription':
+    'Try adjusting your filters or check if logging is enabled',
+  'logViewer.loadMore': 'Load More',
+  'logViewer.error': 'Error',
+  'logViewer.toolCalls': 'tool calls',
+  'logViewer.toolCall': 'tool call',
+  'logViewer.tokens': 'tokens',
+
+  // Log Detail View
+  'logDetail.basicInfo': 'Basic Information',
+  'logDetail.sessionId': 'Session ID',
+  'logDetail.modelInfo': 'Model Info',
+  'logDetail.modelName': 'Name',
+  'logDetail.modelVersion': 'Version',
+  'logDetail.modelProvider': 'Provider',
+  'logDetail.responseTime': 'Response Time',
+  'logDetail.tokenCount': 'Token Count',
+  'logDetail.conversation': 'Conversation',
+  'logDetail.userMessage': 'User Message',
+  'logDetail.systemPrompt': 'System Prompt',
+  'logDetail.aiResponse': 'AI Response',
+  'logDetail.aiReasoning': 'AI Reasoning',
+  'logDetail.actionsAndSuggestions': 'AI Actions & Suggestions',
+  'logDetail.actions': 'Actions',
+  'logDetail.suggestions': 'Suggestions',
+  'logDetail.toolExecutions': 'Tool Executions',
+  'logDetail.toolArguments': 'Arguments',
+  'logDetail.toolResult': 'Result',
+  'logDetail.toolError': 'Error',
+  'logDetail.contextInfo': 'Context Information',
+  'logDetail.errorInfo': 'Error Information',
+  'logDetail.errorCode': 'Error Code',
+  'logDetail.errorMessage': 'Error Message',
+  'logDetail.privacyInfo': 'Privacy Information',
+  'logDetail.containsSensitiveData': 'This log contains sensitive data',
+  'logDetail.classification': 'Classification',
+  'logDetail.showSensitiveData': 'Show Sensitive Data',
+  'logDetail.hideSensitiveData': 'Hide Sensitive Data',
+  'logDetail.redactData': 'Redact Data',
+  'logDetail.metadata': 'Metadata',
+  'logDetail.createdAt': 'Created At',
+  'logDetail.updatedAt': 'Updated At',
+  'logDetail.export': 'Export',
+  'logDetail.delete': 'Delete',
+  'logDetail.close': 'Close',
+
+  // Log Viewer Notifications
+  'logViewer.notifications.loadError': 'Failed to load AI interaction logs',
+  'logViewer.notifications.loadDetailsError': 'Failed to load log details',
+  'logViewer.notifications.deleteSuccess': 'Log deleted successfully',
+  'logViewer.notifications.deleteError': 'Failed to delete log',
+  'logViewer.notifications.exportSuccess': 'Log exported successfully',
+  'logViewer.notifications.exportError': 'Failed to export log',
+  'logViewer.notifications.redactSuccess':
+    'Sensitive data redacted successfully',
+  'logViewer.notifications.redactError': 'Failed to redact sensitive data',
 };

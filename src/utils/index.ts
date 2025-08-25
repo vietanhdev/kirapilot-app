@@ -108,3 +108,6 @@ export function debounce<T extends (...args: unknown[]) => unknown>(
     timeout = setTimeout(() => func(...args), wait);
   };
 }
+
+// Export drag placeholder utilities
+export * from './dragPlaceholderUtils';

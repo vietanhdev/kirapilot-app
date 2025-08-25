@@ -5,7 +5,7 @@
 
 import { TaskListService } from '../../services/database/repositories/TaskListService';
 import { TaskService } from '../../services/database/repositories/TaskService';
-import { TaskList, Task, TaskStatus, Priority } from '../../types';
+import { TaskList, Task, TaskStatus, Priority, TimePreset } from '../../types';
 import { invoke } from '@tauri-apps/api/core';
 
 const mockInvoke = invoke as jest.MockedFunction<typeof invoke>;
@@ -68,6 +68,8 @@ describe('Task List Complete Workflow Integration', () => {
         description: 'A test task',
         status: TaskStatus.PENDING,
         priority: Priority.MEDIUM,
+        order: 0,
+        timePreset: TimePreset.SIXTY_MIN,
         timeEstimate: 60,
         actualTime: 0,
         dependencies: [],
@@ -157,6 +159,8 @@ describe('Task List Complete Workflow Integration', () => {
           description: '',
           status: TaskStatus.PENDING,
           priority: Priority.MEDIUM,
+          order: 0,
+          timePreset: TimePreset.SIXTY_MIN,
           timeEstimate: 60,
           actualTime: 0,
           dependencies: [],
@@ -172,6 +176,8 @@ describe('Task List Complete Workflow Integration', () => {
           description: '',
           status: TaskStatus.COMPLETED,
           priority: Priority.HIGH,
+          order: 1,
+          timePreset: TimePreset.THIRTY_MIN,
           timeEstimate: 30,
           actualTime: 25,
           dependencies: [],

@@ -16,6 +16,7 @@ import {
   TaskStatus,
   Priority,
   DistractionLevel,
+  TimePreset,
 } from '../../types';
 import { MockDatabaseConfig, AppTestState } from '../setup/testUtils';
 
@@ -193,7 +194,9 @@ export class MockDatabase {
       description: taskData.description || '',
       priority: taskData.priority || Priority.MEDIUM,
       status: TaskStatus.PENDING,
+      order: taskData.order || 0,
       dependencies: taskData.dependencies || [],
+      timePreset: taskData.timePreset || TimePreset.NOT_APPLICABLE,
       timeEstimate: taskData.timeEstimate || 0,
       actualTime: 0,
       dueDate: taskData.dueDate,

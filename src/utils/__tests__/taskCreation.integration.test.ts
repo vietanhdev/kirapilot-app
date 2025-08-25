@@ -70,6 +70,8 @@ describe('Task Creation Integration Test', () => {
         dependencies: [],
         project_id: undefined,
         parent_task_id: undefined,
+        order_num: 0,
+        task_list_id: undefined,
       },
     });
 
@@ -130,6 +132,8 @@ describe('Task Creation Integration Test', () => {
         dependencies: [],
         project_id: undefined,
         parent_task_id: undefined,
+        order_num: 0,
+        task_list_id: undefined,
       },
     });
 
@@ -216,6 +220,9 @@ describe('Task Creation Integration Test', () => {
         dependencies: [],
         project_id: undefined,
         parent_task_id: undefined,
+        description: undefined,
+        order_num: 0,
+        task_list_id: undefined,
       },
     });
   });

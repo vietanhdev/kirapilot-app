@@ -101,7 +101,33 @@ export const ModelSelectionCard: React.FC<ModelSelectionCardProps> = ({
       // Update preferences first
       await updateNestedPreference('aiSettings', 'modelType', modelType);
 
-      // Switch model in the manager
+      // If switching to local model, start auto-loading immediately
+      if (modelType === 'local') {
+        // Start auto-loading in background (non-blocking)
+        const autoLoadPromise = modelManager.autoLoadLocalModel({
+          type: 'local',
+          options: preferences.aiSettings.localModelConfig,
+        });
+
+        // Don't wait for auto-loading to complete, but show loading state
+        // The user will see the model initializing in the background
+        autoLoadPromise.catch(error => {
+          console.warn(
+            'Auto-loading failed, will initialize on demand:',
+            error
+          );
+        });
+
+        // Update the UI immediately to show we're switching
+        setIsLoading(false);
+
+        // Reinitialize AI context to pick up the preference change
+        await reinitializeAI();
+
+        return;
+      }
+
+      // For Gemini or other models, switch normally
       await modelManager.switchModel(modelType, {
         type: modelType,
         apiKey: preferences.aiSettings.geminiApiKey,

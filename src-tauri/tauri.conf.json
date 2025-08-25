@@ -65,7 +65,7 @@
       "webviewInstallMode": {
         "type": "embedBootstrapper"
       },
-      "allowDowngrades": false,
+      "allowDowngrades": true,
       "nsis": {
         "installerIcon": "icons/icon.ico",
         "installMode": "perMachine",

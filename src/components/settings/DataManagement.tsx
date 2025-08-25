@@ -86,7 +86,6 @@ export const DataManagement: React.FC<DataManagementProps> = ({
 
   // Clear Database function
   const handleClearDatabase = async () => {
-    console.log('handleClearDatabase called - proceeding with data clearing');
     setIsClearingData(true);
     setShowFinalConfirmation(false);
 

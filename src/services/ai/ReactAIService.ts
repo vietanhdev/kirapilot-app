@@ -31,6 +31,10 @@ import {
   FormattedToolResult,
   getToolResultFormatter,
 } from './ToolResultFormatter';
+import {
+  LoggingInterceptor,
+  getLoggingInterceptor,
+} from './LoggingInterceptor';
 
 // Internal types for AI service
 interface ToolCall {
@@ -169,6 +173,7 @@ function ensureConfiguration(
       },
       theme: 'auto',
       language: 'en',
+      dateFormat: 'DD/MM/YYYY' as const,
     },
   };
 
@@ -257,12 +262,21 @@ export class ReactAIService implements AIServiceInterface {
   private toolExecutionEngine: ToolExecutionEngine;
   private resultFormatter: ToolResultFormatter;
   private translationFunction: TranslationFunction | null = null;
+  private loggingInterceptor: LoggingInterceptor | null = null;
 
   constructor(apiKey?: string, translationFunction?: TranslationFunction) {
     this.apiKey = apiKey || this.getEnvironmentApiKey() || null;
     this.translationFunction = translationFunction || null;
     this.toolExecutionEngine = getToolExecutionEngine();
     this.resultFormatter = getToolResultFormatter();
+
+    // Initialize logging interceptor if available
+    try {
+      this.loggingInterceptor = getLoggingInterceptor();
+    } catch {
+      // Logging interceptor not initialized yet, will be set later
+      this.loggingInterceptor = null;
+    }
 
     // Set translation function if provided
     if (this.translationFunction) {
@@ -305,6 +319,9 @@ export class ReactAIService implements AIServiceInterface {
     message: string,
     context: AppContext
   ): Promise<AIResponse> {
+    const startTime = Date.now();
+    let requestId: string | null = null;
+
     try {
       if (!this.apiKey) {
         const errorMessage = this.translationFunction
@@ -313,6 +330,19 @@ export class ReactAIService implements AIServiceInterface {
             )
           : 'AI model not initialized. Please provide a valid API key.';
         throw new Error(errorMessage);
+      }
+
+      // Intercept request for logging
+      if (this.loggingInterceptor) {
+        try {
+          requestId = await this.loggingInterceptor.interceptRequest(
+            this,
+            message,
+            context
+          );
+        } catch (error) {
+          console.warn('Failed to intercept request for logging:', error);
+        }
       }
 
       // Prepare the input for the graph
@@ -420,15 +450,52 @@ export class ReactAIService implements AIServiceInterface {
       // Generate suggestions
       const suggestions = await this.generateSuggestions(context);
 
-      return {
+      const response: AIResponse = {
         message: responseMessage || "I've processed your request.",
         actions,
         suggestions,
         context,
         reasoning: this.extractReasoning(responseMessage),
       };
+
+      // Intercept response for logging
+      if (this.loggingInterceptor && requestId) {
+        try {
+          const responseTime = Date.now() - startTime;
+          await this.loggingInterceptor.interceptResponse(requestId, response, {
+            responseTime,
+            tokenCount: undefined, // Token count not available from LangGraph
+            modelInfo: this.getModelInfo(),
+            sessionId: this.loggingInterceptor.getCurrentSessionId(),
+            timestamp: new Date(),
+          });
+        } catch (error) {
+          console.warn('Failed to intercept response for logging:', error);
+        }
+      }
+
+      return response;
     } catch (error) {
       console.error('ReAct AI Service Error:', error);
+
+      // Intercept error for logging
+      if (this.loggingInterceptor && requestId) {
+        try {
+          await this.loggingInterceptor.interceptError(
+            requestId,
+            error as Error,
+            {
+              message,
+              context,
+              sessionId: this.loggingInterceptor.getCurrentSessionId(),
+              timestamp: new Date(startTime),
+              modelInfo: this.getModelInfo(),
+            }
+          );
+        } catch (logError) {
+          console.warn('Failed to intercept error for logging:', logError);
+        }
+      }
 
       // Throw a ModelProcessingError for better error handling by ModelManager
       throw new ModelProcessingError(
@@ -559,6 +626,13 @@ export class ReactAIService implements AIServiceInterface {
   setTranslationFunction(translationFunction: TranslationFunction): void {
     this.translationFunction = translationFunction;
     this.toolExecutionEngine.setTranslationFunction(translationFunction);
+  }
+
+  /**
+   * Set logging interceptor for AI interaction logging
+   */
+  setLoggingInterceptor(interceptor: LoggingInterceptor): void {
+    this.loggingInterceptor = interceptor;
   }
 
   /**

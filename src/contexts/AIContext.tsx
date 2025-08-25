@@ -12,7 +12,12 @@ import {
   ModelConfig,
 } from '../services/ai/ModelManager';
 import { AIServiceInterface } from '../services/ai/AIServiceInterface';
+import { LogRetentionManager } from '../services/ai/LogRetentionManager';
+import { LogStorageService } from '../services/database/repositories/LogStorageService';
+import { LoggingConfigService } from '../services/database/repositories/LoggingConfigService';
+import { initializeLoggingInterceptor } from '../services/ai/LoggingInterceptor';
 import { useTranslation } from '../hooks/useTranslation';
+import { useLoggingStatus } from './LoggingStatusContext';
 import {
   AIResponse,
   AISuggestion,
@@ -74,6 +79,7 @@ const AIContext = createContext<AIContextType | undefined>(undefined);
 
 export function AIProvider({ children }: AIProviderProps) {
   const { t } = useTranslation();
+  const { recordCapture, recordCaptureError } = useLoggingStatus();
   const [modelManager, setModelManager] = useState<ModelManager | null>(null);
   const [aiService, setAiService] = useState<AIServiceInterface | null>(null);
   const [currentModelType, setCurrentModelType] = useState<ModelType>('gemini');
@@ -82,6 +88,8 @@ export function AIProvider({ children }: AIProviderProps) {
   const [error, setError] = useState<string | null>(null);
   const [conversations, setConversations] = useState<AIConversation[]>([]);
   const [suggestions, setSuggestions] = useState<AISuggestion[]>([]);
+  const [retentionManager, setRetentionManager] =
+    useState<LogRetentionManager | null>(null);
 
   // Get AI preferences - we'll use a ref to avoid circular dependencies during initialization
   const getAIPreferences = () => {
@@ -157,6 +165,36 @@ export function AIProvider({ children }: AIProviderProps) {
     };
   }, []); // Remove t dependency to prevent infinite re-initialization
 
+  // Periodic check for auto-loading completion
+  useEffect(() => {
+    if (!modelManager) {
+      return;
+    }
+
+    const checkAutoLoadingStatus = () => {
+      const status = modelManager.getModelStatus();
+
+      // If we were showing "initializing" and now the service is ready, update the state
+      if (
+        status.isReady &&
+        !isInitialized &&
+        error === 'Local model is initializing...'
+      ) {
+        setIsInitialized(true);
+        setError(null);
+
+        // Update the service reference
+        const service = modelManager.getCurrentService();
+        setAiService(service);
+      }
+    };
+
+    // Check every 2 seconds for auto-loading completion
+    const interval = setInterval(checkAutoLoadingStatus, 2000);
+
+    return () => clearInterval(interval);
+  }, [modelManager, isInitialized, error]);
+
   // Separate effect to update translation function without re-initializing
   useEffect(() => {
     if (modelManager && t) {
@@ -191,13 +229,85 @@ export function AIProvider({ children }: AIProviderProps) {
           type: modelType,
           apiKey: apiKey || undefined,
         };
-        await manager.switchModel(modelType, config);
+
+        // If switching to local model, use auto-loading for better UX
+        if (modelType === 'local') {
+          // Start auto-loading immediately (non-blocking)
+          manager.autoLoadLocalModel(config).catch(error => {
+            console.warn('Auto-loading local model failed:', error);
+          });
+
+          // Try to switch to local model, but don't block if it's still initializing
+          try {
+            await manager.switchModel(modelType, config);
+          } catch (localErr) {
+            // If local model isn't ready yet, that's okay - it's loading in background
+            if (
+              localErr instanceof Error &&
+              localErr.message.includes('not initialized')
+            ) {
+              // Set up the service reference even if not fully ready
+              const service = manager.getCurrentService();
+              setAiService(service);
+              setCurrentModelType(manager.getCurrentModelType());
+              setIsInitialized(false); // Not ready yet, but will be
+              setError('Local model is initializing...');
+              return;
+            }
+            throw localErr; // Re-throw other errors
+          }
+        } else {
+          await manager.switchModel(modelType, config);
+        }
 
         const service = manager.getCurrentService();
         setAiService(service);
         setCurrentModelType(manager.getCurrentModelType());
         setIsInitialized(manager.isReady());
         setError(null);
+
+        // Initialize logging interceptor with status callback
+        try {
+          const logStorageService = new LogStorageService();
+          const loggingConfigService = new LoggingConfigService();
+
+          // Initialize logging interceptor with status callback
+          const statusCallback = (
+            type: 'capture' | 'error',
+            message?: string
+          ) => {
+            if (type === 'capture') {
+              recordCapture();
+            } else {
+              recordCaptureError(message || 'Unknown logging error');
+            }
+          };
+
+          const loggingInterceptor = initializeLoggingInterceptor(
+            logStorageService,
+            loggingConfigService,
+            statusCallback
+          );
+
+          // Set logging interceptor on ModelManager
+          manager.setLoggingInterceptor(loggingInterceptor);
+
+          // Initialize log retention manager
+          const retentionMgr = new LogRetentionManager(
+            logStorageService,
+            loggingConfigService
+          );
+          setRetentionManager(retentionMgr);
+
+          // Start automatic cleanup if enabled
+          await retentionMgr.startAutomaticCleanup();
+        } catch (retentionErr) {
+          console.warn(
+            'Failed to initialize log retention manager:',
+            retentionErr
+          );
+          // Don't fail the entire AI initialization for retention manager issues
+        }
       } catch (modelErr) {
         console.error(`Failed to initialize ${modelType} model:`, modelErr);
 
@@ -369,7 +479,6 @@ export function AIProvider({ children }: AIProviderProps) {
 
         // Try to reinitialize if the service became unavailable
         try {
-          console.log('Attempting to reinitialize AI service...');
           await initializeAI();
 
           // If reinitialization succeeded, don't show the error
@@ -442,9 +551,6 @@ export function AIProvider({ children }: AIProviderProps) {
       // If switching to local model fails, try to fallback to Gemini
       if (modelType === 'local' && currentModelType !== 'gemini') {
         try {
-          console.log(
-            'Attempting fallback to Gemini after local model failure...'
-          );
           const preferences = getAIPreferences();
           const apiKey =
             import.meta.env.VITE_GOOGLE_API_KEY ||
@@ -648,8 +754,12 @@ export function AIProvider({ children }: AIProviderProps) {
     if (modelManager) {
       modelManager.cleanup();
     }
+    if (retentionManager) {
+      retentionManager.stopAutomaticCleanup();
+    }
     setModelManager(null);
     setAiService(null);
+    setRetentionManager(null);
     setIsInitialized(false);
     setError(null);
     setConversations([]);

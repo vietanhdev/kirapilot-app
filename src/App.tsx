@@ -8,9 +8,11 @@ import { PrivacyProvider } from './contexts/PrivacyContext';
 import { SettingsProvider } from './contexts/SettingsContext';
 import { NavigationProvider } from './contexts/NavigationContext';
 import { TaskListProvider } from './contexts/TaskListContext';
+import { LoggingStatusProvider } from './contexts/LoggingStatusContext';
 import { Planner } from './components/planning/Planner';
 import { Reports } from './components/reports/Reports';
 import { Settings } from './components/settings/Settings';
+import { LogViewerContainer } from './components/ai/LogViewerContainer';
 import { Header } from './components/common/Header';
 import { AIFloatingButton } from './components/ai/AIFloatingButton';
 import TitleBar from './components/TitleBar';
@@ -57,6 +59,12 @@ function AppContent() {
 
           {currentView === 'reports' && <Reports />}
 
+          {currentView === 'logs' && (
+            <div className='p-4 sm:p-6'>
+              <LogViewerContainer />
+            </div>
+          )}
+
           {currentView === 'settings' && (
             <Settings initialTab={viewParams.tab as string} />
           )}
@@ -82,13 +90,15 @@ function App() {
     <PrivacyProvider>
       <SettingsProvider>
         <DatabaseProvider>
-          <TaskListProvider>
-            <TimerProvider>
-              <AIProvider>
-                <ThemedApp />
-              </AIProvider>
-            </TimerProvider>
-          </TaskListProvider>
+          <LoggingStatusProvider>
+            <TaskListProvider>
+              <TimerProvider>
+                <AIProvider>
+                  <ThemedApp />
+                </AIProvider>
+              </TimerProvider>
+            </TaskListProvider>
+          </LoggingStatusProvider>
         </DatabaseProvider>
       </SettingsProvider>
     </PrivacyProvider>

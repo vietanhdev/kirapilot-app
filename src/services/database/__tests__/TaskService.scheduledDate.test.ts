@@ -68,6 +68,8 @@ describe('TaskService - ScheduledDate Functionality', () => {
           due_date: undefined,
           project_id: undefined,
           parent_task_id: undefined,
+          order_num: 0,
+          task_list_id: undefined,
         },
       });
     });
@@ -120,6 +122,8 @@ describe('TaskService - ScheduledDate Functionality', () => {
           due_date: undefined,
           project_id: undefined,
           parent_task_id: undefined,
+          order_num: 0,
+          task_list_id: undefined,
         },
       });
     });
@@ -176,6 +180,8 @@ describe('TaskService - ScheduledDate Functionality', () => {
           dependencies: [],
           project_id: undefined,
           parent_task_id: undefined,
+          order_num: 0,
+          task_list_id: undefined,
         },
       });
 
