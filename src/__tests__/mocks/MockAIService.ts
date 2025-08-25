@@ -293,6 +293,10 @@ export class MockAIService {
     this.setSimulateError(shouldError);
   }
 
+  setFailureMode(shouldFail: boolean): void {
+    this.setSimulateError(shouldFail);
+  }
+
   reset(): void {
     this.responses.clear();
     this.conversationHistory = [];

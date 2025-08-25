@@ -10,10 +10,10 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "tauri": "tauri",
-    "tauri:dev": "tauri dev",
-    "tauri:build": "tauri build",
-    "tauri:build:debug": "tauri build --debug",
+    "tauri": "CMAKE_OSX_DEPLOYMENT_TARGET=10.15 tauri",
+    "tauri:dev": "CMAKE_OSX_DEPLOYMENT_TARGET=10.15 tauri dev",
+    "tauri:build": "CMAKE_OSX_DEPLOYMENT_TARGET=10.15tauri build",
+    "tauri:build:debug": "CMAKE_OSX_DEPLOYMENT_TARGET=10.15 tauri build --debug",
     "build:all": "npm run type-check && npm run lint && npm run test && npm run build",
     "release:prepare": "npm run sync-version && npm run build:all && npm run tauri:build",
     "prepare": "husky",
@@ -31,7 +31,9 @@
     "docs:start": "cd docs && npm start",
     "docs:build": "cd docs && npm run build",
     "docs:serve": "cd docs && npm run serve",
-    "docs:install": "cd docs && npm install"
+    "docs:install": "cd docs && npm install",
+    "test_llm": "cd src-tauri && cargo run --bin llm_chat --release",
+    "test_llm_integration": "node scripts/test-llm-integration.js"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

@@ -1,2 +1,3 @@
 export { Settings } from './Settings';
 export { DataManagement } from './DataManagement';
+export { ModelSelectionCard } from './ModelSelectionCard';

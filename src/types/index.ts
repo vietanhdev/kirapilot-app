@@ -331,7 +331,14 @@ export interface UserPreferences {
     toolPermissions: boolean;
     responseStyle: 'concise' | 'balanced' | 'detailed';
     suggestionFrequency: 'minimal' | 'moderate' | 'frequent';
+    modelType?: 'local' | 'gemini';
     geminiApiKey?: string;
+    localModelConfig?: {
+      threads?: number;
+      contextSize?: number;
+      temperature?: number;
+      maxTokens?: number;
+    };
   };
   taskSettings: {
     defaultPriority: Priority;

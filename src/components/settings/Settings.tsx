@@ -20,6 +20,8 @@ import {
   Info,
   Eye,
   EyeOff,
+  Cloud,
+  HardDrive,
 } from 'lucide-react';
 
 import { useSettings } from '../../contexts/SettingsContext';
@@ -27,6 +29,12 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { languages } from '../../i18n';
 import { DataManagement } from './DataManagement';
 import { useAI } from '../../contexts/AIContext';
+import {
+  LocalAIService,
+  ResourceUsage,
+} from '../../services/ai/LocalAIService';
+import { ModelStatusCard } from './ModelStatusCard';
+// import { ModelSelectionCardSimple } from './ModelSelectionCardSimple';
 
 interface SettingsProps {
   className?: string;
@@ -49,6 +57,11 @@ export const Settings: React.FC<SettingsProps> = ({
   const { reinitializeAI } = useAI();
   const [activeTab, setActiveTab] = useState(initialTab);
   const [showApiKey, setShowApiKey] = useState(false);
+  const [resourceUsage, setResourceUsage] = useState<ResourceUsage | null>(
+    null
+  );
+  const [recommendations, setRecommendations] = useState<string[]>([]);
+  const [loadingResources, setLoadingResources] = useState(false);
 
   // Update active tab when initialTab prop changes
   useEffect(() => {
@@ -71,6 +84,43 @@ export const Settings: React.FC<SettingsProps> = ({
   ) => {
     updateNestedPreference(parentKey, childKey, value);
   };
+
+  // Resource management functions
+  const fetchResourceData = async () => {
+    if (preferences.aiSettings.modelType !== 'local') {
+      return;
+    }
+
+    setLoadingResources(true);
+    try {
+      const aiService = (window as unknown as { aiService?: LocalAIService })
+        .aiService;
+      if (aiService && aiService instanceof LocalAIService) {
+        const [usage, recs] = await Promise.all([
+          aiService.getResourceUsage(),
+          aiService.getPerformanceRecommendations(),
+        ]);
+
+        setResourceUsage(usage);
+        setRecommendations(recs);
+      }
+    } catch (error) {
+      console.error('Failed to fetch resource data:', error);
+    } finally {
+      setLoadingResources(false);
+    }
+  };
+
+  // Fetch resource data when AI settings change or component mounts
+  useEffect(() => {
+    if (preferences.aiSettings.modelType === 'local') {
+      fetchResourceData();
+
+      // Set up periodic refresh
+      const interval = setInterval(fetchResourceData, 10000); // Every 10 seconds
+      return () => clearInterval(interval);
+    }
+  }, [preferences.aiSettings.modelType]);
 
   const handleApiKeyChange = async (apiKey: string) => {
     const trimmedKey = apiKey.trim();
@@ -301,6 +351,75 @@ export const Settings: React.FC<SettingsProps> = ({
               }
             >
               <div className='p-6 space-y-6'>
+                {/* Model Selection */}
+                {/* Model Selection */}
+                <div>
+                  <h3 className='text-lg font-semibold text-foreground mb-4 flex items-center gap-2'>
+                    <Bot className='w-5 h-5' />
+                    {t('settings.ai.modelSelection')}
+                  </h3>
+
+                  <div className='space-y-4'>
+                    <div>
+                      <label className='text-sm font-medium text-foreground block mb-2'>
+                        {t('settings.ai.modelType')}
+                      </label>
+                      <Select
+                        selectedKeys={[
+                          preferences.aiSettings.modelType || 'gemini',
+                        ]}
+                        onSelectionChange={keys => {
+                          const modelType = Array.from(keys)[0] as
+                            | 'local'
+                            | 'gemini';
+                          handleNestedPreferenceChange(
+                            'aiSettings',
+                            'modelType',
+                            modelType
+                          );
+                        }}
+                        size='sm'
+                        aria-label='AI model type selection'
+                        classNames={{
+                          trigger:
+                            'bg-content2 border-divider data-[hover=true]:bg-content3',
+                          value: 'text-foreground',
+                        }}
+                      >
+                        <SelectItem
+                          key='gemini'
+                          startContent={<Cloud className='w-4 h-4' />}
+                        >
+                          {t('ai.model.gemini')}
+                        </SelectItem>
+                        <SelectItem
+                          key='local'
+                          startContent={<HardDrive className='w-4 h-4' />}
+                        >
+                          {t('ai.model.local')}
+                        </SelectItem>
+                      </Select>
+                      <p className='text-xs text-foreground-600 mt-1'>
+                        {(preferences.aiSettings.modelType || 'gemini') ===
+                        'local'
+                          ? t('settings.ai.localModelDescription')
+                          : t('settings.ai.geminiModelDescription')}
+                      </p>
+                    </div>
+
+                    {/* Enhanced status display with error handling */}
+                    <ModelStatusCard
+                      modelType={preferences.aiSettings.modelType || 'gemini'}
+                      onRecovery={() => {
+                        // Trigger model recovery
+                        reinitializeAI();
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <Divider className='bg-divider' />
+
                 <div>
                   <h3 className='text-lg font-semibold text-foreground mb-4'>
                     {t('settings.apiConfiguration')}
@@ -511,6 +630,162 @@ export const Settings: React.FC<SettingsProps> = ({
                     </div>
                   </div>
                 </div>
+
+                {/* Resource Management Section - Only show for local model */}
+                {(preferences.aiSettings.modelType || 'gemini') === 'local' && (
+                  <div>
+                    <Divider className='my-6' />
+                    <h3 className='text-lg font-semibold text-foreground mb-4'>
+                      {t('settings.ai.resourceManagement')}
+                    </h3>
+
+                    <div className='space-y-4'>
+                      {/* Resource Usage Display */}
+                      <Card>
+                        <CardBody className='p-4'>
+                          <div className='flex items-center justify-between mb-3'>
+                            <h4 className='text-sm font-medium text-foreground'>
+                              {t('settings.ai.resourceUsage')}
+                            </h4>
+                            <Button
+                              size='sm'
+                              variant='light'
+                              onPress={fetchResourceData}
+                              isLoading={loadingResources}
+                            >
+                              {t('common.refresh')}
+                            </Button>
+                          </div>
+
+                          {resourceUsage ? (
+                            <div className='grid grid-cols-2 gap-4 text-sm'>
+                              <div>
+                                <span className='text-foreground-600'>
+                                  {t('settings.ai.memoryUsage')}:
+                                </span>
+                                <span className='ml-2 font-medium'>
+                                  {resourceUsage.memory_usage_mb} MB
+                                </span>
+                              </div>
+                              <div>
+                                <span className='text-foreground-600'>
+                                  {t('settings.ai.cpuUsage')}:
+                                </span>
+                                <span className='ml-2 font-medium'>
+                                  {resourceUsage.cpu_usage_percent.toFixed(1)}%
+                                </span>
+                              </div>
+                              <div>
+                                <span className='text-foreground-600'>
+                                  {t('settings.ai.activeRequests')}:
+                                </span>
+                                <span className='ml-2 font-medium'>
+                                  {resourceUsage.active_requests}
+                                </span>
+                              </div>
+                              <div>
+                                <span className='text-foreground-600'>
+                                  {t('settings.ai.avgProcessingTime')}:
+                                </span>
+                                <span className='ml-2 font-medium'>
+                                  {resourceUsage.avg_processing_time_ms}ms
+                                </span>
+                              </div>
+                            </div>
+                          ) : (
+                            <p className='text-sm text-foreground-600'>
+                              {loadingResources
+                                ? t('common.loading')
+                                : t('settings.ai.resourceDataUnavailable')}
+                            </p>
+                          )}
+                        </CardBody>
+                      </Card>
+
+                      {/* Performance Recommendations */}
+                      {recommendations.length > 0 && (
+                        <Card>
+                          <CardBody className='p-4'>
+                            <h4 className='text-sm font-medium text-foreground mb-3'>
+                              {t('settings.ai.performanceRecommendations')}
+                            </h4>
+                            <div className='space-y-2'>
+                              {recommendations.map((rec, index) => (
+                                <div
+                                  key={index}
+                                  className='text-sm text-foreground-600 bg-warning-50 dark:bg-warning-900/20 p-2 rounded-md'
+                                >
+                                  {rec}
+                                </div>
+                              ))}
+                            </div>
+                          </CardBody>
+                        </Card>
+                      )}
+
+                      {/* Resource Configuration */}
+                      <Card>
+                        <CardBody className='p-4'>
+                          <h4 className='text-sm font-medium text-foreground mb-3'>
+                            {t('settings.ai.resourceConfiguration')}
+                          </h4>
+                          <div className='space-y-3'>
+                            <div>
+                              <label className='text-sm font-medium text-foreground block mb-1'>
+                                {t('settings.ai.threadCount')}
+                              </label>
+                              <Select
+                                selectedKeys={[
+                                  preferences.aiSettings.localModelConfig?.threads?.toString() ||
+                                    '4',
+                                ]}
+                                onSelectionChange={keys => {
+                                  const threads = parseInt(
+                                    Array.from(keys)[0] as string
+                                  );
+                                  handleNestedPreferenceChange(
+                                    'aiSettings',
+                                    'localModelConfig',
+                                    {
+                                      ...preferences.aiSettings
+                                        .localModelConfig,
+                                      threads,
+                                    }
+                                  );
+                                }}
+                                size='sm'
+                                classNames={{
+                                  trigger:
+                                    'bg-content2 border-divider data-[hover=true]:bg-content3',
+                                  value: 'text-foreground',
+                                }}
+                              >
+                                <SelectItem key='1'>
+                                  1 {t('settings.ai.threadSingular')}
+                                </SelectItem>
+                                <SelectItem key='2'>
+                                  2 {t('settings.ai.threadPlural')}
+                                </SelectItem>
+                                <SelectItem key='4'>
+                                  4 {t('settings.ai.threadPlural')}
+                                </SelectItem>
+                                <SelectItem key='6'>
+                                  6 {t('settings.ai.threadPlural')}
+                                </SelectItem>
+                                <SelectItem key='8'>
+                                  8 {t('settings.ai.threadPlural')}
+                                </SelectItem>
+                              </Select>
+                              <p className='text-xs text-foreground-600 mt-1'>
+                                {t('settings.ai.threadCountDescription')}
+                              </p>
+                            </div>
+                          </div>
+                        </CardBody>
+                      </Card>
+                    </div>
+                  </div>
+                )}
               </div>
             </Tab>
 

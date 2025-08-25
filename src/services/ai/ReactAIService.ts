@@ -19,6 +19,12 @@ import {
   getToolExecutionEngine,
   TranslationFunction,
 } from './ToolExecutionEngine';
+import {
+  AIServiceInterface,
+  ModelInfo,
+  ModelStatus,
+  ModelProcessingError,
+} from './AIServiceInterface';
 import { TranslationKey } from '../../i18n';
 import {
   ToolResultFormatter,
@@ -244,8 +250,9 @@ export const graph = workflow.compile({
 /**
  * ReAct AI Service for KiraPilot using LangGraph
  * Implements the Reasoning + Acting pattern for better tool usage and decision making
+ * Implements AIServiceInterface for compatibility with ModelManager
  */
-export class ReactAIService {
+export class ReactAIService implements AIServiceInterface {
   private apiKey: string | null = null;
   private toolExecutionEngine: ToolExecutionEngine;
   private resultFormatter: ToolResultFormatter;
@@ -422,19 +429,11 @@ export class ReactAIService {
       };
     } catch (error) {
       console.error('ReAct AI Service Error:', error);
-      const errorMessage = this.translationFunction
-        ? this.translationFunction(
-            'ai.error.processingFailed' as TranslationKey
-          )
-        : "I'm sorry, I encountered an error processing your request. Please try again.";
 
-      return {
-        message: errorMessage,
-        actions: [],
-        suggestions: [],
-        context,
-        reasoning: 'Error occurred during processing',
-      };
+      // Throw a ModelProcessingError for better error handling by ModelManager
+      throw new ModelProcessingError(
+        error instanceof Error ? error.message : 'Unknown error occurred'
+      );
     }
   }
 
@@ -595,6 +594,40 @@ export class ReactAIService {
    */
   isInitialized(): boolean {
     return this.apiKey !== null;
+  }
+
+  /**
+   * Get model information
+   */
+  getModelInfo(): ModelInfo {
+    return {
+      name: 'Gemini 2.0 Flash',
+      type: 'cloud',
+      status: this.isInitialized() ? 'ready' : 'not_initialized',
+      capabilities: [
+        'text_generation',
+        'tool_calling',
+        'reasoning',
+        'task_management',
+        'time_tracking',
+        'productivity_analysis',
+      ],
+      version: '2.0',
+      contextSize: 2048,
+    };
+  }
+
+  /**
+   * Get current service status
+   */
+  getStatus(): ModelStatus {
+    return {
+      type: 'gemini',
+      isReady: this.isInitialized(),
+      isLoading: false,
+      error: this.isInitialized() ? undefined : 'API key not configured',
+      modelInfo: this.getModelInfo(),
+    };
   }
 
   /**

@@ -27,6 +27,7 @@ pub async fn run_post_migration_initialization(db: &DatabaseConnection) -> Resul
 
 /// Initialize data for a fresh database
 /// This is called when the database is created for the first time
+#[allow(dead_code)]
 pub async fn initialize_fresh_database(db: &DatabaseConnection) -> Result<(), DbErr> {
     println!("Initializing fresh database...");
 

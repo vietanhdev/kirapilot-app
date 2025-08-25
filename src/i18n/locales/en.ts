@@ -17,6 +17,8 @@ export const en = {
   'common.success': 'Success',
   'common.warning': 'Warning',
   'common.info': 'Information',
+  'common.show': 'Show',
+  'common.hide': 'Hide',
   'common.clearDatabase': 'Clear Database (Dev Only)',
   'common.clearDatabaseConfirm':
     'Are you sure you want to clear all database data? This action cannot be undone.',
@@ -61,6 +63,38 @@ export const en = {
   'settings.ai.responsePreferences': 'Response Preferences',
   'settings.ai.responseStyle': 'Response Style',
   'settings.ai.suggestionFrequency': 'Suggestion Frequency',
+  'settings.ai.modelSelection': 'Model Selection',
+  'settings.ai.modelType': 'AI Model Type',
+  'settings.ai.localModelDescription':
+    'Run AI locally on your device for privacy and offline use',
+  'settings.ai.geminiModelDescription':
+    'Use Google Gemini API for advanced AI capabilities',
+  'settings.ai.localModelConfig': 'Local Model Configuration',
+  'settings.ai.threads': 'CPU Threads',
+  'settings.ai.threadsDescription':
+    'Number of CPU threads to use for inference',
+  'settings.ai.contextSize': 'Context Size',
+  'settings.ai.contextSizeDescription': 'Maximum context window size in tokens',
+  'settings.ai.temperature': 'Temperature',
+  'settings.ai.temperatureDescription':
+    'Controls randomness in responses (0.1-2.0)',
+  'settings.ai.maxTokens': 'Max Tokens',
+  'settings.ai.maxTokensDescription': 'Maximum tokens to generate in response',
+  'settings.ai.resourceManagement': 'Resource Management',
+  'settings.ai.resourceUsage': 'Current Resource Usage',
+  'settings.ai.memoryUsage': 'Memory Usage',
+  'settings.ai.cpuUsage': 'CPU Usage',
+  'settings.ai.activeRequests': 'Active Requests',
+  'settings.ai.avgProcessingTime': 'Avg Processing Time',
+  'settings.ai.resourceDataUnavailable': 'Resource data unavailable',
+  'settings.ai.performanceRecommendations': 'Performance Recommendations',
+  'settings.ai.resourceConfiguration': 'Resource Configuration',
+  'settings.ai.threadCount': 'Thread Count',
+  'settings.ai.threadSingular': 'thread',
+  'settings.ai.threadPlural': 'threads',
+  'settings.ai.threadCountDescription':
+    'Number of CPU threads to use for local model inference',
+  'common.refresh': 'Refresh',
 
   // Settings - Time Tracking
   'settings.time': 'Time Tracking',
@@ -517,6 +551,30 @@ export const en = {
   'ai.status.processing': 'Processing...',
   'ai.status.analyzing': 'Analyzing...',
   'ai.status.executing': 'Executing {toolName}...',
+
+  // AI Model Types
+  'ai.model.local': 'Local Model',
+  'ai.model.gemini': 'Gemini API',
+
+  // AI Model Status
+  'ai.model.status.title': 'Model Status',
+  'ai.model.status.unknown': 'Unknown',
+  'ai.model.status.ready': 'Ready',
+  'ai.model.status.loading': 'Loading...',
+  'ai.model.status.downloading': 'Downloading... {progress}%',
+  'ai.model.status.error': 'Error',
+  'ai.model.status.notReady': 'Not Ready',
+  'ai.model.downloading': 'Downloading Model',
+  'ai.model.information': 'Model Information',
+  'ai.model.name': 'Name',
+  'ai.model.version': 'Version',
+  'ai.model.size': 'Size',
+  'ai.model.contextWindow': 'Context Window',
+  'ai.model.type': 'Type',
+
+  // AI Model Errors
+  'ai.model.error.title': 'Model Error',
+  'ai.model.error.modelError': 'Model Status Error',
 
   // Notification Messages
   'notifications.timer.started': 'Timer Started',

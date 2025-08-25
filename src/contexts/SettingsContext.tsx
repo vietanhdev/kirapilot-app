@@ -54,7 +54,14 @@ const defaultPreferences: UserPreferences = {
     toolPermissions: true,
     responseStyle: 'balanced',
     suggestionFrequency: 'moderate',
+    modelType: 'gemini',
     geminiApiKey: undefined,
+    localModelConfig: {
+      threads: 4,
+      contextSize: 2048,
+      temperature: 0.7,
+      maxTokens: 512,
+    },
   },
   taskSettings: {
     defaultPriority: Priority.MEDIUM,

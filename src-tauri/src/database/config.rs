@@ -1,5 +1,6 @@
 use sea_orm::{ConnectOptions, Database, DatabaseConnection, DbErr};
 use std::time::Duration;
+use std::path::PathBuf;
 
 /// Database configuration settings
 #[derive(Debug, Clone)]
@@ -15,8 +16,12 @@ pub struct DatabaseConfig {
 
 impl Default for DatabaseConfig {
     fn default() -> Self {
+        let database_url = get_database_path()
+            .map(|path| format!("sqlite:{}?mode=rwc", path.display()))
+            .unwrap_or_else(|_| "sqlite:kirapilot.db?mode=rwc".to_string());
+
         Self {
-            database_url: "sqlite:kirapilot.db?mode=rwc".to_string(),
+            database_url,
             max_connections: 10,
             min_connections: 1,
             connect_timeout: Duration::from_secs(30),
@@ -84,4 +89,27 @@ pub async fn create_connection_with_config(
     config: DatabaseConfig,
 ) -> Result<DatabaseConnection, DbErr> {
     config.connect().await
+}
+
+/// Get the proper database path in the application data directory
+fn get_database_path() -> Result<PathBuf, std::io::Error> {
+    let app_data_dir = if cfg!(target_os = "macos") {
+        dirs::data_local_dir()
+            .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::NotFound, "Cannot find local data directory"))?
+            .join("KiraPilot")
+    } else if cfg!(target_os = "windows") {
+        dirs::data_local_dir()
+            .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::NotFound, "Cannot find local data directory"))?
+            .join("KiraPilot")
+    } else {
+        // Linux and other Unix-like systems
+        dirs::data_local_dir()
+            .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::NotFound, "Cannot find local data directory"))?
+            .join("kirapilot")
+    };
+
+    // Create the directory if it doesn't exist
+    std::fs::create_dir_all(&app_data_dir)?;
+
+    Ok(app_data_dir.join("kirapilot.db"))
 }

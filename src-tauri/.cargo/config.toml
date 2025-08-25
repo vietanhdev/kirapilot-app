@@ -1,18 +1,11 @@
-[profile.release]
-# Optimize for size and performance
-opt-level = 3
-lto = true
-codegen-units = 1
-panic = "abort"
-strip = true
-
-# Enable all optimizations
-[target.'cfg(target_os = "windows")']
-rustflags = ["-C", "target-feature=+crt-static"]
+[env]
+MACOSX_DEPLOYMENT_TARGET = "10.15"
 
 [build]
-# Use multiple cores for compilation (default behavior)
+rustflags = ["-C", "target-feature=+crt-static"]
 
-[net]
-# Speed up builds by allowing git to use multiple connections
-git-fetch-with-cli = true 
+[target.x86_64-apple-darwin]
+rustflags = ["-C", "link-arg=-mmacosx-version-min=10.15"]
+
+[target.aarch64-apple-darwin]
+rustflags = ["-C", "link-arg=-mmacosx-version-min=10.15"]

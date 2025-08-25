@@ -154,6 +154,16 @@ global.TextEncoder = TextEncoder;
 (global as unknown as { TextDecoder: typeof TextDecoder }).TextDecoder =
   TextDecoder;
 
+// Mock ReadableStream for Node.js environment
+global.ReadableStream = jest.fn().mockImplementation(() => ({
+  getReader: jest.fn(() => ({
+    read: jest.fn(() => Promise.resolve({ done: true, value: undefined })),
+    releaseLock: jest.fn(),
+  })),
+  cancel: jest.fn(),
+  locked: false,
+}));
+
 // Mock URL.createObjectURL
 global.URL.createObjectURL = jest.fn(() => 'mock-object-url');
 global.URL.revokeObjectURL = jest.fn();

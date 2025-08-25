@@ -70,6 +70,7 @@ impl TaskListRepository {
     }
 
     /// Find a task list by ID
+    #[allow(dead_code)]
     pub async fn find_by_id(&self, id: &str) -> Result<Option<task_lists::Model>, DbErr> {
         task_lists::Entity::find_by_id(id).one(&*self.db).await
     }
@@ -229,6 +230,7 @@ impl TaskListRepository {
     }
 
     /// Count tasks in a task list
+    #[allow(dead_code)]
     pub async fn count_tasks_in_list(&self, task_list_id: &str) -> Result<u64, DbErr> {
         tasks::Entity::find()
             .filter(tasks::Column::TaskListId.eq(Some(task_list_id.to_string())))
@@ -322,6 +324,7 @@ impl TaskListRepository {
     }
 
     /// Import a task list from backup data
+    #[allow(dead_code)]
     pub async fn import_task_list(
         &self,
         task_list: task_lists::Model,
