@@ -1,14 +1,26 @@
 [env]
 MACOSX_DEPLOYMENT_TARGET = "10.15"
 
-[build]
-rustflags = ["-C", "target-feature=+crt-static"]
-
+# Target-specific rustflags to avoid proc-macro issues on Linux
 [target.x86_64-apple-darwin]
-rustflags = ["-C", "link-arg=-mmacosx-version-min=10.15"]
+rustflags = ["-C", "link-arg=-mmacosx-version-min=10.15", "-C", "target-feature=+crt-static"]
 
 [target.aarch64-apple-darwin]
-rustflags = ["-C", "link-arg=-mmacosx-version-min=10.15"]
+rustflags = ["-C", "link-arg=-mmacosx-version-min=10.15", "-C", "target-feature=+crt-static"]
 
-[unstable]
-build-std = ["core", "alloc"]
+[target.x86_64-pc-windows-msvc]
+rustflags = ["-C", "target-feature=+crt-static"]
+
+[target.aarch64-pc-windows-msvc]
+rustflags = ["-C", "target-feature=+crt-static"]
+
+# Linux targets - no crt-static to avoid proc-macro compilation issues
+[target.x86_64-unknown-linux-gnu]
+rustflags = []
+
+[target.aarch64-unknown-linux-gnu]
+rustflags = []
+
+# Remove unstable build-std feature as it can interfere with proc-macros
+# [unstable]
+# build-std = ["core", "alloc"]
