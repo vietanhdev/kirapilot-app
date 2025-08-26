@@ -8,7 +8,15 @@ const host = process.env.TAURI_DEV_HOST;
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), tsconfigPaths(), tailwindcss()],
+  plugins: [
+    react(),
+    tsconfigPaths({
+      // Configure tsconfig paths for the main project only
+      root: '.',
+      projects: ['./tsconfig.json', './tsconfig.node.json'],
+    }),
+    tailwindcss(),
+  ],
 
   // Disable PostCSS plugins since we're using Tailwind Vite plugin
   css: {
@@ -87,8 +95,8 @@ export default defineConfig({
         }
       : undefined,
     watch: {
-      // 3. tell Vite to ignore watching `src-tauri`
-      ignored: ['**/src-tauri/**'],
+      // 3. tell Vite to ignore watching `src-tauri` and `docs` (separate Docusaurus project)
+      ignored: ['**/src-tauri/**', '**/docs/**'],
     },
   },
 });

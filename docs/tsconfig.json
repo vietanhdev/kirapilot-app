@@ -1,8 +1,25 @@
 {
   // This file is not used in compilation. It is here just for a nice editor experience.
-  "extends": "@docusaurus/tsconfig",
+  // Note: @docusaurus/tsconfig requires docs dependencies to be installed
   "compilerOptions": {
+    "target": "ES2018",
+    "lib": ["DOM", "DOM.Iterable", "ES6"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "noFallthroughCasesInSwitch": true,
+    "module": "ESNext",
+    "moduleResolution": "Node",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "incremental": true,
     "baseUrl": "."
   },
-  "exclude": [".docusaurus", "build"]
+  "include": ["src/**/*", "docs/**/*", "*.js", "*.ts"],
+  "exclude": [".docusaurus", "build", "node_modules"]
 }
