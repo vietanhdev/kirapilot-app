@@ -6,6 +6,16 @@ authors = ["Viet-Anh Nguyen (@vietanhdev)"]
 edition = "2021"
 default-run = "kirapilot-app"
 
+# Cross-platform target configurations
+[target.'cfg(target_os = "macos")'.dependencies]
+# macOS specific dependencies (if any)
+
+[target.'cfg(target_os = "windows")'.dependencies]
+# Windows specific dependencies (if any)
+
+[target.'cfg(target_os = "linux")'.dependencies]
+# Linux specific dependencies (if any)
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [lib]
