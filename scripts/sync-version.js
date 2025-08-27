@@ -62,9 +62,21 @@ tauriConf.version = version;
 fs.writeFileSync(tauriConfPath, JSON.stringify(tauriConf, null, 2));
 console.log('✓ Updated tauri.conf.json');
 
+// Generate build info
+try {
+  execSync('node scripts/generate-build-info.js', {
+    cwd: projectRoot,
+    stdio: 'inherit',
+  });
+  console.log('✓ Generated build-info.json');
+} catch (error) {
+  console.warn('⚠ Warning: Could not generate build info:', error.message);
+}
+
 console.log(`All version files synced to ${version}:`);
 console.log('  - package.json');
 console.log('  - package-lock.json');
 console.log('  - Cargo.toml');
 console.log('  - Cargo.lock');
 console.log('  - tauri.conf.json');
+console.log('  - build-info.json');

@@ -45,6 +45,9 @@ export const en = {
   'settings.general.themeDescription': 'Choose your preferred color scheme',
   'settings.general.language': 'Language',
   'settings.general.languageDescription': 'Select your preferred language',
+  'settings.general.dateFormat': 'Date Format',
+  'settings.general.dateFormatDescription':
+    'Choose how dates are displayed throughout the app',
   'settings.general.workingHours': 'Working Hours',
   'settings.general.startTime': 'Start Time',
   'settings.general.endTime': 'End Time',

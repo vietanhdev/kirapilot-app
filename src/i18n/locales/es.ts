@@ -37,6 +37,9 @@ export const es = {
   'settings.general.themeDescription': 'Elige tu esquema de colores preferido',
   'settings.general.language': 'Idioma',
   'settings.general.languageDescription': 'Selecciona tu idioma preferido',
+  'settings.general.dateFormat': 'Formato de fecha',
+  'settings.general.dateFormatDescription':
+    'Elige cómo se muestran las fechas en la aplicación',
   'settings.general.workingHours': 'Horario de trabajo',
   'settings.general.startTime': 'Hora de inicio',
   'settings.general.endTime': 'Hora de fin',
