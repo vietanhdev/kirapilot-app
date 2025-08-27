@@ -60,6 +60,18 @@ enum DistractionLevel {
 }
 ```
 
+### TimePreset
+
+```typescript
+enum TimePreset {
+  FIFTEEN_MIN = 15,
+  THIRTY_MIN = 30,
+  SIXTY_MIN = 60,
+  CUSTOM = -1,
+  NOT_APPLICABLE = 0,
+}
+```
+
 ## Core Interfaces
 
 ### TrendData
@@ -176,7 +188,25 @@ interface UserPreferences {
     toolPermissions: boolean;
     responseStyle: 'concise' | 'balanced' | 'detailed';
     suggestionFrequency: 'minimal' | 'moderate' | 'frequent';
+    modelType?: 'local' | 'gemini';
     geminiApiKey?: string;
+    localModelConfig?: {
+      threads?: number;
+      contextSize?: number;
+      temperature?: number;
+      maxTokens?: number;
+    };
+    logging?: {
+      enabled: boolean;
+      logLevel: 'minimal' | 'standard' | 'detailed';
+      retentionDays: number;
+      maxLogSize: number;
+      includeSystemPrompts: boolean;
+      includeToolExecutions: boolean;
+      includePerformanceMetrics: boolean;
+      autoCleanup: boolean;
+      exportFormat: 'json' | 'csv';
+    };
   };
   taskSettings: {
     defaultPriority: Priority;
@@ -186,6 +216,7 @@ interface UserPreferences {
     showCompletedTasks: boolean;
     compactView: boolean;
   };
+  dateFormat: 'DD/MM/YYYY' | 'MM/DD/YYYY' | 'YYYY-MM-DD';
   theme: 'light' | 'dark' | 'auto';
   language: string;
 }
@@ -212,19 +243,60 @@ interface Task {
   description: string;
   priority: Priority;
   status: TaskStatus;
+  order: number; // Sort order within the same column/context (0-based)
   dependencies: string[];
-  timeEstimate: number;
-  actualTime: number;
+  timePreset: TimePreset; // Preset timing option
+  timeEstimate: number; // in minutes - for custom values or calculated from preset
+  actualTime: number; // in minutes
   dueDate?: Date;
-  scheduledDate?: Date;
+  scheduledDate?: Date; // When the task is scheduled to be worked on (for day view planning)
   tags: string[];
   projectId?: string;
   parentTaskId?: string;
   subtasks: string[];
-  taskListId: string;
+  taskListId: string; // Foreign key to task list
   completedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
+}
+```
+
+### CreateTaskRequest
+
+```typescript
+interface CreateTaskRequest {
+  title: string;
+  description?: string;
+  priority?: Priority;
+  order?: number; // Sort order within the same column/context
+  timePreset?: TimePreset;
+  timeEstimate?: number;
+  dueDate?: Date;
+  scheduledDate?: Date;
+  tags?: string[];
+  dependencies?: string[];
+  projectId?: string;
+  parentTaskId?: string;
+  taskListId?: string; // Optional - defaults to current selection or default list
+}
+```
+
+### UpdateTaskRequest
+
+```typescript
+interface UpdateTaskRequest {
+  title?: string;
+  description?: string;
+  priority?: Priority;
+  status?: TaskStatus;
+  order?: number; // Sort order within the same column/context
+  timePreset?: TimePreset;
+  timeEstimate?: number;
+  dueDate?: Date;
+  scheduledDate?: Date;
+  tags?: string[];
+  dependencies?: string[];
+  taskListId?: string; // Allow moving tasks between lists
 }
 ```
 
@@ -237,6 +309,22 @@ interface TaskList {
   isDefault: boolean;
   createdAt: Date;
   updatedAt: Date;
+}
+```
+
+### CreateTaskListRequest
+
+```typescript
+interface CreateTaskListRequest {
+  name: string;
+}
+```
+
+### UpdateTaskListRequest
+
+```typescript
+interface UpdateTaskListRequest {
+  name: string;
 }
 ```
 

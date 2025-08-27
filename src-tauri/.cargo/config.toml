@@ -1,5 +1,10 @@
 [env]
 MACOSX_DEPLOYMENT_TARGET = "10.15"
+# Disable problematic GGML features for ARM64 builds
+GGML_NO_I8MM = "1"
+GGML_NO_SVE = "1" 
+GGML_NO_SME = "1"
+GGML_METAL = "1"
 
 # Target-specific rustflags to avoid proc-macro issues on Linux
 [target.x86_64-apple-darwin]

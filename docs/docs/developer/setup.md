@@ -41,8 +41,8 @@ sudo apt install build-essential curl wget file libssl-dev libgtk-3-dev libayata
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/your-org/kirapilot.git
-cd kirapilot
+git clone https://github.com/vietanhdev/kirapilot-app.git
+cd kirapilot-app
 ```
 
 ### 2. Install Dependencies
@@ -135,7 +135,8 @@ npm run tauri dev        # Start Tauri app in dev mode
 
 # Building
 npm run build            # Build frontend (tsc + vite build)
-npm run tauri build      # Build Tauri application
+npm run tauri:build      # Build Tauri application
+npm run build:all        # Run type-check, lint, test, and build
 
 # Testing
 npm test                 # Run Jest tests

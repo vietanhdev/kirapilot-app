@@ -18,7 +18,7 @@ Built with privacy in mind, KiraPilot stores all your data locally using SQLite,
 
 ### Download and Install
 
-1. Visit the [KiraPilot releases page](https://github.com/kirapilot/kirapilot-app/releases)
+1. Visit the [KiraPilot releases page](https://github.com/vietanhdev/kirapilot-app/releases)
 2. Download the appropriate installer for your operating system:
    - **macOS**: `.dmg` file
    - **Windows**: `.msi` installer
@@ -213,7 +213,7 @@ If you run into any issues:
 
 - **[Troubleshooting Guide](./troubleshooting)** - Common problems and solutions
 - **[FAQ](./faq)** - Frequently asked questions
-- **[GitHub Issues](https://github.com/kirapilot/kirapilot-app/issues)** - Report bugs or request features
-- **[Community Discussions](https://github.com/kirapilot/kirapilot-app/discussions)** - Connect with other users
+- **[GitHub Issues](https://github.com/vietanhdev/kirapilot-app/issues)** - Report bugs or request features
+- **[Community Discussions](https://github.com/vietanhdev/kirapilot-app/discussions)** - Connect with other users
 
 Welcome to KiraPilot! We're excited to help you navigate your day with precision. 🚀

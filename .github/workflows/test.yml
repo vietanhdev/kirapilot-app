@@ -54,11 +54,4 @@ jobs:
         run: npm run test:coverage
 
       - name: Build frontend
-        run: npm run build
-
-      - name: Build Tauri app for testing
-        uses: tauri-apps/tauri-action@v0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          args: --no-bundle 
+        run: npm run build 

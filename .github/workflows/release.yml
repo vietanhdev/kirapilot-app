@@ -97,6 +97,11 @@ jobs:
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Fix ARM64 macOS build issues with llama-cpp
+          GGML_NO_I8MM: "1"
+          GGML_NO_SVE: "1"
+          GGML_NO_SME: "1"
+          GGML_METAL: "1"
         with:
           releaseId: ${{ needs.create-release.outputs.release_id }}
           args: ${{ matrix.args }}
