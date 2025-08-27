@@ -53,7 +53,7 @@ Before contributing, make sure you have:
    ```
 3. **Add upstream remote**:
    ```bash
-   git remote add upstream https://github.com/kirapilot/kirapilot-app.git
+   git remote add upstream https://github.com/vietanhdev/kirapilot-app.git
    ```
 4. **Install dependencies**:
    ```bash
