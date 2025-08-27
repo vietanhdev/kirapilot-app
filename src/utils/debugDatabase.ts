@@ -7,7 +7,6 @@
 export async function checkActiveTimerSessions(): Promise<void> {
   try {
     // Active timer session checking is now handled by the SeaORM backend
-    console.log('Active timer session checking moved to SeaORM backend');
   } catch (error) {
     console.error('Error checking active sessions:', error);
   }
@@ -19,7 +18,6 @@ export async function checkActiveTimerSessions(): Promise<void> {
 export async function forceStopAllTimers(): Promise<void> {
   try {
     // Force stopping timers is now handled by the SeaORM backend
-    console.log('Force stopping timers functionality moved to SeaORM backend');
   } catch (error) {
     console.error('Error force stopping timers:', error);
   }
@@ -31,7 +29,6 @@ export async function forceStopAllTimers(): Promise<void> {
 export async function clearAllTimerData(): Promise<void> {
   try {
     // Clearing timer data is now handled by the SeaORM backend
-    console.log('Clearing timer data functionality moved to SeaORM backend');
   } catch (error) {
     console.error('Error clearing timer data:', error);
   }

@@ -18,6 +18,7 @@ import { LoggingConfigService } from '../services/database/repositories/LoggingC
 import { initializeLoggingInterceptor } from '../services/ai/LoggingInterceptor';
 import { useTranslation } from '../hooks/useTranslation';
 import { useLoggingStatus } from './LoggingStatusContext';
+import { useDatabaseContext } from '../services/database/DatabaseProvider';
 import {
   AIResponse,
   AISuggestion,
@@ -80,6 +81,7 @@ const AIContext = createContext<AIContextType | undefined>(undefined);
 export function AIProvider({ children }: AIProviderProps) {
   const { t } = useTranslation();
   const { recordCapture, recordCaptureError } = useLoggingStatus();
+  const { isInitialized: isDatabaseReady } = useDatabaseContext();
   const [modelManager, setModelManager] = useState<ModelManager | null>(null);
   const [aiService, setAiService] = useState<AIServiceInterface | null>(null);
   const [currentModelType, setCurrentModelType] = useState<ModelType>('gemini');
@@ -202,6 +204,76 @@ export function AIProvider({ children }: AIProviderProps) {
     }
   }, [modelManager, t]);
 
+  // Effect to initialize logging when database becomes ready
+  useEffect(() => {
+    if (isDatabaseReady && modelManager && !retentionManager) {
+      console.log('🔍 Debug: Database is now ready, initializing logging...');
+      initializeLogging();
+    }
+  }, [isDatabaseReady, modelManager, retentionManager]);
+
+  const initializeLogging = async () => {
+    if (!modelManager) {
+      return;
+    }
+
+    try {
+      console.log('🔍 Debug: Initializing logging interceptor...');
+      const logStorageService = new LogStorageService();
+      const loggingConfigService = new LoggingConfigService();
+
+      // Initialize logging interceptor with status callback
+      const statusCallback = (type: 'capture' | 'error', message?: string) => {
+        console.log(`🔍 Debug: Logging status callback - ${type}:`, message);
+        if (type === 'capture') {
+          recordCapture();
+        } else {
+          recordCaptureError(message || 'Unknown logging error');
+        }
+      };
+
+      const loggingInterceptor = initializeLoggingInterceptor(
+        logStorageService,
+        loggingConfigService,
+        statusCallback
+      );
+
+      console.log(
+        '🔍 Debug: Logging interceptor created, setting on ModelManager...'
+      );
+      // Set logging interceptor on ModelManager
+      modelManager.setLoggingInterceptor(loggingInterceptor);
+
+      // Also set it on the current service if available
+      const currentService = modelManager.getCurrentService();
+      if (currentService && 'setLoggingInterceptor' in currentService) {
+        console.log(
+          '🔍 Debug: Setting logging interceptor on current service...'
+        );
+        (
+          currentService as {
+            setLoggingInterceptor: (
+              interceptor: typeof loggingInterceptor
+            ) => void;
+          }
+        ).setLoggingInterceptor(loggingInterceptor);
+      }
+
+      // Initialize log retention manager
+      const retentionMgr = new LogRetentionManager(
+        logStorageService,
+        loggingConfigService
+      );
+      setRetentionManager(retentionMgr);
+
+      // Start automatic cleanup if enabled
+      await retentionMgr.startAutomaticCleanup();
+      console.log('🔍 Debug: Logging system fully initialized');
+    } catch (error) {
+      console.error('🔍 Debug: Failed to initialize logging:', error);
+    }
+  };
+
   const initializeAI = async () => {
     setIsLoading(true);
     setError(null);
@@ -266,47 +338,77 @@ export function AIProvider({ children }: AIProviderProps) {
         setIsInitialized(manager.isReady());
         setError(null);
 
-        // Initialize logging interceptor with status callback
-        try {
-          const logStorageService = new LogStorageService();
-          const loggingConfigService = new LoggingConfigService();
+        // Initialize logging interceptor with status callback - only if database is ready
+        if (isDatabaseReady) {
+          try {
+            console.log('🔍 Debug: Initializing logging interceptor...');
+            const logStorageService = new LogStorageService();
+            const loggingConfigService = new LoggingConfigService();
 
-          // Initialize logging interceptor with status callback
-          const statusCallback = (
-            type: 'capture' | 'error',
-            message?: string
-          ) => {
-            if (type === 'capture') {
-              recordCapture();
-            } else {
-              recordCaptureError(message || 'Unknown logging error');
+            // Initialize logging interceptor with status callback
+            const statusCallback = (
+              type: 'capture' | 'error',
+              message?: string
+            ) => {
+              console.log(
+                `🔍 Debug: Logging status callback - ${type}:`,
+                message
+              );
+              if (type === 'capture') {
+                recordCapture();
+              } else {
+                recordCaptureError(message || 'Unknown logging error');
+              }
+            };
+
+            const loggingInterceptor = initializeLoggingInterceptor(
+              logStorageService,
+              loggingConfigService,
+              statusCallback
+            );
+
+            console.log(
+              '🔍 Debug: Logging interceptor created, setting on ModelManager...'
+            );
+            // Set logging interceptor on ModelManager
+            manager.setLoggingInterceptor(loggingInterceptor);
+
+            // Also set it on the current service if available
+            const currentService = manager.getCurrentService();
+            if (currentService && 'setLoggingInterceptor' in currentService) {
+              console.log(
+                '🔍 Debug: Setting logging interceptor on current service...'
+              );
+              (
+                currentService as {
+                  setLoggingInterceptor: (
+                    interceptor: typeof loggingInterceptor
+                  ) => void;
+                }
+              ).setLoggingInterceptor(loggingInterceptor);
             }
-          };
 
-          const loggingInterceptor = initializeLoggingInterceptor(
-            logStorageService,
-            loggingConfigService,
-            statusCallback
+            // Initialize log retention manager
+            const retentionMgr = new LogRetentionManager(
+              logStorageService,
+              loggingConfigService
+            );
+            setRetentionManager(retentionMgr);
+
+            // Start automatic cleanup if enabled
+            await retentionMgr.startAutomaticCleanup();
+            console.log('🔍 Debug: Logging system fully initialized');
+          } catch (retentionErr) {
+            console.warn(
+              'Failed to initialize log retention manager:',
+              retentionErr
+            );
+            // Don't fail the entire AI initialization for retention manager issues
+          }
+        } else {
+          console.log(
+            '🔍 Debug: Database not ready, skipping logging interceptor initialization'
           );
-
-          // Set logging interceptor on ModelManager
-          manager.setLoggingInterceptor(loggingInterceptor);
-
-          // Initialize log retention manager
-          const retentionMgr = new LogRetentionManager(
-            logStorageService,
-            loggingConfigService
-          );
-          setRetentionManager(retentionMgr);
-
-          // Start automatic cleanup if enabled
-          await retentionMgr.startAutomaticCleanup();
-        } catch (retentionErr) {
-          console.warn(
-            'Failed to initialize log retention manager:',
-            retentionErr
-          );
-          // Don't fail the entire AI initialization for retention manager issues
         }
       } catch (modelErr) {
         console.error(`Failed to initialize ${modelType} model:`, modelErr);

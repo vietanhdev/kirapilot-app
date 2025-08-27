@@ -1073,7 +1073,7 @@ async fn cleanup_old_ai_interaction_logs() -> Result<u64, String> {
 }
 
 #[tauri::command]
-async fn export_ai_interaction_logs(filters: serde_json::Value, format: String) -> Result<String, String> {
+async fn export_ai_interaction_logs(_filters: serde_json::Value, format: String) -> Result<String, String> {
     let db = get_database()
         .await
         .map_err(|e| format!("Database error: {}", e))?;

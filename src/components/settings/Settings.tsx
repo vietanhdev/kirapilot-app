@@ -35,6 +35,8 @@ import {
   ResourceUsage,
 } from '../../services/ai/LocalAIService';
 import { ModelStatusCard } from './ModelStatusCard';
+import { BuildInfo } from '../common';
+
 // import { ModelSelectionCardSimple } from './ModelSelectionCardSimple';
 
 interface SettingsProps {
@@ -282,6 +284,39 @@ export const Settings: React.FC<SettingsProps> = ({
                         ))}
                       </Select>
                     </div>
+
+                    <div className='flex items-center justify-between'>
+                      <div>
+                        <label className='text-sm font-medium text-foreground'>
+                          {t('settings.general.dateFormat')}
+                        </label>
+                        <p className='text-xs text-foreground-600'>
+                          {t('settings.general.dateFormatDescription')}
+                        </p>
+                      </div>
+                      <Select
+                        selectedKeys={[preferences.dateFormat]}
+                        onSelectionChange={keys => {
+                          const dateFormat = Array.from(keys)[0] as
+                            | 'DD/MM/YYYY'
+                            | 'MM/DD/YYYY'
+                            | 'YYYY-MM-DD';
+                          handlePreferenceChange('dateFormat', dateFormat);
+                        }}
+                        className='w-40'
+                        size='sm'
+                        aria-label='Date format selection'
+                        classNames={{
+                          trigger:
+                            'bg-content2 border-divider data-[hover=true]:bg-content3',
+                          value: 'text-foreground',
+                        }}
+                      >
+                        <SelectItem key='DD/MM/YYYY'>DD/MM/YYYY</SelectItem>
+                        <SelectItem key='MM/DD/YYYY'>MM/DD/YYYY</SelectItem>
+                        <SelectItem key='YYYY-MM-DD'>YYYY-MM-DD</SelectItem>
+                      </Select>
+                    </div>
                   </div>
                 </div>
 
@@ -381,6 +416,7 @@ export const Settings: React.FC<SettingsProps> = ({
                         }}
                         size='sm'
                         aria-label='AI model type selection'
+                        placeholder='Select AI model type'
                         classNames={{
                           trigger:
                             'bg-content2 border-divider data-[hover=true]:bg-content3',
@@ -906,9 +942,7 @@ export const Settings: React.FC<SettingsProps> = ({
                   <p className='text-foreground-600 mb-4'>
                     {t('about.appDescription')}
                   </p>
-                  <div className='inline-flex items-center px-3 py-1 bg-primary-500/20 text-primary-400 rounded-full text-sm'>
-                    {t('about.version')}
-                  </div>
+                  <BuildInfo variant='compact' />
                 </div>
 
                 <Divider className='bg-divider' />
@@ -940,10 +974,22 @@ export const Settings: React.FC<SettingsProps> = ({
                         {t('system.aiEngine')}
                       </span>
                       <span className='text-foreground'>
-                        {t('system.aiEngineValue')}
+                        {(preferences.aiSettings.modelType || 'gemini') ===
+                        'local'
+                          ? t('ai.model.local')
+                          : t('ai.model.gemini')}
                       </span>
                     </div>
                   </div>
+                </div>
+
+                <Divider className='bg-divider' />
+
+                <div>
+                  <h3 className='text-lg font-semibold text-foreground mb-4'>
+                    Build Information
+                  </h3>
+                  <BuildInfo variant='detailed' />
                 </div>
 
                 <Divider className='bg-divider' />

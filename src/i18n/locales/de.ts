@@ -324,7 +324,7 @@ export const de = {
       const { getFormattedVersion } = require('../../utils/version');
       return getFormattedVersion();
     } catch {
-      return 'Version 0.0.10'; // Fallback
+      return 'Version 0.0.21'; // Fallback
     }
   })(),
 
@@ -418,7 +418,7 @@ export const de = {
       const { getFormattedVersion } = require('../../utils/version');
       return getFormattedVersion();
     } catch {
-      return 'Version 0.0.10'; // Fallback
+      return 'Version 0.0.21'; // Fallback
     }
   })(),
   'about.systemInformation': 'Systeminformationen',
@@ -596,4 +596,8 @@ export const de = {
   'security.error.decryptFailed': 'Datenentschlüsselung fehlgeschlagen',
   'security.error.secureStoreFailed': 'Sichere Datenspeicherung fehlgeschlagen',
   'security.error.generateHashFailed': 'Hash-Generierung fehlgeschlagen',
+
+  // AI Model Types
+  'ai.model.local': 'Lokales Modell',
+  'ai.model.gemini': 'Gemini API',
 };

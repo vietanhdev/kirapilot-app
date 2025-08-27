@@ -594,4 +594,8 @@ export const fr = {
   'security.error.decryptFailed': 'Échec du déchiffrement des données',
   'security.error.secureStoreFailed': 'Échec du stockage sécurisé des données',
   'security.error.generateHashFailed': 'Échec de la génération du hash',
+
+  // AI Model Types
+  'ai.model.local': 'Modèle Local',
+  'ai.model.gemini': 'API Gemini',
 };

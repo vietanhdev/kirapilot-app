@@ -5,7 +5,7 @@ import {
   RenderHookOptions,
   RenderHookResult,
 } from '@testing-library/react';
-import { BrowserRouter } from 'react-router-dom';
+
 import { MockDatabase } from '../mocks/MockDatabase';
 import { MockAIService } from '../mocks/MockAIService';
 import { MockNotificationService } from '../mocks/MockNotificationService';
@@ -24,10 +24,7 @@ import {
 export interface TestRenderOptions extends Omit<RenderOptions, 'wrapper'> {
   initialState?: Partial<AppTestState>;
   providers?: React.ComponentType[];
-  routerProps?: {
-    initialEntries?: string[];
-    initialIndex?: number;
-  };
+
   mockServices?: MockServiceConfig;
 }
 
@@ -90,12 +87,7 @@ const TestWrapper: React.FC<TestWrapperProps> = ({
   children,
   options = {},
 }) => {
-  const {
-    initialState = {},
-    routerProps = {},
-    mockServices = {},
-    providers = [],
-  } = options;
+  const { initialState = {}, mockServices = {}, providers = [] } = options;
 
   // Initialize mock services (store references for potential future use)
   const mockDatabase = new MockDatabase(mockServices.database);
@@ -122,11 +114,8 @@ const TestWrapper: React.FC<TestWrapperProps> = ({
     mockDatabase.seedData(initialState);
   }
 
-  // For now, just wrap with BrowserRouter for basic testing
-  // Individual tests can add more specific providers as needed
-  let wrappedChildren = (
-    <BrowserRouter {...routerProps}>{children}</BrowserRouter>
-  );
+  // Wrap children with any additional providers
+  let wrappedChildren = <>{children}</>;
 
   // Apply additional providers if specified
   providers.forEach(Provider => {

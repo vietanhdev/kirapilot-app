@@ -174,7 +174,7 @@ export class LoggingInterceptor {
       this.pendingLogs.set(requestId, partialLog);
     } catch (error) {
       // Silent degradation - log error but don't throw
-      console.warn('Failed to intercept AI request:', error);
+      console.warn('🔍 Debug: Failed to intercept AI request:', error);
     }
 
     return requestId;

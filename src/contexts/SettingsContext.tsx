@@ -108,8 +108,39 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({
 
       if (stored) {
         const parsed = JSON.parse(stored);
-        // Merge with defaults to ensure all properties exist
-        mergedPreferences = { ...defaultPreferences, ...parsed };
+        // Deep merge with defaults to ensure all nested properties exist
+        mergedPreferences = {
+          ...defaultPreferences,
+          ...parsed,
+          aiSettings: {
+            ...defaultPreferences.aiSettings,
+            ...(parsed.aiSettings || {}),
+          },
+          workingHours: {
+            ...defaultPreferences.workingHours,
+            ...(parsed.workingHours || {}),
+          },
+          breakPreferences: {
+            ...defaultPreferences.breakPreferences,
+            ...(parsed.breakPreferences || {}),
+          },
+          focusPreferences: {
+            ...defaultPreferences.focusPreferences,
+            ...(parsed.focusPreferences || {}),
+            backgroundAudio: {
+              ...defaultPreferences.focusPreferences.backgroundAudio,
+              ...(parsed.focusPreferences?.backgroundAudio || {}),
+            },
+          },
+          notifications: {
+            ...defaultPreferences.notifications,
+            ...(parsed.notifications || {}),
+          },
+          taskSettings: {
+            ...defaultPreferences.taskSettings,
+            ...(parsed.taskSettings || {}),
+          },
+        };
       }
 
       // Load API key from separate storage for backward compatibility

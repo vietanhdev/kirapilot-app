@@ -1,5 +1,6 @@
 // Minimal rich text editor for TaskCard notes
 import { useEditor, EditorContent } from '@tiptap/react';
+import { useEffect } from 'react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
 import { Bold, Italic, List, ListOrdered } from 'lucide-react';
@@ -34,6 +35,13 @@ export function MinimalRichTextEditor({
     },
     editable: !disabled,
   });
+
+  // Update editor content when the content prop changes
+  useEffect(() => {
+    if (editor && editor.getHTML() !== content) {
+      editor.commands.setContent(content);
+    }
+  }, [editor, content]);
 
   if (!editor) {
     return null;

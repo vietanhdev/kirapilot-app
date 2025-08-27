@@ -31,9 +31,6 @@ function AppContent() {
     setViewParams(params || {});
   };
 
-  // Force TypeScript to recognize usage
-  console.log('Debug:', { viewParams, handleViewChange });
-
   return (
     <NavigationProvider
       currentView={currentView}
@@ -42,7 +39,7 @@ function AppContent() {
     >
       <div
         className={`${resolvedTheme} text-foreground bg-background app-content ${
-          isMaximized ? '' : 'rounded-xl overflow-hidden'
+          isMaximized ? '' : 'rounded-lg overflow-hidden'
         }`}
       >
         {/* Custom Title Bar */}

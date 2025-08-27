@@ -93,10 +93,8 @@ export const DataManagement: React.FC<DataManagementProps> = ({
     onResetClose();
 
     try {
-      console.log('Calling clear_all_data command...');
       // Use the new clear_all_data Tauri command
       const result = await invoke<string>('clear_all_data');
-      console.log('Database cleared:', result);
 
       // Clear additional local storage data
       forceClearData();

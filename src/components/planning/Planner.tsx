@@ -79,7 +79,6 @@ export function Planner({ viewMode = 'week' }: PlanningScreenProps) {
         if (isInitialized) {
           const taskRepo = getTaskRepository();
           const dbTasks = await taskRepo.findAll();
-          console.log('Loaded tasks from database:', dbTasks.length, dbTasks);
           setTasks(dbTasks);
         } else {
           // Clear and reinitialize sample data for testing
@@ -101,12 +100,10 @@ export function Planner({ viewMode = 'week' }: PlanningScreenProps) {
 
   const handleTaskMove = async (
     taskId: string,
-    fromColumn: string,
+    _fromColumn: string,
     toColumn: string,
     date?: Date
   ) => {
-    console.log('Moving task:', { taskId, fromColumn, toColumn, date });
-
     const task = tasks.find(t => t.id === taskId);
     if (!task) {
       return;
@@ -147,18 +144,10 @@ export function Planner({ viewMode = 'week' }: PlanningScreenProps) {
         await taskRepo.update(taskId, {
           scheduledDate: newScheduledDate,
         });
-        console.log('Task updated in database:', taskId);
       }
 
       // Update local state
       setTasks(prev => prev.map(t => (t.id === taskId ? updatedTask : t)));
-
-      console.log('Updated task:', {
-        title: task.title,
-        oldScheduledDate: task.scheduledDate,
-        newScheduledDate,
-        toColumn,
-      });
     } catch (error) {
       console.error('Failed to update task in database:', error);
       // Still update local state as fallback
@@ -187,11 +176,9 @@ export function Planner({ viewMode = 'week' }: PlanningScreenProps) {
 
         // Update local state with the task from database
         setTasks(prev => [createdTask, ...prev]);
-        console.log('New task created in database:', createdTask.title);
       } else {
         // Fallback: just update local state
         setTasks(prev => [task, ...prev]);
-        console.log('New task created (local only):', task.title);
       }
     } catch (error) {
       console.error('Failed to create task in database:', error);
@@ -261,12 +248,6 @@ export function Planner({ viewMode = 'week' }: PlanningScreenProps) {
             await taskRepo.update(task.id, {
               status,
             });
-            console.log(
-              'Task status updated in database:',
-              task.title,
-              'to',
-              status
-            );
             break; // Success, exit retry loop
           } catch (retryError: unknown) {
             retryCount++;
@@ -280,7 +261,6 @@ export function Planner({ viewMode = 'week' }: PlanningScreenProps) {
               errorMessage.includes('no transaction is active') &&
               retryCount < maxRetries
             ) {
-              console.log(`Retrying in ${retryCount * 100}ms...`);
               await new Promise(resolve =>
                 setTimeout(resolve, retryCount * 100)
               );
@@ -318,7 +298,6 @@ export function Planner({ viewMode = 'week' }: PlanningScreenProps) {
       if (isInitialized) {
         const taskRepo = getTaskRepository();
         await taskRepo.delete(task.id);
-        console.log('Task deleted from database:', task.title);
       }
 
       // Remove from local state

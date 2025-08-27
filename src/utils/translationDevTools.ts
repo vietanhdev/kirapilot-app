@@ -22,8 +22,6 @@ export function initializeTranslationDevTools(): void {
     return;
   }
 
-  console.log('🌐 Initializing translation development tools...');
-
   // Run quick validation
   validateCurrentTranslations();
 
@@ -47,22 +45,13 @@ export function initializeTranslationDevTools(): void {
       validate: validateCurrentTranslations,
       scanFile: (content: string, filename: string = 'unknown') => {
         const matches = scanFileForHardcodedStrings(filename, content);
-        console.log(
-          `Found ${matches.length} potential hardcoded strings:`,
-          matches
-        );
         return matches;
       },
       checkConsistency: () => {
         const result = validateTranslationConsistency();
-        console.log('Translation consistency report:', result);
         return result;
       },
     };
-
-    console.log(
-      '🌐 Translation dev tools available at window.__translationDevTools'
-    );
   }
 }
 
@@ -181,12 +170,8 @@ export function createTranslationMiddleware() {
  * CLI-style validation that can be run from package.json scripts
  */
 export function runTranslationValidationCLI(): void {
-  console.log('🌐 Running translation validation...\n');
-
   // Run consistency validation
   const consistencyResult = validateTranslationConsistency();
-
-  console.log('📊 CONSISTENCY REPORT');
   console.log('====================');
   console.log(`Total Issues: ${consistencyResult.summary.totalIssues}`);
   console.log(`Critical Issues: ${consistencyResult.summary.criticalIssues}`);

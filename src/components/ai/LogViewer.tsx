@@ -29,6 +29,8 @@ import {
 } from 'lucide-react';
 import { AIInteractionLog, LogFilter } from '../../types/aiLogging';
 import { DatePicker } from '../common/DatePicker';
+import { TruncatedMessage } from './TruncatedMessage';
+import { ToolDetails } from './ToolDetails';
 interface LogViewerProps {
   logs: AIInteractionLog[];
   loading: boolean;
@@ -390,28 +392,19 @@ export function LogViewer({
                     </Chip>
                   </TableCell>
                   <TableCell>
-                    <div className='w-full min-w-0'>
-                      <p
-                        className='text-sm text-default-700 whitespace-normal break-words leading-relaxed'
-                        title={log.userMessage}
-                      >
-                        {log.userMessage && log.userMessage.trim()
-                          ? log.userMessage
-                          : 'No message'}
-                      </p>
-                    </div>
+                    <TruncatedMessage
+                      content={log.userMessage || ''}
+                      maxLength={80}
+                      title='User Message'
+                    />
                   </TableCell>
                   <TableCell>
-                    <div className='w-full min-w-0'>
-                      <p
-                        className='text-sm text-default-500 whitespace-normal break-words leading-relaxed'
-                        title={log.aiResponse}
-                      >
-                        {log.aiResponse && log.aiResponse.trim()
-                          ? log.aiResponse
-                          : 'No response'}
-                      </p>
-                    </div>
+                    <TruncatedMessage
+                      content={log.aiResponse || ''}
+                      maxLength={80}
+                      title='AI Response'
+                      className='text-default-500'
+                    />
                   </TableCell>
                   <TableCell>
                     <div className='flex items-center gap-1 text-sm whitespace-nowrap'>
@@ -425,14 +418,7 @@ export function LogViewer({
                     </div>
                   </TableCell>
                   <TableCell>
-                    {log.toolCalls.length > 0 ? (
-                      <Chip size='sm' color='primary' variant='flat'>
-                        {log.toolCalls.length} tool
-                        {log.toolCalls.length !== 1 ? 's' : ''}
-                      </Chip>
-                    ) : (
-                      <span className='text-default-400 text-sm'>None</span>
-                    )}
+                    <ToolDetails toolCalls={log.toolCalls} />
                   </TableCell>
                   <TableCell>
                     <div className='flex items-center gap-2'>

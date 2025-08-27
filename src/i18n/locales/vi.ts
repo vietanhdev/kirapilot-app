@@ -656,4 +656,8 @@ export const vi = {
   'common.richTextEditor.undo': 'Hoàn tác',
   'common.richTextEditor.redo': 'Làm lại',
   'common.markdownRenderer.code': 'mã',
+
+  // AI Model Types
+  'ai.model.local': 'Mô hình Cục bộ',
+  'ai.model.gemini': 'API Gemini',
 };

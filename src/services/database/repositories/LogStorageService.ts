@@ -527,6 +527,62 @@ export class LogStorageService {
   private transformLogFromBackend(
     backendLog: Record<string, unknown>
   ): AIInteractionLog {
+    // Handle both the new AI log format and the legacy ai_interactions format
+    const isLegacyFormat = !backendLog.session_id && backendLog.action_taken;
+
+    if (isLegacyFormat) {
+      // Legacy format from ai_interactions table
+      const actionTaken = backendLog.action_taken as string;
+      let sessionId = 'unknown';
+      let modelType: 'local' | 'gemini' = 'gemini';
+
+      // Extract session ID and model type from action_taken field
+      if (actionTaken && actionTaken.includes(':')) {
+        const parts = actionTaken.split(':');
+        if (parts.length >= 2) {
+          modelType = parts[0] as 'local' | 'gemini';
+          sessionId = parts[1];
+        }
+      }
+
+      const toolsUsed = (backendLog.tools_used as string) || '[]';
+      const parsedTools = this.parseJsonField(toolsUsed, []);
+
+      return {
+        id: (backendLog.id as string) || 'unknown',
+        timestamp: this.parseDate(backendLog.created_at),
+        sessionId,
+        modelType,
+        modelInfo: {
+          name: modelType === 'local' ? 'Local Model' : 'Gemini',
+          provider: modelType === 'local' ? 'local' : 'google',
+        },
+        userMessage: (backendLog.message as string) || '',
+        systemPrompt: undefined,
+        context: '{}',
+        aiResponse: (backendLog.response as string) || '',
+        actions: toolsUsed,
+        suggestions: '[]',
+        reasoning: backendLog.reasoning as string | undefined,
+        toolCalls: this.createMockToolCallsFromActions(
+          parsedTools,
+          (backendLog.id as string) || 'unknown'
+        ),
+        responseTime: 1000, // Default response time for legacy logs
+        tokenCount: undefined,
+        error: undefined,
+        errorCode: undefined,
+        containsSensitiveData: false,
+        dataClassification: 'internal',
+        createdAt: this.parseDate(backendLog.created_at),
+        updatedAt: this.parseDate(backendLog.created_at),
+      };
+    }
+
+    // New format
+    const actionsString = (backendLog.actions as string) || '[]';
+    const parsedActions = this.parseJsonField(actionsString, []);
+
     return {
       id: (backendLog.id as string) || 'unknown',
       timestamp: this.parseDate(backendLog.timestamp),
@@ -540,10 +596,13 @@ export class LogStorageService {
       systemPrompt: backendLog.system_prompt as string | undefined,
       context: (backendLog.context as string) || '{}',
       aiResponse: (backendLog.ai_response as string) || '',
-      actions: (backendLog.actions as string) || '[]',
+      actions: actionsString,
       suggestions: (backendLog.suggestions as string) || '[]',
       reasoning: backendLog.reasoning as string | undefined,
-      toolCalls: [], // Will be populated separately if needed
+      toolCalls: this.createMockToolCallsFromActions(
+        parsedActions,
+        (backendLog.id as string) || 'unknown'
+      ),
       responseTime: this.parseNumber(backendLog.response_time),
       tokenCount: backendLog.token_count
         ? this.parseNumber(backendLog.token_count)
@@ -618,5 +677,62 @@ export class LogStorageService {
     } catch {
       return fallback;
     }
+  }
+
+  /**
+   * Create mock tool calls from actions for display purposes
+   */
+  private createMockToolCallsFromActions(
+    actions: unknown[],
+    interactionLogId: string
+  ): ToolExecutionLog[] {
+    if (!Array.isArray(actions) || actions.length === 0) {
+      return [];
+    }
+
+    return actions.map((action, index) => {
+      let toolName = 'unknown';
+      let args = '{}';
+
+      // Try to extract tool name and arguments from action
+      if (action && typeof action === 'object') {
+        const actionObj = action as Record<string, unknown>;
+
+        // Check for common action structures
+        if (actionObj.type && typeof actionObj.type === 'string') {
+          toolName = actionObj.type;
+          args = JSON.stringify(actionObj.parameters || actionObj.args || {});
+        } else if (actionObj.tool && typeof actionObj.tool === 'string') {
+          toolName = actionObj.tool;
+          args = JSON.stringify(actionObj.arguments || actionObj.params || {});
+        } else if (actionObj.name && typeof actionObj.name === 'string') {
+          toolName = actionObj.name;
+          args = JSON.stringify(actionObj.input || actionObj.parameters || {});
+        } else {
+          // Fallback: use the first string property as tool name
+          const firstStringKey = Object.keys(actionObj).find(
+            key => typeof actionObj[key] === 'string'
+          );
+          if (firstStringKey) {
+            toolName = actionObj[firstStringKey] as string;
+          }
+          args = JSON.stringify(actionObj);
+        }
+      } else if (typeof action === 'string') {
+        toolName = action;
+        args = '{}';
+      }
+
+      return {
+        id: `mock_${interactionLogId}_${index}`,
+        interactionLogId,
+        toolName,
+        arguments: args,
+        result: '{"success": true, "message": "Tool executed"}',
+        executionTime: 100, // Mock execution time
+        success: true,
+        createdAt: new Date(),
+      };
+    });
   }
 }

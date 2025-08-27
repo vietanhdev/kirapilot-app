@@ -66,7 +66,6 @@ export function WeekView({
 }: WeekViewProps) {
   const { t } = useTranslation();
   const [showTaskModal, setShowTaskModal] = useState(false);
-  const [taskModalColumn, setTaskModalColumn] = useState<string>('');
   const [taskModalDate, setTaskModalDate] = useState<Date | undefined>();
   const [draggedTask, setDraggedTask] = useState<Task | null>(null);
 
@@ -384,9 +383,6 @@ export function WeekView({
   };
 
   const handleAddTask = (column: string, date?: Date) => {
-    console.log('Add task clicked for column:', column, 'date:', date);
-    setTaskModalColumn(column);
-
     // Set appropriate default date based on column
     let defaultDate = date;
     if (!defaultDate && column.toLowerCase() === 'upcoming') {
@@ -401,17 +397,6 @@ export function WeekView({
   };
 
   const handleTaskCreate = async (task: Task) => {
-    console.log('Creating task:', {
-      title: task.title,
-      scheduledDate: task.scheduledDate,
-      column: taskModalColumn,
-      willAppearIn: !task.scheduledDate
-        ? 'Backlog'
-        : task.scheduledDate.toDateString() === new Date().toDateString()
-          ? 'Today'
-          : 'Date-specific column',
-    });
-
     try {
       await onTaskCreate(task);
       setShowTaskModal(false);
@@ -629,7 +614,6 @@ export function WeekView({
         <TaskModal
           isOpen={showTaskModal}
           onClose={() => {
-            console.log('Closing task modal');
             setShowTaskModal(false);
           }}
           onCreateTask={handleTaskCreate}
