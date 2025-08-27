@@ -38,6 +38,9 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
+      - name: Generate build information
+        run: node scripts/generate-build-info.js
+
       - name: Run TypeScript type checking
         run: npm run type-check
 
