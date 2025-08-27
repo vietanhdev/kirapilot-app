@@ -1,10 +1,8 @@
-// Demo component for weekly planning interface
 import { useState, useEffect, useMemo } from 'react';
 import { Task, TaskStatus } from '../../types';
 import { useDatabase } from '../../hooks/useDatabase';
 import { getTaskRepository } from '../../services/database/repositories';
 import { useTaskList } from '../../contexts/TaskListContext';
-// Mock data removed - using SeaORM backend now
 import { WeeklyPlan } from './WeeklyPlan';
 
 interface PlanningScreenProps {
