@@ -1,6 +1,6 @@
 // Modern task card component with enhanced note editing
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Task, TaskStatus, TimePreset } from '../../types';
+import { Task, TaskStatus, TimePreset, Priority } from '../../types';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -160,10 +160,40 @@ export function TaskCard({
     };
   }, []);
 
+  // Disable inline editing when modal is open
+  useEffect(() => {
+    if (isEditModalOpen && editMode !== 'none') {
+      // Save any pending changes before closing inline editor
+      if (autoSaveState.hasUnsavedChanges) {
+        performAutoSave(notesContent);
+      }
+      setEditMode('none');
+      setIsExpanded(false);
+    }
+  }, [
+    isEditModalOpen,
+    editMode,
+    autoSaveState.hasUnsavedChanges,
+    notesContent,
+    performAutoSave,
+  ]);
+
   // Handle keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (editMode === 'none') {
+        return;
+      }
+
+      // Check if a modal is open by looking for modal elements or if this card's modal is open
+      const modalOpen =
+        document.querySelector('[role="dialog"]') ||
+        document.querySelector('.modal') ||
+        document.querySelector('[data-modal]') ||
+        isEditModalOpen;
+
+      // Don't handle shortcuts if a modal is open
+      if (modalOpen) {
         return;
       }
 
@@ -186,7 +216,7 @@ export function TaskCard({
       document.addEventListener('keydown', handleKeyDown);
       return () => document.removeEventListener('keydown', handleKeyDown);
     }
-  }, [editMode, notesContent, performAutoSave]);
+  }, [editMode, notesContent, performAutoSave, isEditModalOpen]);
 
   const handleStatusToggle = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -326,6 +356,33 @@ export function TaskCard({
     return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   };
 
+  // Get urgency indicator based on priority
+  const getUrgencyIndicator = () => {
+    switch (task.priority) {
+      case Priority.URGENT:
+        return {
+          dots: 3,
+          color: 'bg-red-500',
+          title: 'Urgent Priority',
+        };
+      case Priority.HIGH:
+        return {
+          dots: 2,
+          color: 'bg-orange-500',
+          title: 'High Priority',
+        };
+      case Priority.MEDIUM:
+        return {
+          dots: 1,
+          color: 'bg-yellow-500',
+          title: 'Medium Priority',
+        };
+      case Priority.LOW:
+      default:
+        return null; // No indicator for low priority
+    }
+  };
+
   const isOverdue =
     task.dueDate &&
     new Date(task.dueDate) < new Date() &&
@@ -401,6 +458,30 @@ export function TaskCard({
 
                   {/* Minimal indicators on the right - always visible */}
                   <div className='flex items-center space-x-1 shrink-0 ml-2'>
+                    {/* Urgency indicator dots */}
+                    {(() => {
+                      const urgencyIndicator = getUrgencyIndicator();
+                      if (!urgencyIndicator) {
+                        return null;
+                      }
+
+                      return (
+                        <div
+                          className='flex items-center space-x-0.5'
+                          title={urgencyIndicator.title}
+                        >
+                          {Array.from({ length: urgencyIndicator.dots }).map(
+                            (_, index) => (
+                              <div
+                                key={index}
+                                className={`w-1.5 h-1.5 rounded-full ${urgencyIndicator.color}`}
+                              />
+                            )
+                          )}
+                        </div>
+                      );
+                    })()}
+
                     {/* Active timer indicator */}
                     {isTimerActive && (
                       <div
@@ -408,18 +489,13 @@ export function TaskCard({
                       />
                     )}
 
-                    {/* Notes indicator */}
-                    {hasNotes && !isEditing && (
-                      <div className='w-2 h-2 bg-blue-400 rounded-full' />
-                    )}
-
-                    {/* Expand button - Only show when has notes and not editing */}
+                    {/* Expand button - Always visible when has notes and not editing */}
                     {hasNotes && !isEditing && (
                       <button
                         onClick={handleToggleExpand}
                         onMouseDown={e => e.stopPropagation()}
                         onPointerDown={e => e.stopPropagation()}
-                        className='opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-all duration-200'
+                        className='p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-all duration-200'
                         title={
                           isExpanded
                             ? t('tasks.collapseDescription')

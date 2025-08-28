@@ -38,6 +38,7 @@ pub struct UpdateTaskRequest {
     pub actual_time: Option<i32>,
     pub due_date: Option<chrono::DateTime<chrono::Utc>>,
     pub scheduled_date: Option<chrono::DateTime<chrono::Utc>>,
+    pub clear_scheduled_date: Option<bool>, // New field to explicitly clear scheduled_date
     pub tags: Option<Vec<String>>,
     pub project_id: Option<String>,
     pub parent_task_id: Option<String>,
@@ -308,7 +309,12 @@ impl TaskRepository {
         if let Some(due_date) = request.due_date {
             task.due_date = Set(Some(due_date));
         }
-        if let Some(scheduled_date) = request.scheduled_date {
+        // Handle scheduled_date updates - either set to a new value or clear it
+        if let Some(clear_scheduled_date) = request.clear_scheduled_date {
+            if clear_scheduled_date {
+                task.scheduled_date = Set(None);
+            }
+        } else if let Some(scheduled_date) = request.scheduled_date {
             task.scheduled_date = Set(Some(scheduled_date));
         }
         if let Some(tags) = request.tags {

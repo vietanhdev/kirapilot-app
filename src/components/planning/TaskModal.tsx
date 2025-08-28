@@ -78,7 +78,7 @@ export function TaskModal({
     priority: Priority.MEDIUM,
     timePreset: TimePreset.SIXTY_MIN,
     timeEstimate: 60,
-    dueDate: defaultDate,
+    dueDate: undefined, // Never set a default due date
     scheduledDate: defaultDate,
     tags: [],
     taskListId: 'default-task-list',
@@ -168,38 +168,13 @@ export function TaskModal({
           }
         }
 
-        // Calculate default due date: if scheduled for today, due date should be tomorrow
-        const calculateDefaultDueDate = (
-          scheduledDate?: Date
-        ): Date | undefined => {
-          if (!scheduledDate) {
-            return undefined;
-          }
-
-          const today = new Date();
-          today.setHours(0, 0, 0, 0);
-
-          const scheduled = new Date(scheduledDate);
-          scheduled.setHours(0, 0, 0, 0);
-
-          // If scheduled for today, set due date to tomorrow
-          if (scheduled.getTime() === today.getTime()) {
-            const tomorrow = new Date(today);
-            tomorrow.setDate(tomorrow.getDate() + 1);
-            return tomorrow;
-          }
-
-          // Otherwise, use the scheduled date as due date
-          return scheduledDate;
-        };
-
         setFormData({
           title: '',
           description: '',
           priority: Priority.MEDIUM,
           timePreset: TimePreset.SIXTY_MIN,
           timeEstimate: 60,
-          dueDate: calculateDefaultDueDate(defaultDate),
+          dueDate: undefined, // Always start with no due date - user must set it explicitly
           scheduledDate: defaultDate,
           tags: [],
           taskListId: defaultTaskListId,

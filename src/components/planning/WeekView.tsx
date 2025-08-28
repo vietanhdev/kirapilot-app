@@ -3,7 +3,6 @@ import { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   DndContext,
   closestCenter,
-  KeyboardSensor,
   PointerSensor,
   useSensor,
   useSensors,
@@ -11,7 +10,7 @@ import {
   DragOverEvent,
   DragOverlay,
 } from '@dnd-kit/core';
-import { sortableKeyboardCoordinates, arrayMove } from '@dnd-kit/sortable';
+import { arrayMove } from '@dnd-kit/sortable';
 import { Task, TaskStatus, TaskTimerProps } from '../../types';
 import { TaskColumn } from './TaskColumn';
 import { TaskCard } from './TaskCard';
@@ -155,41 +154,13 @@ export function WeekView({
     [tasks, weekDays, weekEnd]
   );
 
-  // Simplified handleDragOver
-  const handleDragOver = useCallback(
-    (event: DragOverEvent) => {
-      const { active, over } = event;
-      if (!active || !over) {
-        return;
-      }
+  // Simplified handleDragOver - just for visual feedback
+  const handleDragOver = useCallback((_event: DragOverEvent) => {
+    // Keep this minimal - just for visual feedback
+    // All actual logic will be in handleDragEnd
+  }, []);
 
-      const activeId = String(active.id);
-      const overId = String(over.id);
-
-      const activeColumn = findTaskColumn(activeId);
-      const overData = over.data.current;
-
-      // If dragging over a column, we'll handle it in dragEnd
-      if (overData?.type === 'column') {
-        return;
-      }
-
-      // If dragging over another task, check if it's cross-column
-      if (overData?.type === 'task') {
-        const overColumn = findTaskColumn(overId);
-
-        if (!activeColumn || !overColumn || activeColumn.id === overColumn.id) {
-          return; // Same column or invalid, let dragEnd handle reordering
-        }
-
-        // Cross-column drag - we could add some visual feedback here if needed
-        return;
-      }
-    },
-    [findTaskColumn]
-  );
-
-  // Simplified handleDragEnd (based on example)
+  // Unified handleDragEnd - handles both cross-column and same-column moves
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
       const { active, over } = event;
@@ -205,42 +176,59 @@ export function WeekView({
       const overId = String(over.id);
       const overData = over.data.current;
 
+      // Get source and target columns
       const activeColumn = findTaskColumn(activeId);
-      const overColumn = findTaskColumn(overId);
 
-      // Handle cross-column moves
+      let targetColumn: { id: string; name: string; date?: Date } | null = null;
+      let targetDate: Date | undefined;
+
+      // Determine target column and date
       if (overData?.type === 'column') {
-        const toColumnName = overData.title;
+        // Dropped on column header/empty area
+        const columnName = overData.title;
 
-        // Determine the new scheduled date based on the column
-        let newDate: Date | undefined;
-
-        if (toColumnName === 'backlog') {
-          newDate = undefined;
-        } else if (toColumnName === 'upcoming') {
-          newDate = new Date();
-          newDate.setDate(newDate.getDate() + 7);
+        if (columnName === 'backlog') {
+          targetColumn = { id: 'backlog', name: 'backlog' };
+          targetDate = undefined;
+        } else if (columnName === 'upcoming') {
+          targetColumn = { id: 'upcoming', name: 'upcoming' };
+          targetDate = new Date();
+          targetDate.setDate(targetDate.getDate() + 7);
         } else {
-          // Moving to a specific day column
+          // Day column
           const dayColumn = weekDays.find(
-            day => day.shortName.toLowerCase() === toColumnName
+            day => day.shortName.toLowerCase() === columnName
           );
           if (dayColumn) {
-            newDate = new Date(dayColumn.date);
+            targetColumn = {
+              id: dayColumn.shortName.toLowerCase(),
+              name: dayColumn.shortName.toLowerCase(),
+              date: dayColumn.date,
+            };
+            targetDate = new Date(dayColumn.date);
           }
         }
+      } else if (overData?.type === 'task') {
+        // Dropped on another task
+        const overColumn = findTaskColumn(overId);
+        if (overColumn) {
+          targetColumn = overColumn;
+          targetDate = overColumn.date;
+        }
+      }
 
-        onTaskMove(activeId, 'drag', toColumnName, newDate);
+      if (!activeColumn || !targetColumn) {
         return;
       }
 
-      // Handle same-column reordering
-      if (
-        overData?.type === 'task' &&
-        activeColumn &&
-        overColumn &&
-        activeColumn.id === overColumn.id
-      ) {
+      // If moving to a different column, handle cross-column move
+      if (activeColumn.id !== targetColumn.id) {
+        onTaskMove(activeId, 'drag', targetColumn.name, targetDate);
+        return;
+      }
+
+      // Same column reordering - only if dropped on another task
+      if (overData?.type === 'task' && activeId !== overId) {
         // Get tasks in this column, sorted by current order
         const columnTasks = tasks
           .filter(task => {
@@ -302,15 +290,14 @@ export function WeekView({
     return () => clearTimeout(timeoutId);
   }, [currentWeek]); // Re-run when week changes
 
-  // Improved sensors with better cursor tracking
+  // Optimized sensors for better performance
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 3, // Require 3px movement before activating drag
+        distance: 8, // Require more movement to prevent accidental drags
+        delay: 100, // Small delay to prevent conflicts with clicks
+        tolerance: 5, // Allow some tolerance for pointer movement
       },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
     })
   );
 
@@ -620,28 +607,19 @@ export function WeekView({
           defaultDate={taskModalDate}
         />
 
-        {/* Drag Overlay */}
+        {/* Simplified Drag Overlay */}
         <DragOverlay
           dropAnimation={{
-            duration: 200,
-            easing: 'cubic-bezier(0.18, 0.67, 0.6, 1.22)',
+            duration: 150,
+            easing: 'ease-out',
           }}
         >
           {draggedTask ? (
-            <div
-              className='opacity-90 rotate-2 scale-105 cursor-grabbing'
-              style={{
-                transformOrigin: '0 0',
-              }}
-            >
+            <div className='opacity-80 scale-105 cursor-grabbing'>
               <TaskCard
                 task={draggedTask}
-                showTaskListIndicator={isAllSelected()}
-                taskListName={
-                  taskLists.find(list => list.id === draggedTask.taskListId)
-                    ?.name
-                }
-                className='shadow-2xl border-2 border-primary-500 bg-white dark:bg-gray-800 ring-4 ring-primary-200 dark:ring-primary-800'
+                showTaskListIndicator={false} // Simplify overlay
+                className='shadow-xl border border-primary-400 bg-white dark:bg-gray-800'
               />
             </div>
           ) : null}

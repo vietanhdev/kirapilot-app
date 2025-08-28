@@ -268,12 +268,11 @@ describe('TaskService - ScheduledDate Functionality', () => {
 
       const result = await service.update('test-id', updateRequest);
 
-      // Verify that invoke was called with undefined scheduledDate
+      // Verify that invoke was called with clear_scheduled_date flag
       expect(mockInvoke).toHaveBeenCalledWith('update_task', {
         id: 'test-id',
         request: {
-          scheduledDate: undefined,
-          dueDate: undefined,
+          clear_scheduled_date: true,
         },
       });
 

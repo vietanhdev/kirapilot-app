@@ -3,7 +3,6 @@ import { useState, useMemo, useCallback } from 'react';
 import {
   DndContext,
   closestCenter,
-  KeyboardSensor,
   PointerSensor,
   useSensor,
   useSensors,
@@ -11,7 +10,7 @@ import {
   DragOverEvent,
   DragOverlay,
 } from '@dnd-kit/core';
-import { sortableKeyboardCoordinates, arrayMove } from '@dnd-kit/sortable';
+import { arrayMove } from '@dnd-kit/sortable';
 import { Task, TaskStatus, TaskTimerProps } from '../../types';
 import { TaskColumn } from './TaskColumn';
 import { TaskCard } from './TaskCard';
@@ -231,9 +230,6 @@ export function DayView({
       activationConstraint: {
         distance: 3, // Require 3px movement before activating drag
       },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
     })
   );
 

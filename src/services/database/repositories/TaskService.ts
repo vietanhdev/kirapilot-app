@@ -248,8 +248,18 @@ export class TaskService {
       if (request.dueDate !== undefined) {
         serializedRequest.due_date = request.dueDate?.toISOString();
       }
-      if (request.scheduledDate !== undefined) {
-        serializedRequest.scheduled_date = request.scheduledDate?.toISOString();
+      if ('scheduledDate' in request) {
+        if (request.scheduledDate === undefined) {
+          // When scheduledDate is explicitly undefined (moving to backlog), send clear flag
+          serializedRequest.clear_scheduled_date = true;
+        } else if (request.scheduledDate === null) {
+          // When scheduledDate is explicitly null, also clear it
+          serializedRequest.clear_scheduled_date = true;
+        } else {
+          // When scheduledDate is a Date, send the ISO string
+          serializedRequest.scheduled_date =
+            request.scheduledDate.toISOString();
+        }
       }
       if (request.tags !== undefined) {
         serializedRequest.tags = request.tags;

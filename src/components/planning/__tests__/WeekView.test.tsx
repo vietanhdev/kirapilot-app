@@ -60,14 +60,12 @@ jest.mock('@dnd-kit/core', () => ({
     <div data-testid='drag-overlay'>{children}</div>
   ),
   closestCenter: jest.fn(),
-  KeyboardSensor: jest.fn(),
   PointerSensor: jest.fn(),
   useSensor: jest.fn(),
   useSensors: jest.fn(() => []),
 }));
 
 jest.mock('@dnd-kit/sortable', () => ({
-  sortableKeyboardCoordinates: jest.fn(),
   arrayMove: jest.fn((array, from, to) => {
     const result = [...array];
     const [removed] = result.splice(from, 1);
