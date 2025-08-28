@@ -32,9 +32,17 @@ export const SoundSettings: React.FC<SoundSettingsProps> = ({
     }
 
     try {
-      // @ts-ignore - webkit audio context fallback
-      const audioContext = new (window.AudioContext ||
-        window.webkitAudioContext)();
+      // Handle webkit audio context fallback properly
+      const AudioContextClass =
+        window.AudioContext ||
+        (window as Window & { webkitAudioContext?: typeof AudioContext })
+          .webkitAudioContext;
+
+      if (!AudioContextClass) {
+        throw new Error('AudioContext not supported');
+      }
+
+      const audioContext = new AudioContextClass();
       const oscillator = audioContext.createOscillator();
       const gainNode = audioContext.createGain();
 
