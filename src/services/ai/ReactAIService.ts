@@ -162,6 +162,7 @@ function ensureConfiguration(
         toolPermissions: true,
         responseStyle: 'balanced',
         suggestionFrequency: 'moderate',
+        showInteractionLogs: false,
       },
       taskSettings: {
         defaultPriority: Priority.MEDIUM,
@@ -170,6 +171,11 @@ function ensureConfiguration(
         weekStartDay: 1,
         showCompletedTasks: true,
         compactView: false,
+      },
+      soundSettings: {
+        hapticFeedback: true,
+        completionSound: true,
+        soundVolume: 50,
       },
       theme: 'auto',
       language: 'en',

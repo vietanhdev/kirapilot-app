@@ -205,6 +205,21 @@ export class ModelManager {
         if (!service) {
           throw new ModelInitializationError(type, 'Service creation failed');
         }
+      } else if (type === 'local') {
+        // For local service, always re-initialize to ensure it's fresh and connected
+        // to the underlying Rust/Tauri service, especially when switching from other models
+        console.log(
+          'Re-initializing local service to ensure fresh connection...'
+        );
+        await this.initializeLocalService();
+        service = this.services.get('local');
+
+        if (!service) {
+          throw new ModelInitializationError(
+            type,
+            'Service re-initialization failed'
+          );
+        }
       }
 
       // Configure the service if config is provided

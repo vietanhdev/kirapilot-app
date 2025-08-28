@@ -1,9 +1,10 @@
-// Modern task card component with enhanced note editing
+// Modern task card component with enhanced note editing and completion effects
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Task, TaskStatus, TimePreset, Priority } from '../../types';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useTranslation } from '../../hooks/useTranslation';
+import { useSettings } from '../../contexts/SettingsContext';
 
 // import { formatDate } from '../../utils/dateFormat';
 
@@ -57,6 +58,11 @@ interface AutoSaveState {
   hasUnsavedChanges: boolean;
 }
 
+interface CompletionEffects {
+  showGlow: boolean;
+  showCheckmark: boolean;
+}
+
 export function TaskCard({
   task,
   onEdit,
@@ -74,7 +80,7 @@ export function TaskCard({
   className = '',
 }: PlanningTaskCardProps) {
   const { t } = useTranslation();
-  // const { preferences } = useSettings();
+  const { preferences } = useSettings();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editMode, setEditMode] = useState<EditMode>('none');
   const [isExpanded, setIsExpanded] = useState(false);
@@ -87,6 +93,12 @@ export function TaskCard({
     lastSaved: null,
     hasUnsavedChanges: false,
   });
+  const [completionEffects, setCompletionEffects] = useState<CompletionEffects>(
+    {
+      showGlow: false,
+      showCheckmark: false,
+    }
+  );
 
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const editorContainerRef = useRef<HTMLDivElement>(null);
@@ -144,6 +156,63 @@ export function TaskCard({
     },
     [performAutoSave]
   );
+
+  // Trigger simple completion effects
+  const triggerCompletionEffects = useCallback(() => {
+    setCompletionEffects({
+      showGlow: true,
+      showCheckmark: true,
+    });
+
+    // Simple haptic feedback for mobile devices (respects user preference)
+    if (preferences.soundSettings.hapticFeedback && 'vibrate' in navigator) {
+      navigator.vibrate(50); // Single short pulse
+    }
+
+    // Simple success sound (respects user preference)
+    if (preferences.soundSettings.completionSound) {
+      try {
+        // @ts-ignore - webkit audio context fallback
+        const audioContext = new (window.AudioContext ||
+          window.webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+
+        // Single pleasant tone
+        oscillator.frequency.setValueAtTime(660, audioContext.currentTime); // E5
+        oscillator.type = 'sine';
+
+        // Apply user volume setting
+        const volume = preferences.soundSettings.soundVolume / 100;
+        gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+        gainNode.gain.linearRampToValueAtTime(
+          volume * 0.1,
+          audioContext.currentTime + 0.01
+        );
+        gainNode.gain.exponentialRampToValueAtTime(
+          0.001,
+          audioContext.currentTime + 0.3
+        );
+
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 0.3);
+      } catch (error) {
+        // Silently fail if Web Audio API is not supported
+        console.debug('Web Audio API not supported:', error);
+      }
+    }
+
+    // Reset effects after animation
+    setTimeout(() => {
+      setCompletionEffects({
+        showGlow: false,
+        showCheckmark: false,
+      });
+    }, 1000);
+  }, [preferences.soundSettings]);
 
   // Update notes content when task changes
   useEffect(() => {
@@ -229,6 +298,8 @@ export function TaskCard({
       if (task.status === TaskStatus.COMPLETED) {
         onStatusChange(TaskStatus.PENDING);
       } else {
+        // Trigger completion effects before status change
+        triggerCompletionEffects();
         onStatusChange(TaskStatus.COMPLETED);
       }
     } finally {
@@ -400,7 +471,7 @@ export function TaskCard({
       {...(editMode === 'none' ? attributes : {})}
       className={`
         group relative bg-content1 dark:bg-content2 rounded-lg shadow-sm
-        border-l-4 transition-all duration-200 ease-out
+        border-l-4 transition-all duration-300 ease-out
         ${editMode === 'none' ? 'cursor-grab active:cursor-grabbing touch-none' : 'cursor-default'}
         ${isOverdue ? 'border-l-rose-500' : ''}
         ${isDragging ? 'opacity-30 scale-95' : 'opacity-100 hover:shadow-md'}
@@ -410,6 +481,7 @@ export function TaskCard({
         ${isTimerActive && !isTimerRunning ? 'border-l-amber-500 ring-2 ring-amber-200 dark:ring-amber-800' : ''}
         ${!isOverdue && !isCompleted && !isTimerActive && !isEditing ? 'border-l-slate-200 dark:border-l-slate-700' : ''}
         ${editMode === 'expanded' ? 'col-span-full' : ''}
+        ${completionEffects.showGlow ? 'ring-2 ring-emerald-300 dark:ring-emerald-600 shadow-lg shadow-emerald-200/50 dark:shadow-emerald-800/50' : ''}
         ${className}
       `}
     >
@@ -846,6 +918,15 @@ export function TaskCard({
         cancelText={t('tasks.cancelButton')}
         variant='danger'
       />
+
+      {/* Simple Completion Effect */}
+      {completionEffects.showCheckmark && (
+        <div className='absolute inset-0 flex items-center justify-center pointer-events-none'>
+          <div className='animate-bounce'>
+            <CheckCircle className='w-8 h-8 text-emerald-500 drop-shadow-lg' />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

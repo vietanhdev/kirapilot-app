@@ -228,7 +228,7 @@ export const SessionHistoryModal: React.FC<SessionHistoryModalProps> = ({
     >
       <ModalContent>
         <ModalHeader className='pb-2'>
-          <div className='flex items-center justify-between w-full'>
+          <div className='flex items-center justify-between w-full pr-6'>
             <div className='flex items-center gap-2'>
               <Clock className='w-4 h-4 text-primary' />
               <span className='font-semibold'>
@@ -245,7 +245,7 @@ export const SessionHistoryModal: React.FC<SessionHistoryModalProps> = ({
                   )
                 }
                 size='sm'
-                className='w-24'
+                className='w-20 min-w-20 max-w-20'
                 variant='bordered'
               >
                 <SelectItem key='today'>Today</SelectItem>

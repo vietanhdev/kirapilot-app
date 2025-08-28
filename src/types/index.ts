@@ -345,6 +345,7 @@ export interface UserPreferences {
     toolPermissions: boolean;
     responseStyle: 'concise' | 'balanced' | 'detailed';
     suggestionFrequency: 'minimal' | 'moderate' | 'frequent';
+    showInteractionLogs: boolean;
     modelType?: 'local' | 'gemini';
     geminiApiKey?: string;
     localModelConfig?: {
@@ -372,6 +373,11 @@ export interface UserPreferences {
     weekStartDay: 0 | 1; // 0 = Sunday, 1 = Monday
     showCompletedTasks: boolean;
     compactView: boolean;
+  };
+  soundSettings: {
+    hapticFeedback: boolean;
+    completionSound: boolean;
+    soundVolume: number; // 0-100
   };
   dateFormat: 'DD/MM/YYYY' | 'MM/DD/YYYY' | 'YYYY-MM-DD';
   theme: 'light' | 'dark' | 'auto';

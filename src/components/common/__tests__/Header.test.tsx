@@ -1,3 +1,4 @@
+import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { Header } from '../Header';
 import { TaskList, TaskListSelection } from '../../../types';
@@ -6,6 +7,17 @@ import { TaskList, TaskListSelection } from '../../../types';
 jest.mock('../../../hooks/useTranslation', () => ({
   useTranslation: () => ({
     t: (key: string) => key,
+  }),
+}));
+
+// Mock the useSettings hook
+jest.mock('../../../contexts/SettingsContext', () => ({
+  useSettings: () => ({
+    preferences: {
+      aiSettings: {
+        showInteractionLogs: false,
+      },
+    },
   }),
 }));
 

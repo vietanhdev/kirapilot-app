@@ -21,6 +21,7 @@ interface TimerContextType {
   hasActiveTimer: boolean;
   activeTask?: Task;
   activeSessionId?: string;
+  isInitialized: boolean;
 
   // Actions
   startTimer: (task: Task) => void;
@@ -46,8 +47,81 @@ export const TimerProvider: React.FC<TimerProviderProps> = ({ children }) => {
   const [activeSessionId, setActiveSessionId] = React.useState<
     string | undefined
   >();
+  const [isInitialized, setIsInitialized] = React.useState(false);
   const { breakReminders } = useUserPreferences();
   const timeRepo = getTimeTrackingRepository();
+
+  // Session recovery and cleanup on startup
+  React.useEffect(() => {
+    const handleSessionRecovery = async () => {
+      try {
+        // Check for any active sessions in the database
+        const activeSession = await timeRepo.getActiveSession();
+
+        if (activeSession) {
+          console.log('Found active session on startup:', activeSession.id);
+
+          // Calculate how long ago this session was started
+          const now = new Date();
+          const sessionAge = now.getTime() - activeSession.startTime.getTime();
+          const ageInHours = sessionAge / (1000 * 60 * 60);
+
+          // If the session is more than 12 hours old, consider it orphaned and clean it up
+          if (ageInHours > 12) {
+            console.log(
+              'Cleaning up orphaned session:',
+              activeSession.id,
+              'Age:',
+              Math.round(ageInHours),
+              'hours'
+            );
+            await timeRepo.stopSession(
+              activeSession.id,
+              'Auto-stopped: Session was orphaned from previous app session'
+            );
+          } else {
+            // For recent sessions, we could potentially recover them
+            // For now, we'll also clean them up but with a different note
+            console.log(
+              'Cleaning up recent active session:',
+              activeSession.id,
+              'Age:',
+              Math.round(ageInHours),
+              'hours'
+            );
+            await timeRepo.stopSession(
+              activeSession.id,
+              'Auto-stopped: App restarted with active session'
+            );
+          }
+        }
+
+        // Also clean up any other potential orphaned sessions
+        const incompleteSessions = await timeRepo.getIncompleteSessions();
+        for (const session of incompleteSessions) {
+          const sessionAge = new Date().getTime() - session.startTime.getTime();
+          const ageInHours = sessionAge / (1000 * 60 * 60);
+
+          if (ageInHours > 12) {
+            console.log('Cleaning up incomplete session:', session.id);
+            await timeRepo.stopSession(
+              session.id,
+              'Auto-stopped: Incomplete session cleanup'
+            );
+          }
+        }
+
+        console.log('Session recovery and cleanup completed');
+      } catch (error) {
+        console.error('Error during session recovery:', error);
+      } finally {
+        setIsInitialized(true);
+      }
+    };
+
+    // Run session recovery on component mount
+    handleSessionRecovery();
+  }, [timeRepo]);
 
   const timer = useTimerWithPreferences({
     onTimerStart: task => {
@@ -161,6 +235,7 @@ export const TimerProvider: React.FC<TimerProviderProps> = ({ children }) => {
     hasActiveTimer: timer.hasActiveTimer,
     activeTask,
     activeSessionId,
+    isInitialized,
 
     // Actions
     startTimer: startTimerWithDB,

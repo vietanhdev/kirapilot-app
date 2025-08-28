@@ -33,6 +33,7 @@ export function createTestUserPreferences(
       toolPermissions: true,
       responseStyle: 'balanced',
       suggestionFrequency: 'moderate',
+      showInteractionLogs: false,
       modelType: 'gemini',
       geminiApiKey: undefined,
       localModelConfig: {
@@ -49,6 +50,11 @@ export function createTestUserPreferences(
       weekStartDay: 1,
       showCompletedTasks: true,
       compactView: false,
+    },
+    soundSettings: {
+      hapticFeedback: true,
+      completionSound: true,
+      soundVolume: 50,
     },
     dateFormat: 'DD/MM/YYYY',
     theme: 'dark',

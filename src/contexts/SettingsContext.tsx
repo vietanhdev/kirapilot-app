@@ -54,6 +54,7 @@ const defaultPreferences: UserPreferences = {
     toolPermissions: true,
     responseStyle: 'balanced',
     suggestionFrequency: 'moderate',
+    showInteractionLogs: false,
     modelType: 'gemini',
     geminiApiKey: undefined,
     localModelConfig: {
@@ -70,6 +71,11 @@ const defaultPreferences: UserPreferences = {
     weekStartDay: 1, // Monday
     showCompletedTasks: true,
     compactView: false,
+  },
+  soundSettings: {
+    hapticFeedback: true,
+    completionSound: true,
+    soundVolume: 50,
   },
   dateFormat: 'DD/MM/YYYY',
   theme: 'dark',
@@ -139,6 +145,10 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({
           taskSettings: {
             ...defaultPreferences.taskSettings,
             ...(parsed.taskSettings || {}),
+          },
+          soundSettings: {
+            ...defaultPreferences.soundSettings,
+            ...(parsed.soundSettings || {}),
           },
         };
       }

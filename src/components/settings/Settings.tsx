@@ -29,6 +29,7 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { languages } from '../../i18n';
 import { DataManagement } from './DataManagement';
 import { LoggingSettings } from './LoggingSettings';
+import { SoundSettings } from './SoundSettings';
 import { useAI } from '../../contexts/AIContext';
 import {
   LocalAIService,
@@ -374,6 +375,12 @@ export const Settings: React.FC<SettingsProps> = ({
                     </div>
                   </div>
                 </div>
+
+                <Divider className='bg-divider' />
+
+                <div>
+                  <SoundSettings />
+                </div>
               </div>
             </Tab>
 
@@ -583,6 +590,29 @@ export const Settings: React.FC<SettingsProps> = ({
                           handleNestedPreferenceChange(
                             'aiSettings',
                             'toolPermissions',
+                            checked
+                          )
+                        }
+                        size='sm'
+                      />
+                    </div>
+
+                    <div className='flex items-center justify-between'>
+                      <div>
+                        <label className='text-sm font-medium text-foreground'>
+                          Show AI Interaction Logs
+                        </label>
+                        <p className='text-xs text-foreground-600'>
+                          Show the AI Interaction Logs tab in navigation for
+                          debugging and monitoring
+                        </p>
+                      </div>
+                      <Switch
+                        isSelected={preferences.aiSettings.showInteractionLogs}
+                        onValueChange={checked =>
+                          handleNestedPreferenceChange(
+                            'aiSettings',
+                            'showInteractionLogs',
                             checked
                           )
                         }

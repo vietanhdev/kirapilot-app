@@ -120,12 +120,12 @@ export function TimeHistoryModal({
     >
       <ModalContent>
         <ModalHeader className='pb-2'>
-          <div className='flex flex-col gap-1'>
+          <div className='flex flex-col gap-1 pr-6'>
             <div className='flex items-center gap-2'>
               <Clock className='w-4 h-4 text-primary' />
               <span className='font-semibold'>{t('timeHistory.title')}</span>
             </div>
-            <span className='text-sm text-default-500 font-normal'>
+            <span className='text-sm text-default-500 font-normal truncate'>
               {task.title}
             </span>
           </div>

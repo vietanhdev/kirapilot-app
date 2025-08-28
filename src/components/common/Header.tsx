@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { useTimerContext } from '../../contexts/TimerContext';
 import { useTranslation } from '../../hooks/useTranslation';
+import { useSettings } from '../../contexts/SettingsContext';
 import { SessionHistoryModal } from '../timer/SessionHistory';
 import { AppLogo } from './AppLogo';
 import { TaskListDropdown } from './TaskListDropdown';
@@ -35,6 +36,7 @@ export const Header: React.FC<HeaderProps> = ({
     handleTimerStop,
   } = useTimerContext();
   const { t } = useTranslation();
+  const { preferences } = useSettings();
 
   const [showSessionLogs, setShowSessionLogs] = useState(false);
 
@@ -164,7 +166,9 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Other Navigation Buttons */}
         {[
           { icon: BarChart3, label: t('nav.reports'), id: 'reports' },
-          { icon: FileText, label: t('nav.logs'), id: 'logs' },
+          ...(preferences.aiSettings.showInteractionLogs
+            ? [{ icon: FileText, label: t('nav.logs'), id: 'logs' }]
+            : []),
           { icon: Settings, label: t('nav.settings'), id: 'settings' },
         ].map(({ icon: Icon, label, id }) => (
           <button
