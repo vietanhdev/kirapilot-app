@@ -35,6 +35,7 @@ import {
   Shield,
 } from 'lucide-react';
 import { AIInteractionLog } from '../../types/aiLogging';
+import { ReActStepsViewer } from './ReActStepsViewer';
 interface LogDetailViewProps {
   log: AIInteractionLog;
   isOpen: boolean;
@@ -303,6 +304,15 @@ export function LogDetailView({
                 )}
               </CardBody>
             </Card>
+
+            {/* ReAct Processing Steps */}
+            {log.reactSteps && log.reactSteps.length > 0 && (
+              <ReActStepsViewer
+                steps={log.reactSteps}
+                showTimestamps={true}
+                showExecutionTimes={true}
+              />
+            )}
 
             {/* Actions and Suggestions */}
             {(actions.length > 0 || suggestions.length > 0) && (

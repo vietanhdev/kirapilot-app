@@ -39,7 +39,19 @@ export const ModelSelectionCard: React.FC<ModelSelectionCardProps> = ({
 }) => {
   const { t } = useTranslation();
   const { preferences, updateNestedPreference } = useSettings();
-  const { modelManager, reinitializeAI } = useAI();
+  const { aiService, reinitializeAI, getAvailableModels } = useAI();
+
+  // Debug log to check what's available
+  useEffect(() => {
+    console.log(
+      '🔍 [KIRAPILOT] ModelSelectionCard mounted. Available models:',
+      getAvailableModels()
+    );
+    console.log(
+      '🔍 [KIRAPILOT] AI Service:',
+      aiService ? 'initialized' : 'not initialized'
+    );
+  }, [aiService, getAvailableModels]);
 
   const [modelStatus, setModelStatus] = useState<ModelStatus | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -48,8 +60,8 @@ export const ModelSelectionCard: React.FC<ModelSelectionCardProps> = ({
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const updateStatus = useCallback(() => {
-    if (modelManager) {
-      const status = modelManager.getModelStatus();
+    if (aiService) {
+      const status = aiService.getStatus();
       setModelStatus(prevStatus => {
         // Only update if status actually changed to prevent unnecessary re-renders
         if (
@@ -57,15 +69,14 @@ export const ModelSelectionCard: React.FC<ModelSelectionCardProps> = ({
           prevStatus.type !== status.type ||
           prevStatus.isReady !== status.isReady ||
           prevStatus.isLoading !== status.isLoading ||
-          prevStatus.error !== status.error ||
-          prevStatus.downloadProgress !== status.downloadProgress
+          prevStatus.error !== status.error
         ) {
           return status;
         }
         return prevStatus;
       });
     }
-  }, [modelManager]);
+  }, [aiService]);
 
   // Initial status update and setup polling
   useEffect(() => {
@@ -76,8 +87,8 @@ export const ModelSelectionCard: React.FC<ModelSelectionCardProps> = ({
       clearInterval(intervalRef.current);
     }
 
-    // Only start polling if we have a model manager
-    if (modelManager) {
+    // Only start polling if we have an AI service
+    if (aiService) {
       intervalRef.current = setInterval(updateStatus, 2000); // Reduced frequency
     }
 
@@ -87,10 +98,10 @@ export const ModelSelectionCard: React.FC<ModelSelectionCardProps> = ({
         intervalRef.current = null;
       }
     };
-  }, [modelManager, updateStatus]);
+  }, [aiService, updateStatus]);
 
   const handleModelTypeChange = async (modelType: 'local' | 'gemini') => {
-    if (!modelManager) {
+    if (!aiService) {
       return;
     }
 
@@ -101,37 +112,8 @@ export const ModelSelectionCard: React.FC<ModelSelectionCardProps> = ({
       // Update preferences first
       await updateNestedPreference('aiSettings', 'modelType', modelType);
 
-      // If switching to local model, start auto-loading immediately
-      if (modelType === 'local') {
-        // Start auto-loading in background (non-blocking)
-        const autoLoadPromise = modelManager.autoLoadLocalModel({
-          type: 'local',
-          options: preferences.aiSettings.localModelConfig,
-        });
-
-        // Don't wait for auto-loading to complete, but show loading state
-        // The user will see the model initializing in the background
-        autoLoadPromise.catch(error => {
-          console.warn(
-            'Auto-loading failed, will initialize on demand:',
-            error
-          );
-        });
-
-        // Update the UI immediately to show we're switching
-        setIsLoading(false);
-
-        // Reinitialize AI context to pick up the preference change
-        await reinitializeAI();
-
-        return;
-      }
-
-      // For Gemini or other models, switch normally
-      await modelManager.switchModel(modelType, {
-        type: modelType,
-        apiKey: preferences.aiSettings.geminiApiKey,
-      });
+      // Switch to the selected model using the backend service
+      await aiService.switchModel(modelType);
 
       // Reinitialize AI context
       await reinitializeAI();

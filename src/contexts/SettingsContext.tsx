@@ -55,7 +55,7 @@ const defaultPreferences: UserPreferences = {
     responseStyle: 'balanced',
     suggestionFrequency: 'moderate',
     showInteractionLogs: false,
-    modelType: 'gemini',
+    modelType: 'local',
     geminiApiKey: undefined,
     localModelConfig: {
       threads: 4,

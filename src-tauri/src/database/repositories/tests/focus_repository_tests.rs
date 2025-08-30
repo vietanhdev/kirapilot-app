@@ -15,6 +15,7 @@ mod tests {
             description: None,
             priority: 1,
             status: None,
+            order_num: None,
             dependencies: None,
             time_estimate: None,
             due_date: None,

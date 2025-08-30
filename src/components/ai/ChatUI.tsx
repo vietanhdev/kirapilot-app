@@ -24,6 +24,7 @@ import {
   LoggingStatusIndicator,
   LoggingNotifications,
 } from './';
+import { LocalModelDiagnostics } from './LocalModelDiagnostics';
 import { useAutoScroll } from '../../hooks/useAutoScroll';
 import { useTranslation } from '../../hooks/useTranslation';
 
@@ -35,6 +36,7 @@ interface ChatUIProps {
 
 export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
   const [message, setMessage] = useState('');
+  const [showDiagnostics, setShowDiagnostics] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const { scrollRef, isAutoScrollPaused, resumeAutoScroll } = useAutoScroll();
   const { t } = useTranslation();
@@ -48,6 +50,8 @@ export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
     sendMessage,
     dismissSuggestion,
     applySuggestion,
+    switchModel,
+    currentModelType,
   } = useAI();
 
   const { activeTask, activeTaskId, hasActiveTimer } = useTimerContext();
@@ -267,9 +271,44 @@ export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
 
           {/* Error Display */}
           {error && (
-            <div className='p-3 bg-danger/10 border-b border-danger/20 text-danger text-sm flex items-center gap-2'>
-              <AlertCircle className='w-4 h-4' />
-              {error}
+            <div className='p-3 bg-danger/10 border-b border-danger/20 text-danger text-sm'>
+              <div className='flex items-center gap-2 mb-2'>
+                <AlertCircle className='w-4 h-4' />
+                <span>{error}</span>
+              </div>
+
+              {/* Show diagnostics button for local model errors */}
+              {error.toLowerCase().includes('local') &&
+                currentModelType === 'local' && (
+                  <div className='flex gap-2 mt-2'>
+                    <Button
+                      size='sm'
+                      variant='flat'
+                      color='primary'
+                      onPress={() => setShowDiagnostics(!showDiagnostics)}
+                    >
+                      {showDiagnostics ? 'Hide' : 'Show'} Diagnostics
+                    </Button>
+                    <Button
+                      size='sm'
+                      variant='flat'
+                      color='secondary'
+                      onPress={() => switchModel('local')}
+                    >
+                      Retry Local Model
+                    </Button>
+                  </div>
+                )}
+
+              {/* Diagnostics Panel */}
+              {showDiagnostics && error.toLowerCase().includes('local') && (
+                <div className='mt-3'>
+                  <LocalModelDiagnostics
+                    onRetry={() => switchModel('local')}
+                    isVisible={true}
+                  />
+                </div>
+              )}
             </div>
           )}
 

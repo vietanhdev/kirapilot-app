@@ -138,6 +138,7 @@ mod tests {
             description: Some("Test orphaned task".to_string()),
             priority: 1,
             status: Some("todo".to_string()),
+            order_num: None,
             dependencies: None,
             due_date: None,
             scheduled_date: None,

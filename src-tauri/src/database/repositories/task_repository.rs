@@ -8,7 +8,7 @@ use std::sync::Arc;
 use crate::database::entities::{task_dependencies, task_lists, tasks};
 
 /// Request structure for creating a new task
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct CreateTaskRequest {
     pub title: String,
     pub description: Option<String>,
@@ -25,8 +25,40 @@ pub struct CreateTaskRequest {
     pub task_list_id: Option<String>,
 }
 
+/// Filters for querying tasks
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct TaskFilters {
+    pub status: Option<Vec<String>>,
+    pub priority: Option<Vec<u32>>,
+    pub search: Option<String>,
+    pub tags: Option<Vec<String>>,
+    pub scheduled_date: Option<chrono::NaiveDate>,
+    pub scheduled_date_range: Option<(chrono::NaiveDate, chrono::NaiveDate)>,
+    pub overdue_only: Option<bool>,
+    pub task_ids: Option<Vec<String>>,
+    pub limit: Option<usize>,
+    pub sort_by: Option<String>,
+    pub sort_order: Option<String>,
+}
+
+impl TaskFilters {
+    pub fn is_empty(&self) -> bool {
+        self.status.is_none() &&
+        self.priority.is_none() &&
+        self.search.is_none() &&
+        self.tags.is_none() &&
+        self.scheduled_date.is_none() &&
+        self.scheduled_date_range.is_none() &&
+        self.overdue_only.is_none() &&
+        self.task_ids.is_none() &&
+        self.limit.is_none() &&
+        self.sort_by.is_none() &&
+        self.sort_order.is_none()
+    }
+}
+
 /// Request structure for updating an existing task
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct UpdateTaskRequest {
     pub title: Option<String>,
     pub description: Option<String>,
@@ -47,6 +79,7 @@ pub struct UpdateTaskRequest {
 }
 
 /// Task repository for SeaORM-based database operations
+#[derive(Clone)]
 pub struct TaskRepository {
     db: Arc<DatabaseConnection>,
 }

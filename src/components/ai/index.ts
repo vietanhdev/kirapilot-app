@@ -7,3 +7,7 @@ export { LoggingNotifications } from './LoggingNotifications';
 export { LogViewer } from './LogViewer';
 export { LogDetailView } from './LogDetailView';
 export { LogViewerContainer } from './LogViewerContainer';
+export { ReActStepsViewer } from './ReActStepsViewer';
+export { ExportDialog } from './ExportDialog';
+export { AdvancedLogSearch } from './AdvancedLogSearch';
+export { LocalModelDiagnostics } from './LocalModelDiagnostics';

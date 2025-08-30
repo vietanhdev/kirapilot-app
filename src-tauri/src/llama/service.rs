@@ -26,6 +26,7 @@ pub struct GenerationOptions {
     pub top_p: Option<f32>,
     pub top_k: Option<i32>,
     pub repeat_penalty: Option<f32>,
+    pub stop_sequences: Option<Vec<String>>,
 }
 
 impl Default for GenerationOptions {
@@ -36,6 +37,11 @@ impl Default for GenerationOptions {
             top_p: Some(0.9),
             top_k: Some(40),
             repeat_penalty: Some(1.1),
+            stop_sequences: Some(vec![
+                "<end_of_turn>".to_string(),
+                "<eos>".to_string(),
+                "</s>".to_string(),
+            ]),
         }
     }
 }
@@ -299,17 +305,39 @@ impl InternalLlamaService {
 
         // Generate tokens
         let mut n_cur = batch.n_tokens();
+        let mut generated_tokens = 0;
         let mut generated_text = String::new();
         let mut decoder = encoding_rs::UTF_8.new_decoder();
+        let _start_position = last_index + 1;
 
-        while n_cur < (last_index + 1 + max_tokens) {
+        // Main generation loop with multiple stopping conditions
+        let min_tokens = std::cmp::min(5, max_tokens); // Generate at least 5 tokens unless max_tokens is smaller
+        while generated_tokens < max_tokens {
+            // Safety check: prevent infinite loops with absolute maximum
+            if generated_tokens > max_tokens * 2 {
+                warn!("Emergency stop: generated tokens ({}) exceeded safety limit", generated_tokens);
+                break;
+            }
+
+            // Safety check: ensure we don't exceed context size
+            if n_cur >= n_ctx {
+                warn!("Generation stopped: reached context size limit at token {}", n_cur);
+                break;
+            }
+
+            // Safety check: ensure we don't exceed batch capacity
+            if n_cur >= batch_size as i32 {
+                warn!("Generation stopped: reached batch capacity limit at token {}", n_cur);
+                break;
+            }
+
             // Sample the next token
             let token = sampler.sample(&context, batch.n_tokens() - 1);
             sampler.accept(token);
 
-            // Check if it's end of generation
+            // Check if it's end of generation token
             if model.is_eog_token(token) {
-                debug!("End of generation token encountered");
+                debug!("End of generation token encountered after {} tokens", generated_tokens);
                 break;
             }
 
@@ -321,14 +349,32 @@ impl InternalLlamaService {
             let _decode_result = decoder.decode_to_string(&output_bytes, &mut output_string, false);
             generated_text.push_str(&output_string);
 
+            // Check for stop sequences - only check if we have generated minimum tokens and enough text
+            if generated_tokens >= min_tokens && !generated_text.is_empty() {
+                if let Some(ref stop_sequences) = options.stop_sequences {
+                    for stop_seq in stop_sequences {
+                        // Only check for stop sequences if we have generated enough text
+                        if generated_text.len() >= stop_seq.len() {
+                            if generated_text.ends_with(stop_seq) {
+                                debug!("Stop sequence '{}' found at end after {} tokens", stop_seq, generated_tokens);
+                                // Remove the stop sequence from the output
+                                let end_pos = generated_text.len() - stop_seq.len();
+                                generated_text = generated_text[..end_pos].to_string();
+                                return Ok(generated_text.trim().to_string());
+                            }
+                            // Also check if the stop sequence appears anywhere in the text (for cases like newlines)
+                            if let Some(pos) = generated_text.find(stop_seq) {
+                                debug!("Stop sequence '{}' found at position {} after {} tokens", stop_seq, pos, generated_tokens);
+                                generated_text = generated_text[..pos].to_string();
+                                return Ok(generated_text.trim().to_string());
+                            }
+                        }
+                    }
+                }
+            }
+
             // Prepare for next iteration
             batch.clear();
-            
-            // Safety check: ensure we don't exceed batch capacity during generation
-            if n_cur >= batch_size as i32 {
-                warn!("Generation loop reached batch capacity limit at token {}", n_cur);
-                break;
-            }
             
             batch.add(token, n_cur, &[0], true)
                 .map_err(|e| {
@@ -337,13 +383,25 @@ impl InternalLlamaService {
                 })?;
 
             n_cur += 1;
+            generated_tokens += 1;
 
             // Decode the new token
             context.decode(&mut batch)
                 .map_err(|e| LlamaError::GenerationFailed(format!("Failed to decode generated token: {}", e)))?;
+
+            // Additional safety check: if we've generated a reasonable amount of text, check for natural stopping points
+            if generated_tokens > 10 && generated_text.ends_with('\n') && generated_text.trim().len() > 50 {
+                debug!("Natural stopping point detected after {} tokens", generated_tokens);
+                // Don't break immediately, but this could be enhanced with more sophisticated stopping logic
+            }
         }
 
-        info!("Generated {} tokens: {}", n_cur - (last_index + 1), generated_text.len());
+        info!("Generated {} tokens, {} characters: \"{}\"", generated_tokens, generated_text.len(), 
+              if generated_text.len() > 100 { 
+                  format!("{}...", &generated_text[..100]) 
+              } else { 
+                  generated_text.clone() 
+              });
         Ok(generated_text)
     }
 
@@ -615,9 +673,9 @@ impl LlamaService {
 
         // Validate generation options
         if let Some(max_tokens) = options.max_tokens {
-            if max_tokens <= 0 || max_tokens > 4096 {
+            if max_tokens <= 0 || max_tokens > 2048 {
                 return Err(LlamaError::ValidationError(
-                    "max_tokens must be between 1 and 4096".to_string(),
+                    "max_tokens must be between 1 and 2048".to_string(),
                 ));
             }
         }
@@ -722,10 +780,10 @@ impl LlamaService {
             };
 
             Some(ModelInfo {
-                name: "gemma-3-270m-it-Q4_K_M".to_string(),
+                name: "gemma-3-1b-it-Q4_K_M".to_string(),
                 size_mb,
                 context_size: self.context_size,
-                parameter_count: "270M".to_string(),
+                parameter_count: "1B".to_string(),
             })
         } else {
             None

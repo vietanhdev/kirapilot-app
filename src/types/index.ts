@@ -365,6 +365,11 @@ export interface UserPreferences {
       autoCleanup: boolean;
       exportFormat: 'json' | 'csv';
     };
+    // Model Management UI settings
+    performanceMonitoring?: boolean;
+    autoOptimization?: boolean;
+    autoFallback?: boolean;
+    fallbackModel?: 'local' | 'gemini';
   };
   taskSettings: {
     defaultPriority: Priority;
@@ -470,3 +475,6 @@ export interface SessionStatistics {
 
 // Re-export AI logging types
 export * from './aiLogging';
+
+// Re-export backend AI types
+export * from './backendAI';

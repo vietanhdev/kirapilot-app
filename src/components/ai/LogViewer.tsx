@@ -2,11 +2,8 @@ import { useState, useEffect } from 'react';
 import {
   Card,
   CardBody,
-  CardHeader,
   Input,
   Button,
-  Select,
-  SelectItem,
   Chip,
   Spinner,
   Pagination,
@@ -26,11 +23,12 @@ import {
   Cpu,
   Zap,
   RefreshCw,
+  Download,
 } from 'lucide-react';
 import { AIInteractionLog, LogFilter } from '../../types/aiLogging';
-import { DatePicker } from '../common/DatePicker';
 import { TruncatedMessage } from './TruncatedMessage';
 import { ToolDetails } from './ToolDetails';
+import { AdvancedLogSearch } from './AdvancedLogSearch';
 interface LogViewerProps {
   logs: AIInteractionLog[];
   loading: boolean;
@@ -42,6 +40,7 @@ interface LogViewerProps {
   onLogSelect: (log: AIInteractionLog) => void;
   onLogDelete: (logId: string) => void;
   onRefresh: () => void;
+  onExport?: () => void;
 }
 
 export function LogViewer({
@@ -54,6 +53,7 @@ export function LogViewer({
   onFilterChange,
   onLogSelect,
   onRefresh,
+  onExport,
 }: LogViewerProps) {
   const [filters, setFilters] = useState<LogFilter>({});
   const [searchText, setSearchText] = useState('');
@@ -71,45 +71,6 @@ export function LogViewer({
   const handleFilterChange = (newFilters: LogFilter) => {
     setFilters(newFilters);
     onFilterChange(newFilters);
-  };
-
-  const handleDateRangeChange = (
-    field: 'startDate' | 'endDate',
-    date: Date | null
-  ) => {
-    handleFilterChange({
-      ...filters,
-      [field]: date,
-    });
-  };
-
-  const handleModelTypeChange = (value: string) => {
-    handleFilterChange({
-      ...filters,
-      modelType: value === 'all' ? undefined : (value as 'local' | 'gemini'),
-    });
-  };
-
-  const handleInteractionTypeChange = (value: string) => {
-    const newFilters = { ...filters };
-
-    switch (value) {
-      case 'errors':
-        newFilters.hasErrors = true;
-        delete newFilters.containsToolCalls;
-        break;
-      case 'tool-calls':
-        newFilters.containsToolCalls = true;
-        delete newFilters.hasErrors;
-        break;
-      case 'all':
-      default:
-        delete newFilters.hasErrors;
-        delete newFilters.containsToolCalls;
-        break;
-    }
-
-    handleFilterChange(newFilters);
   };
 
   const clearFilters = () => {
@@ -169,6 +130,16 @@ export function LogViewer({
           >
             Refresh
           </Button>
+          {onExport && (
+            <Button
+              variant='flat'
+              size='sm'
+              startContent={<Download className='w-4 h-4' />}
+              onPress={onExport}
+            >
+              Export
+            </Button>
+          )}
           <Button
             variant='flat'
             size='sm'
@@ -196,97 +167,13 @@ export function LogViewer({
         className='max-w-md'
       />
 
-      {/* Filters Panel */}
+      {/* Advanced Search Panel */}
       {showFilters && (
-        <Card>
-          <CardHeader className='pb-2'>
-            <div className='flex items-center justify-between w-full'>
-              <h3 className='text-sm font-medium'>Filters</h3>
-              <Button
-                variant='light'
-                size='sm'
-                onPress={clearFilters}
-                isDisabled={Object.keys(filters).length === 0}
-              >
-                Clear All
-              </Button>
-            </div>
-          </CardHeader>
-          <CardBody className='pt-0'>
-            <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>
-              {/* Date Range */}
-              <div className='space-y-2'>
-                <label className='text-xs font-medium text-default-600'>
-                  Date Range
-                </label>
-                <div className='space-y-2'>
-                  <DatePicker
-                    placeholder='Start date'
-                    value={filters.startDate || null}
-                    onChange={date => handleDateRangeChange('startDate', date)}
-                    dateFormat='YYYY-MM-DD'
-                    size='sm'
-                  />
-                  <DatePicker
-                    placeholder='End date'
-                    value={filters.endDate || null}
-                    onChange={date => handleDateRangeChange('endDate', date)}
-                    dateFormat='YYYY-MM-DD'
-                    size='sm'
-                  />
-                </div>
-              </div>
-
-              {/* Model Type */}
-              <div className='space-y-2'>
-                <label className='text-xs font-medium text-default-600'>
-                  AI Service
-                </label>
-                <Select
-                  placeholder='All services'
-                  size='sm'
-                  selectedKeys={
-                    filters.modelType ? [filters.modelType] : ['all']
-                  }
-                  onSelectionChange={keys => {
-                    const value = Array.from(keys)[0] as string;
-                    handleModelTypeChange(value);
-                  }}
-                >
-                  <SelectItem key='all'>All Services</SelectItem>
-                  <SelectItem key='local'>Local AI</SelectItem>
-                  <SelectItem key='gemini'>Gemini</SelectItem>
-                </Select>
-              </div>
-
-              {/* Interaction Type */}
-              <div className='space-y-2'>
-                <label className='text-xs font-medium text-default-600'>
-                  Interaction Type
-                </label>
-                <Select
-                  placeholder='All interactions'
-                  size='sm'
-                  selectedKeys={[
-                    filters.hasErrors
-                      ? 'errors'
-                      : filters.containsToolCalls
-                        ? 'tool-calls'
-                        : 'all',
-                  ]}
-                  onSelectionChange={keys => {
-                    const value = Array.from(keys)[0] as string;
-                    handleInteractionTypeChange(value);
-                  }}
-                >
-                  <SelectItem key='all'>All Interactions</SelectItem>
-                  <SelectItem key='errors'>Errors Only</SelectItem>
-                  <SelectItem key='tool-calls'>With Tool Calls</SelectItem>
-                </Select>
-              </div>
-            </div>
-          </CardBody>
-        </Card>
+        <AdvancedLogSearch
+          filters={filters}
+          onFiltersChange={handleFilterChange}
+          onClearFilters={clearFilters}
+        />
       )}
 
       {/* Logs Table */}

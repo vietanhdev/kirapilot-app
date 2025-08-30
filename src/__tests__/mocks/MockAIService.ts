@@ -8,7 +8,7 @@ import {
   DistractionLevel,
 } from '../../types';
 import { MockAIConfig } from '../setup/testUtils';
-import { PermissionLevel } from '../../services/ai/ToolExecutionEngine';
+import { PermissionLevel } from '../../services/ai/types';
 
 export class MockAIService {
   private responses: Map<string, AIResponse> = new Map();
@@ -308,7 +308,7 @@ export class MockAIService {
     return [...this.conversationHistory];
   }
 
-  // ReactAIService interface methods
+  // AI Service interface methods
   setApiKey(_apiKey: string): void {
     this.initialized = true;
   }

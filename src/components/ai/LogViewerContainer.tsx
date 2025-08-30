@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { LogViewer } from './LogViewer';
 import { LogDetailView } from './LogDetailView';
+import { ExportDialog, ExportOptions } from './ExportDialog';
 import { AIInteractionLog, LogFilter } from '../../types/aiLogging';
 import { LogStorageService } from '../../services/database/repositories/LogStorageService';
 interface LogViewerContainerProps {
@@ -23,6 +24,7 @@ export function LogViewerContainer({ className }: LogViewerContainerProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const [filters, setFilters] = useState<LogFilter>({});
   const [selectedLog, setSelectedLog] = useState<AIInteractionLog | null>(null);
+  const [showExportDialog, setShowExportDialog] = useState(false);
   const [logStorageService] = useState(() => new LogStorageService());
 
   // Load logs with current filters
@@ -248,6 +250,42 @@ export function LogViewerContainer({ className }: LogViewerContainerProps) {
     [logStorageService, showNotification]
   );
 
+  // Handle bulk export
+  const handleBulkExport = useCallback(
+    async (options: ExportOptions) => {
+      try {
+        const blob = await logStorageService.exportLogs(
+          options.filters,
+          options.format
+        );
+
+        // Create download link
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${options.filename || 'ai-logs'}.${options.format}`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        showNotification({
+          type: 'success',
+          title: 'Success',
+          message: 'Logs exported successfully',
+        });
+      } catch (error) {
+        console.error('Failed to export logs:', error);
+        showNotification({
+          type: 'error',
+          title: 'Error',
+          message: 'Failed to export logs',
+        });
+      }
+    },
+    [logStorageService, showNotification]
+  );
+
   return (
     <div className={className}>
       <LogViewer
@@ -261,6 +299,7 @@ export function LogViewerContainer({ className }: LogViewerContainerProps) {
         onLogSelect={handleLogSelect}
         onLogDelete={handleLogDelete}
         onRefresh={handleRefresh}
+        onExport={() => setShowExportDialog(true)}
       />
 
       {selectedLog && (
@@ -273,6 +312,14 @@ export function LogViewerContainer({ className }: LogViewerContainerProps) {
           onRedactSensitiveData={() => handleRedactSensitiveData(selectedLog)}
         />
       )}
+
+      <ExportDialog
+        isOpen={showExportDialog}
+        onClose={() => setShowExportDialog(false)}
+        onExport={handleBulkExport}
+        totalLogs={totalCount}
+        currentFilters={filters}
+      />
     </div>
   );
 }

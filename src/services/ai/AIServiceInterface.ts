@@ -1,5 +1,5 @@
 import { AIResponse, AppContext, PatternAnalysis } from '../../types';
-import { TranslationFunction } from './ToolExecutionEngine';
+import { TranslationFunction } from './types';
 
 /**
  * Model information interface

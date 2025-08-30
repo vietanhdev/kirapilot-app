@@ -8,7 +8,10 @@ pub mod time_tracking_repository;
 #[cfg(test)]
 pub mod tests;
 
-pub use ai_repository::AiRepository;
+pub use ai_repository::{
+    AiRepository, CreateDetailedToolExecutionLogRequest,
+    CreateToolUsageAnalyticsRequest, ToolExecutionLogFilter, SessionToolStats
+};
 pub use task_list_repository::TaskListRepository;
-pub use task_repository::TaskRepository;
+pub use task_repository::{TaskRepository, CreateTaskRequest, UpdateTaskRequest, TaskFilters};
 pub use time_tracking_repository::TimeTrackingRepository;

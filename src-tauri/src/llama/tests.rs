@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use super::*;
+    // Tests for llama module
     use crate::llama::error::LlamaError;
     use crate::llama::service::{LlamaService, GenerationOptions, ModelStatus};
     use std::path::PathBuf;
@@ -93,10 +93,10 @@ mod tests {
                 error_message: None,
                 model_info: if self.is_ready {
                     Some(crate::llama::service::ModelInfo {
-                        name: "gemma-3-270m-it-Q4_K_M".to_string(),
+                        name: "gemma-3-1b-it-Q4_K_M".to_string(),
                         size_mb: 150,
                         context_size: 2048,
-                        parameter_count: "270M".to_string(),
+                        parameter_count: "1B".to_string(),
                     })
                 } else {
                     None
@@ -262,10 +262,10 @@ mod tests {
         assert!(status.model_info.is_some());
 
         if let Some(model_info) = status.model_info {
-            assert_eq!(model_info.name, "gemma-3-270m-it-Q4_K_M");
+            assert_eq!(model_info.name, "gemma-3-1b-it-Q4_K_M");
             assert_eq!(model_info.size_mb, 150);
             assert_eq!(model_info.context_size, 2048);
-            assert_eq!(model_info.parameter_count, "270M");
+            assert_eq!(model_info.parameter_count, "1B");
         }
     }
 

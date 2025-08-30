@@ -5,7 +5,7 @@ use sea_orm::{
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
-use crate::database::entities::ai_interactions;
+use crate::database::entities::{ai_interactions, tool_execution_logs, tool_usage_analytics};
 
 /// Request structure for creating a new AI interaction
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -74,6 +74,55 @@ pub struct CreateToolExecutionLogRequest {
     pub execution_time: i64, // milliseconds
     pub success: bool,
     pub error: Option<String>,
+}
+
+/// Enhanced request structure for creating detailed tool execution logs
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateDetailedToolExecutionLogRequest {
+    pub session_id: String,
+    pub tool_name: String,
+    pub parameters: String, // JSON string
+    pub inference_info: Option<String>, // JSON string
+    pub result: String, // JSON string
+    pub context: String, // JSON string
+    pub user_id: Option<String>,
+    pub execution_time_ms: i64,
+    pub success: bool,
+    pub error: Option<String>,
+    pub performance_class: String,
+    pub tool_category: String,
+    pub metadata: Option<String>, // JSON string
+    pub recovery_suggestions: Option<String>, // JSON array string
+}
+
+/// Request structure for creating tool usage analytics
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateToolUsageAnalyticsRequest {
+    pub period_start: chrono::DateTime<chrono::Utc>,
+    pub period_end: chrono::DateTime<chrono::Utc>,
+    pub analytics_type: String,
+    pub most_used_tools: String, // JSON string
+    pub most_reliable_tools: String, // JSON string
+    pub performance_stats: String, // JSON string
+    pub error_analysis: String, // JSON string
+    pub usage_patterns: String, // JSON string
+    pub recommendations: String, // JSON array string
+    pub total_executions: i64,
+    pub successful_executions: i64,
+    pub avg_execution_time_ms: f64,
+}
+
+/// Tool execution log filter options
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ToolExecutionLogFilter {
+    pub session_id: Option<String>,
+    pub tool_name: Option<String>,
+    pub success: Option<bool>,
+    pub performance_class: Option<String>,
+    pub tool_category: Option<String>,
+    pub start_time: Option<chrono::DateTime<chrono::Utc>>,
+    pub end_time: Option<chrono::DateTime<chrono::Utc>>,
+    pub limit: Option<u64>,
 }
 
 /// AI interaction statistics
@@ -482,5 +531,192 @@ impl AiRepository {
         };
 
         interaction.insert(&*self.db).await
+    }
+
+    /// Create a detailed tool execution log
+    pub async fn create_detailed_tool_execution_log(
+        &self,
+        request: CreateDetailedToolExecutionLogRequest,
+    ) -> Result<tool_execution_logs::Model, DbErr> {
+        let log = tool_execution_logs::ActiveModel {
+            session_id: Set(request.session_id),
+            tool_name: Set(request.tool_name),
+            parameters: Set(request.parameters),
+            inference_info: Set(request.inference_info),
+            result: Set(request.result),
+            context: Set(request.context),
+            user_id: Set(request.user_id),
+            execution_time_ms: Set(request.execution_time_ms),
+            success: Set(request.success),
+            error: Set(request.error),
+            performance_class: Set(request.performance_class),
+            tool_category: Set(request.tool_category),
+            metadata: Set(request.metadata),
+            recovery_suggestions: Set(request.recovery_suggestions),
+            ..Default::default()
+        };
+
+        log.insert(&*self.db).await
+    }
+
+    /// Find tool execution logs with filtering
+    pub async fn find_tool_execution_logs(
+        &self,
+        filter: ToolExecutionLogFilter,
+    ) -> Result<Vec<tool_execution_logs::Model>, DbErr> {
+        let mut query = tool_execution_logs::Entity::find();
+
+        if let Some(session_id) = filter.session_id {
+            query = query.filter(tool_execution_logs::Column::SessionId.eq(session_id));
+        }
+
+        if let Some(tool_name) = filter.tool_name {
+            query = query.filter(tool_execution_logs::Column::ToolName.eq(tool_name));
+        }
+
+        if let Some(success) = filter.success {
+            query = query.filter(tool_execution_logs::Column::Success.eq(success));
+        }
+
+        if let Some(performance_class) = filter.performance_class {
+            query = query.filter(tool_execution_logs::Column::PerformanceClass.eq(performance_class));
+        }
+
+        if let Some(tool_category) = filter.tool_category {
+            query = query.filter(tool_execution_logs::Column::ToolCategory.eq(tool_category));
+        }
+
+        if let Some(start_time) = filter.start_time {
+            query = query.filter(tool_execution_logs::Column::Timestamp.gte(start_time));
+        }
+
+        if let Some(end_time) = filter.end_time {
+            query = query.filter(tool_execution_logs::Column::Timestamp.lte(end_time));
+        }
+
+        query = query.order_by_desc(tool_execution_logs::Column::Timestamp);
+
+        if let Some(limit) = filter.limit {
+            query = query.limit(limit);
+        }
+
+        query.all(&*self.db).await
+    }
+
+    /// Get tool execution statistics for a session
+    pub async fn get_session_tool_stats(
+        &self,
+        session_id: &str,
+    ) -> Result<SessionToolStats, DbErr> {
+        let logs = self.find_tool_execution_logs(ToolExecutionLogFilter {
+            session_id: Some(session_id.to_string()),
+            ..Default::default()
+        }).await?;
+
+        let total_executions = logs.len() as u64;
+        let successful_executions = logs.iter().filter(|log| log.success).count() as u64;
+        let total_time: i64 = logs.iter().map(|log| log.execution_time_ms).sum();
+        let avg_execution_time = if total_executions > 0 {
+            total_time as f64 / total_executions as f64
+        } else {
+            0.0
+        };
+
+        let mut tool_counts = std::collections::HashMap::new();
+        let mut error_counts = std::collections::HashMap::new();
+
+        for log in &logs {
+            *tool_counts.entry(log.tool_name.clone()).or_insert(0) += 1;
+            
+            if !log.success {
+                if let Some(error) = &log.error {
+                    *error_counts.entry(error.clone()).or_insert(0) += 1;
+                }
+            }
+        }
+
+        Ok(SessionToolStats {
+            total_executions,
+            successful_executions,
+            avg_execution_time_ms: avg_execution_time,
+            tool_usage_counts: tool_counts,
+            error_patterns: error_counts,
+            session_duration_minutes: 0.0, // Would need to calculate from first/last log
+        })
+    }
+
+    /// Create tool usage analytics
+    pub async fn create_tool_usage_analytics(
+        &self,
+        request: CreateToolUsageAnalyticsRequest,
+    ) -> Result<tool_usage_analytics::Model, DbErr> {
+        let analytics = tool_usage_analytics::ActiveModel {
+            period_start: Set(request.period_start),
+            period_end: Set(request.period_end),
+            analytics_type: Set(request.analytics_type),
+            most_used_tools: Set(request.most_used_tools),
+            most_reliable_tools: Set(request.most_reliable_tools),
+            performance_stats: Set(request.performance_stats),
+            error_analysis: Set(request.error_analysis),
+            usage_patterns: Set(request.usage_patterns),
+            recommendations: Set(request.recommendations),
+            total_executions: Set(request.total_executions),
+            successful_executions: Set(request.successful_executions),
+            avg_execution_time_ms: Set(request.avg_execution_time_ms),
+            ..Default::default()
+        };
+
+        analytics.insert(&*self.db).await
+    }
+
+    /// Get latest tool usage analytics
+    pub async fn get_latest_tool_analytics(
+        &self,
+        analytics_type: &str,
+    ) -> Result<Option<tool_usage_analytics::Model>, DbErr> {
+        tool_usage_analytics::Entity::find()
+            .filter(tool_usage_analytics::Column::AnalyticsType.eq(analytics_type))
+            .order_by_desc(tool_usage_analytics::Column::CreatedAt)
+            .one(&*self.db)
+            .await
+    }
+
+    /// Delete old tool execution logs (for cleanup)
+    pub async fn cleanup_old_tool_logs(
+        &self,
+        older_than: chrono::DateTime<chrono::Utc>,
+    ) -> Result<u64, DbErr> {
+        let result = tool_execution_logs::Entity::delete_many()
+            .filter(tool_execution_logs::Column::CreatedAt.lt(older_than))
+            .exec(&*self.db)
+            .await?;
+
+        Ok(result.rows_affected)
+    }
+}
+
+/// Session tool execution statistics
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SessionToolStats {
+    pub total_executions: u64,
+    pub successful_executions: u64,
+    pub avg_execution_time_ms: f64,
+    pub tool_usage_counts: std::collections::HashMap<String, u64>,
+    pub error_patterns: std::collections::HashMap<String, u64>,
+    pub session_duration_minutes: f64,
+}
+
+impl Default for ToolExecutionLogFilter {
+    fn default() -> Self {
+        Self {
+            session_id: None,
+            tool_name: None,
+            success: None,
+            performance_class: None,
+            tool_category: None,
+            start_time: None,
+            end_time: None,
+            limit: Some(100), // Default limit
+        }
     }
 }

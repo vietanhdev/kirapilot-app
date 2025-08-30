@@ -314,7 +314,7 @@ impl CircuitBreaker {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tokio::time::{sleep, Duration};
+    use tokio::time::Duration;
 
     #[tokio::test]
     async fn test_retry_success_on_first_attempt() {

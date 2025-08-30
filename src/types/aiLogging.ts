@@ -18,6 +18,9 @@ export interface AIInteractionLog {
   suggestions: string; // JSON serialized AISuggestion[]
   reasoning?: string;
 
+  // ReAct processing steps
+  reactSteps: ReActStep[];
+
   // Tool execution data
   toolCalls: ToolExecutionLog[];
 
@@ -36,6 +39,37 @@ export interface AIInteractionLog {
   // Metadata
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface ReActStep {
+  id: string;
+  stepType: ReActStepType;
+  content: string;
+  toolCall?: ToolCall;
+  toolResult?: ToolResult;
+  timestamp: Date;
+  executionTime?: number;
+  iteration: number;
+}
+
+export enum ReActStepType {
+  Thought = 'thought',
+  Action = 'action',
+  Observation = 'observation',
+  FinalAnswer = 'final_answer',
+}
+
+export interface ToolCall {
+  id: string;
+  name: string;
+  arguments: Record<string, unknown>;
+}
+
+export interface ToolResult {
+  success: boolean;
+  data: unknown;
+  message: string;
+  executionTime: number;
 }
 
 export interface ToolExecutionLog {
@@ -103,6 +137,7 @@ export interface CreateLogRequest {
   actions: string;
   suggestions: string;
   reasoning?: string;
+  reactSteps?: ReActStep[];
   responseTime: number;
   tokenCount?: number;
   error?: string;

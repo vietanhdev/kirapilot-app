@@ -22,6 +22,12 @@ export const en = {
   'common.clearDatabase': 'Clear Database (Dev Only)',
   'common.clearDatabaseConfirm':
     'Are you sure you want to clear all database data? This action cannot be undone.',
+  'common.ready': 'Ready',
+  'common.notReady': 'Not Ready',
+  'common.downloading': 'Downloading',
+  'common.note': 'Note',
+  'common.download': 'Download',
+  'common.close': 'Close',
 
   // Navigation
   'nav.week': 'Week',
@@ -98,6 +104,51 @@ export const en = {
   'settings.ai.threadPlural': 'threads',
   'settings.ai.threadCountDescription':
     'Number of CPU threads to use for local model inference',
+
+  // Model Management UI
+  'settings.ai.modelManagement': 'Model Management',
+  'settings.ai.modelManagementDescription':
+    'Manage AI models and service configuration',
+  'settings.ai.advancedConfig': 'Advanced Configuration',
+  'settings.ai.currentModel': 'Current Model',
+  'settings.ai.selectModel': 'Select AI Model',
+  'settings.ai.cloudModel': 'Cloud Model',
+  'settings.ai.localModel': 'Local Model',
+  'settings.ai.serviceStatus': 'Service Status',
+  'settings.ai.performance': 'Performance',
+  'settings.ai.responseTime': 'Response Time',
+  'settings.ai.llmTime': 'LLM Time',
+  'settings.ai.tokens': 'Tokens',
+  'settings.ai.localModels': 'Local Models',
+  'settings.ai.downloadModel': 'Download Model',
+  'settings.ai.noLocalModels': 'No local models installed',
+  'settings.ai.downloadFirstModel': 'Download your first model',
+  'settings.ai.activeDownloads': 'Active Downloads',
+  'settings.ai.deleteModel': 'Delete Model',
+  'settings.ai.confirmDeleteModel':
+    'Are you sure you want to delete this model? This action cannot be undone.',
+  'settings.ai.serviceNotReady': 'AI Service Not Ready',
+  'settings.ai.serviceRecoveryDescription':
+    'The AI service is experiencing issues and may need recovery',
+  'settings.ai.forceRecovery': 'Force Recovery',
+  'settings.ai.selectModelToDownload': 'Select Model to Download',
+  'settings.ai.chooseModel': 'Choose a model',
+  'settings.ai.downloadModelDescription':
+    'Download a local AI model for offline use and enhanced privacy',
+  'settings.ai.downloadNote':
+    'Model downloads may take several minutes depending on your internet connection. The app will remain functional during download.',
+  'settings.ai.performanceSettings': 'Performance Settings',
+  'settings.ai.enablePerformanceMonitoring': 'Enable Performance Monitoring',
+  'settings.ai.performanceMonitoringDescription':
+    'Track AI response times and resource usage',
+  'settings.ai.autoOptimization': 'Auto Optimization',
+  'settings.ai.autoOptimizationDescription':
+    'Automatically optimize model settings for better performance',
+  'settings.ai.fallbackSettings': 'Fallback Settings',
+  'settings.ai.enableAutoFallback': 'Enable Auto Fallback',
+  'settings.ai.autoFallbackDescription':
+    'Automatically switch to backup model if primary model fails',
+  'settings.ai.fallbackModel': 'Fallback Model',
 
   // Settings - AI Logging
   'settings.ai.logging.title': 'AI Interaction Logging',

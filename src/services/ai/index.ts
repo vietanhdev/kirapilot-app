@@ -1,48 +1,15 @@
-// AI Service exports - ReAct architecture with Model Management
+// AI Service exports - Backend architecture
+// Backend AI Service - New architecture
 export {
-  ReactAIService,
-  getReactAIService,
-  initializeReactAIService,
-} from './ReactAIService';
-export {
-  LocalAIService,
-  getLocalAIService,
-  initializeLocalAIService,
-} from './LocalAIService';
-export type { LocalModelConfig, GenerationOptions } from './LocalAIService';
+  BackendAIService,
+  getBackendAIService,
+  initializeBackendAIService,
+  createBackendAIService,
+  resetBackendAIService,
+} from './BackendAIService';
 export { getKiraPilotTools } from './tools';
-export {
-  ToolExecutionEngine,
-  PermissionLevel,
-  getToolExecutionEngine,
-  initializeToolExecutionEngine,
-} from './ToolExecutionEngine';
-export {
-  ToolResultFormatter,
-  getToolResultFormatter,
-  initializeToolResultFormatter,
-} from './ToolResultFormatter';
-export {
-  ToolRegistry,
-  getToolRegistry,
-  initializeToolRegistry,
-} from './ToolRegistry';
-export {
-  ToolExecutionBridge,
-  getToolExecutionBridge,
-  initializeToolExecutionBridge,
-} from './ToolExecutionBridge';
-export type {
-  ToolSchema,
-  ParameterSchema,
-  ToolExecutionContext,
-  ToolValidationResult,
-} from './ToolRegistry';
-export type {
-  ToolCall,
-  LangChainExecutionContext,
-  ToolExecutionBridgeError,
-} from './ToolExecutionBridge';
+export type { TranslationFunction, ToolExecutionResult } from './types';
+export { PermissionLevel } from './types';
 export type {
   AIServiceInterface,
   ModelInfo,
@@ -54,16 +21,16 @@ export {
   ModelInitializationError,
   ModelProcessingError,
 } from './AIServiceInterface';
-export type { ModelType, ModelConfig } from './ModelManager';
-export {
-  ModelManager,
-  getModelManager,
-  initializeModelManager,
-} from './ModelManager';
+
 export { AIProvider, useAI } from '../../contexts/AIContext';
 export { ChatUI } from '../../components/ai/ChatUI';
 export { AIFloatingButton } from '../../components/ai/AIFloatingButton';
 export { ExportService } from './ExportService';
+export {
+  diagnoseLocalModel,
+  getLocalModelErrorMessage,
+} from './LocalModelDiagnostics';
+export type { LocalModelDiagnostics } from './LocalModelDiagnostics';
 export type {
   ExportOptions,
   ExportResult,

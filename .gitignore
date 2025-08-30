@@ -26,3 +26,5 @@ src-tauri/kirapilot.db
 
 # Generated build info
 src/build-info.json
+models/gemma-3n-E4B-it-Q4_K_M.gguf
+logs.txt

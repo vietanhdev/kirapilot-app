@@ -56,6 +56,7 @@ pub struct DayStats {
 }
 
 /// Time tracking repository for SeaORM-based database operations
+#[derive(Clone)]
 pub struct TimeTrackingRepository {
     db: Arc<DatabaseConnection>,
 }
@@ -369,6 +370,21 @@ impl TimeTrackingRepository {
     /// Get all time sessions for backup
     pub async fn get_all_sessions(&self) -> Result<Vec<time_sessions::Model>, DbErr> {
         time_sessions::Entity::find().all(&*self.db).await
+    }
+
+    /// Start a new timer session for a task
+    pub async fn start_session(
+        &self,
+        task_id: String,
+        notes: Option<String>,
+    ) -> Result<time_sessions::Model, DbErr> {
+        let request = CreateTimeSessionRequest {
+            task_id,
+            start_time: chrono::Utc::now(),
+            notes,
+        };
+        
+        self.create_session(request).await
     }
 
     /// Import a time session from backup data

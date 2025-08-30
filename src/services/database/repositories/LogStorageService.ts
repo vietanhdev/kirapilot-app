@@ -47,6 +47,7 @@ export class LogStorageService {
           actions: JSON.parse(request.actions || '[]'),
           suggestions: JSON.parse(request.suggestions || '[]'),
           reasoning: request.reasoning,
+          reactSteps: request.reactSteps || [],
           toolCalls: [],
           responseTime: request.responseTime,
           tokenCount: request.tokenCount,
@@ -78,6 +79,9 @@ export class LogStorageService {
         actions: request.actions,
         suggestions: request.suggestions,
         reasoning: request.reasoning,
+        react_steps: request.reactSteps
+          ? JSON.stringify(request.reactSteps)
+          : undefined,
         response_time: request.responseTime,
         token_count: request.tokenCount,
         error: request.error,
@@ -564,6 +568,7 @@ export class LogStorageService {
         actions: toolsUsed,
         suggestions: '[]',
         reasoning: backendLog.reasoning as string | undefined,
+        reactSteps: [], // Legacy logs don't have ReAct steps
         toolCalls: this.createMockToolCallsFromActions(
           parsedTools,
           (backendLog.id as string) || 'unknown'
@@ -599,6 +604,7 @@ export class LogStorageService {
       actions: actionsString,
       suggestions: (backendLog.suggestions as string) || '[]',
       reasoning: backendLog.reasoning as string | undefined,
+      reactSteps: this.parseJsonField(backendLog.react_steps as string, []),
       toolCalls: this.createMockToolCallsFromActions(
         parsedActions,
         (backendLog.id as string) || 'unknown'

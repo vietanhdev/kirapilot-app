@@ -1,7 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import { AIServiceInterface, ModelInfo } from './AIServiceInterface';
 import { AIResponse, AppContext } from '../../types';
-import { ToolExecutionResult } from './ToolExecutionEngine';
+import { ToolExecutionResult } from './types';
 import { LogStorageService } from '../database/repositories/LogStorageService';
 import { LoggingConfigService } from '../database/repositories/LoggingConfigService';
 import { PrivacyFilter } from './PrivacyFilter';

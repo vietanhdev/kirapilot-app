@@ -6,18 +6,14 @@ import {
   ReactNode,
 } from 'react';
 import {
-  ModelManager,
-  getModelManager,
-  ModelType,
-  ModelConfig,
-} from '../services/ai/ModelManager';
-import { AIServiceInterface } from '../services/ai/AIServiceInterface';
+  BackendAIService,
+  initializeBackendAIService,
+} from '../services/ai/BackendAIService';
+import { ModelStatus } from '../services/ai/AIServiceInterface';
 import { LogRetentionManager } from '../services/ai/LogRetentionManager';
 import { LogStorageService } from '../services/database/repositories/LogStorageService';
 import { LoggingConfigService } from '../services/database/repositories/LoggingConfigService';
-import { initializeLoggingInterceptor } from '../services/ai/LoggingInterceptor';
 import { useTranslation } from '../hooks/useTranslation';
-import { useLoggingStatus } from './LoggingStatusContext';
 import { useDatabaseContext } from '../services/database/DatabaseProvider';
 import {
   AIResponse,
@@ -25,11 +21,22 @@ import {
   AppContext,
   AIAction,
   PatternAnalysis,
+  BackendInteractionLog,
 } from '../types';
+import { getLocalModelErrorMessage } from '../services/ai/LocalModelDiagnostics';
+
+// Model types supported by the backend
+export type ModelType = 'local' | 'gemini';
+
+// Model configuration interface
+export interface ModelConfig {
+  type: ModelType;
+  apiKey?: string;
+  options?: Record<string, unknown>;
+}
 
 interface AIContextType {
-  modelManager: ModelManager | null;
-  aiService: AIServiceInterface | null;
+  aiService: BackendAIService | null;
   currentModelType: ModelType;
   isInitialized: boolean;
   isLoading: boolean;
@@ -47,17 +54,11 @@ interface AIContextType {
   analyzePatterns: () => Promise<PatternAnalysis | null>;
   initializeWithApiKey: (apiKey: string) => void;
   reinitializeAI: () => void;
-  getModelStatus: () => import('../services/ai/AIServiceInterface').ModelStatus;
+  getModelStatus: () => ModelStatus;
+  getModelStatusAsync: () => Promise<ModelStatus>;
   getAvailableModels: () => ModelType[];
-  // Enhanced service management
-  initializeService: (type: ModelType, config?: ModelConfig) => Promise<void>;
-  getServiceStatus: (
-    type: ModelType
-  ) => import('../services/ai/AIServiceInterface').ModelStatus | null;
-  getAllServiceStatuses: () => Record<
-    ModelType,
-    import('../services/ai/AIServiceInterface').ModelStatus
-  >;
+  // Backend service management
+  getInteractionLogs: (limit?: number) => Promise<BackendInteractionLog[]>;
   isServiceAvailable: (type: ModelType) => boolean;
   cleanup: () => void;
 }
@@ -80,10 +81,8 @@ const AIContext = createContext<AIContextType | undefined>(undefined);
 
 export function AIProvider({ children }: AIProviderProps) {
   const { t } = useTranslation();
-  const { recordCapture, recordCaptureError } = useLoggingStatus();
   const { isInitialized: isDatabaseReady } = useDatabaseContext();
-  const [modelManager, setModelManager] = useState<ModelManager | null>(null);
-  const [aiService, setAiService] = useState<AIServiceInterface | null>(null);
+  const [aiService, setAiService] = useState<BackendAIService | null>(null);
   const [currentModelType, setCurrentModelType] = useState<ModelType>('gemini');
   const [isInitialized, setIsInitialized] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -107,6 +106,7 @@ export function AIProvider({ children }: AIProviderProps) {
             responseStyle: 'balanced',
             suggestionFrequency: 'moderate',
             geminiApiKey: undefined,
+            modelType: 'gemini',
           }
         );
       } catch {
@@ -127,6 +127,7 @@ export function AIProvider({ children }: AIProviderProps) {
       responseStyle: 'balanced',
       suggestionFrequency: 'moderate',
       geminiApiKey: undefined,
+      modelType: 'gemini',
     };
   };
 
@@ -144,6 +145,9 @@ export function AIProvider({ children }: AIProviderProps) {
   };
 
   useEffect(() => {
+    console.log(
+      '🔍 [KIRAPILOT] AIContext useEffect triggered, calling initializeAI...'
+    );
     initializeAI();
 
     // Listen for storage changes to reinitialize when preferences change
@@ -161,105 +165,35 @@ export function AIProvider({ children }: AIProviderProps) {
     return () => {
       window.removeEventListener('storage', handleStorageChange);
       // Cleanup resources when component unmounts
-      if (modelManager) {
-        modelManager.cleanup();
+      if (aiService) {
+        aiService.cleanup();
       }
     };
   }, []); // Remove t dependency to prevent infinite re-initialization
 
-  // Periodic check for auto-loading completion
-  useEffect(() => {
-    if (!modelManager) {
-      return;
-    }
-
-    const checkAutoLoadingStatus = () => {
-      const status = modelManager.getModelStatus();
-
-      // If we were showing "initializing" and now the service is ready, update the state
-      if (
-        status.isReady &&
-        !isInitialized &&
-        error === 'Local model is initializing...'
-      ) {
-        setIsInitialized(true);
-        setError(null);
-
-        // Update the service reference
-        const service = modelManager.getCurrentService();
-        setAiService(service);
-      }
-    };
-
-    // Check every 2 seconds for auto-loading completion
-    const interval = setInterval(checkAutoLoadingStatus, 2000);
-
-    return () => clearInterval(interval);
-  }, [modelManager, isInitialized, error]);
-
-  // Separate effect to update translation function without re-initializing
-  useEffect(() => {
-    if (modelManager && t) {
-      modelManager.setTranslationFunction(t);
-    }
-  }, [modelManager, t]);
+  // Backend service doesn't need periodic checks or translation functions
+  // The backend handles all model management internally
 
   // Effect to initialize logging when database becomes ready
   useEffect(() => {
-    if (isDatabaseReady && modelManager && !retentionManager) {
+    if (isDatabaseReady && aiService && !retentionManager) {
       console.log('🔍 Debug: Database is now ready, initializing logging...');
       initializeLogging();
     }
-  }, [isDatabaseReady, modelManager, retentionManager]);
+  }, [isDatabaseReady, aiService, retentionManager]);
 
   const initializeLogging = async () => {
-    if (!modelManager) {
+    if (!aiService) {
       return;
     }
 
     try {
-      console.log('🔍 Debug: Initializing logging interceptor...');
+      console.log('🔍 Debug: Initializing logging for backend AI service...');
       const logStorageService = new LogStorageService();
       const loggingConfigService = new LoggingConfigService();
 
-      // Initialize logging interceptor with status callback
-      const statusCallback = (type: 'capture' | 'error', message?: string) => {
-        console.log(`🔍 Debug: Logging status callback - ${type}:`, message);
-        if (type === 'capture') {
-          recordCapture();
-        } else {
-          recordCaptureError(message || 'Unknown logging error');
-        }
-      };
-
-      const loggingInterceptor = initializeLoggingInterceptor(
-        logStorageService,
-        loggingConfigService,
-        statusCallback
-      );
-
-      console.log(
-        '🔍 Debug: Logging interceptor created, setting on ModelManager...'
-      );
-      // Set logging interceptor on ModelManager
-      modelManager.setLoggingInterceptor(loggingInterceptor);
-
-      // Also set it on the current service if available
-      const currentService = modelManager.getCurrentService();
-      if (currentService && 'setLoggingInterceptor' in currentService) {
-        console.log(
-          '🔍 Debug: Setting logging interceptor on current service...'
-        );
-        (
-          currentService as {
-            setLoggingInterceptor: (
-              interceptor: typeof loggingInterceptor
-            ) => void;
-          }
-        ).setLoggingInterceptor(loggingInterceptor);
-      }
-
       // Initialize log retention manager
+      // Backend handles interaction logging internally, so we only need retention management
       const retentionMgr = new LogRetentionManager(
         logStorageService,
         loggingConfigService
@@ -268,7 +202,7 @@ export function AIProvider({ children }: AIProviderProps) {
 
       // Start automatic cleanup if enabled
       await retentionMgr.startAutomaticCleanup();
-      console.log('🔍 Debug: Logging system fully initialized');
+      console.log('🔍 Debug: Logging system initialized for backend service');
     } catch (error) {
       console.error('🔍 Debug: Failed to initialize logging:', error);
     }
@@ -279,188 +213,117 @@ export function AIProvider({ children }: AIProviderProps) {
     setError(null);
 
     try {
-      // Create ModelManager instance
-      const manager = getModelManager();
+      // Initialize the backend AI service
+      console.log('🔍 Debug: Initializing Backend AI Service...');
+      const service = await initializeBackendAIService();
 
-      setModelManager(manager);
-
-      // Check if API key is available in environment, settings, or legacy localStorage
-      const preferences = getAIPreferences();
-      const apiKey =
-        import.meta.env.VITE_GOOGLE_API_KEY ||
-        preferences.geminiApiKey ||
-        localStorage.getItem('kira_api_key') || // Legacy fallback
-        localStorage.getItem('kirapilot-gemini-api-key'); // Legacy fallback
+      setAiService(service);
 
       // Get model type preference from user settings
-      const modelType: ModelType = preferences.modelType || 'gemini';
+      const preferences = getAIPreferences();
+      const preferredModelType: ModelType = preferences.modelType || 'local';
 
-      // Always try to initialize the preferred model first
-      try {
-        const config: ModelConfig = {
-          type: modelType,
-          apiKey: apiKey || undefined,
-        };
+      // Update the current model type state to match the preference
+      setCurrentModelType(preferredModelType);
 
-        // If switching to local model, use auto-loading for better UX
-        if (modelType === 'local') {
-          // Start auto-loading immediately (non-blocking)
-          manager.autoLoadLocalModel(config).catch(error => {
-            console.warn('Auto-loading local model failed:', error);
-          });
+      // Get the current status first to see what's available
+      const initialStatus = await service.getStatusFromBackend();
+      console.log(`🔍 Debug: Initial backend status:`, initialStatus);
 
-          // Try to switch to local model, but don't block if it's still initializing
-          try {
-            await manager.switchModel(modelType, config);
-          } catch (localErr) {
-            // If local model isn't ready yet, that's okay - it's loading in background
-            if (
-              localErr instanceof Error &&
-              localErr.message.includes('not initialized')
-            ) {
-              // Set up the service reference even if not fully ready
-              const service = manager.getCurrentService();
-              setAiService(service);
-              setCurrentModelType(manager.getCurrentModelType());
-              setIsInitialized(false); // Not ready yet, but will be
-              setError('Local model is initializing...');
-              return;
-            }
-            throw localErr; // Re-throw other errors
-          }
-        } else {
-          await manager.switchModel(modelType, config);
-        }
+      // If the service isn't ready, wait a bit and check again
+      if (!initialStatus.isReady) {
+        console.log(`🔍 Debug: Backend service not ready, waiting...`);
+        await new Promise(resolve => setTimeout(resolve, 1000));
 
-        const service = manager.getCurrentService();
-        setAiService(service);
-        setCurrentModelType(manager.getCurrentModelType());
-        setIsInitialized(manager.isReady());
-        setError(null);
+        const retryStatus = await service.getStatusFromBackend();
+        console.log(`🔍 Debug: Retry backend status:`, retryStatus);
+      }
 
-        // Initialize logging interceptor with status callback - only if database is ready
-        if (isDatabaseReady) {
-          try {
-            console.log('🔍 Debug: Initializing logging interceptor...');
-            const logStorageService = new LogStorageService();
-            const loggingConfigService = new LoggingConfigService();
+      // Try to switch to the preferred model with retry
+      let switchSuccess = false;
+      let lastError: any = null;
 
-            // Initialize logging interceptor with status callback
-            const statusCallback = (
-              type: 'capture' | 'error',
-              message?: string
-            ) => {
-              console.log(
-                `🔍 Debug: Logging status callback - ${type}:`,
-                message
-              );
-              if (type === 'capture') {
-                recordCapture();
-              } else {
-                recordCaptureError(message || 'Unknown logging error');
-              }
-            };
-
-            const loggingInterceptor = initializeLoggingInterceptor(
-              logStorageService,
-              loggingConfigService,
-              statusCallback
-            );
-
-            console.log(
-              '🔍 Debug: Logging interceptor created, setting on ModelManager...'
-            );
-            // Set logging interceptor on ModelManager
-            manager.setLoggingInterceptor(loggingInterceptor);
-
-            // Also set it on the current service if available
-            const currentService = manager.getCurrentService();
-            if (currentService && 'setLoggingInterceptor' in currentService) {
-              console.log(
-                '🔍 Debug: Setting logging interceptor on current service...'
-              );
-              (
-                currentService as {
-                  setLoggingInterceptor: (
-                    interceptor: typeof loggingInterceptor
-                  ) => void;
-                }
-              ).setLoggingInterceptor(loggingInterceptor);
-            }
-
-            // Initialize log retention manager
-            const retentionMgr = new LogRetentionManager(
-              logStorageService,
-              loggingConfigService
-            );
-            setRetentionManager(retentionMgr);
-
-            // Start automatic cleanup if enabled
-            await retentionMgr.startAutomaticCleanup();
-            console.log('🔍 Debug: Logging system fully initialized');
-          } catch (retentionErr) {
-            console.warn(
-              'Failed to initialize log retention manager:',
-              retentionErr
-            );
-            // Don't fail the entire AI initialization for retention manager issues
-          }
-        } else {
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
           console.log(
-            '🔍 Debug: Database not ready, skipping logging interceptor initialization'
+            `🔍 Debug: Attempt ${attempt} to switch to ${preferredModelType} model`
           );
-        }
-      } catch (modelErr) {
-        console.error(`Failed to initialize ${modelType} model:`, modelErr);
+          await service.switchModel(preferredModelType);
+          setCurrentModelType(preferredModelType);
+          setIsInitialized(true);
+          setError(null);
+          switchSuccess = true;
 
-        // If preferred model fails and it's not Gemini, try Gemini as fallback
-        if (modelType !== 'gemini') {
-          try {
-            console.log('Attempting fallback to Gemini...');
-            const geminiConfig: ModelConfig = {
-              type: 'gemini',
-              apiKey: apiKey || undefined,
-            };
-            await manager.switchModel('gemini', geminiConfig);
+          console.log(
+            `🔍 Debug: Successfully initialized with ${preferredModelType} model on attempt ${attempt}`
+          );
+          break;
+        } catch (modelErr) {
+          lastError = modelErr;
+          console.warn(`🔍 Debug: Attempt ${attempt} failed:`, modelErr);
 
-            const service = manager.getCurrentService();
-            setAiService(service);
-            setCurrentModelType(manager.getCurrentModelType());
-            setIsInitialized(manager.isReady());
-
-            if (apiKey) {
-              setError(
-                `Failed to initialize ${modelType} model, using Gemini instead: ${modelErr instanceof Error ? modelErr.message : 'Unknown error'}`
-              );
-            } else {
-              setError(t('ai.error.apiKeyRequired'));
-              setIsInitialized(false);
-            }
-          } catch (geminiErr) {
-            console.error('Gemini fallback also failed:', geminiErr);
-            setError(
-              apiKey
-                ? `Failed to initialize both ${modelType} and Gemini models: ${geminiErr instanceof Error ? geminiErr.message : 'Unknown error'}`
-                : t('ai.error.apiKeyRequired')
-            );
-            setIsInitialized(false);
+          if (attempt < 3) {
+            // Wait before retrying
+            await new Promise(resolve => setTimeout(resolve, 500 * attempt));
           }
-        } else {
-          // Gemini failed and it was the preferred model
-          if (apiKey) {
+        }
+      }
+
+      if (!switchSuccess) {
+        const modelErr = lastError;
+        console.error(
+          `Failed to switch to ${preferredModelType} model after 3 attempts:`,
+          modelErr
+        );
+
+        // Extract detailed error message
+        let detailedError = 'Unknown error';
+        if (modelErr instanceof Error) {
+          detailedError = modelErr.message;
+        } else if (typeof modelErr === 'object' && modelErr !== null) {
+          // Handle structured error responses from backend
+          const errorObj = modelErr as Record<string, unknown>;
+          if (typeof errorObj.message === 'string') {
+            detailedError = errorObj.message;
+          } else if (
+            typeof errorObj.error_type === 'string' &&
+            typeof errorObj.message === 'string'
+          ) {
+            detailedError = `${errorObj.error_type}: ${errorObj.message}`;
+          }
+        }
+
+        // If preferred model fails, try fallback
+        const fallbackModel =
+          preferredModelType === 'local' ? 'gemini' : 'local';
+
+        try {
+          console.log(`🔍 Debug: Attempting fallback to ${fallbackModel}...`);
+          await service.switchModel(fallbackModel);
+          setCurrentModelType(fallbackModel);
+          setIsInitialized(true);
+
+          // Show detailed error for failed model but indicate successful fallback
+          if (preferredModelType === 'local') {
+            const friendlyError = getLocalModelErrorMessage(detailedError);
             setError(
-              modelErr instanceof Error
-                ? modelErr.message
-                : 'Failed to initialize Gemini model'
+              `Local model unavailable: ${friendlyError}. Using Gemini instead. The local model requires compatible system dependencies - check Settings > AI for details.`
             );
           } else {
-            setError(t('ai.error.apiKeyRequired'));
+            setError(
+              `Failed to initialize ${preferredModelType} model (${detailedError}), using ${fallbackModel} instead.`
+            );
           }
+        } catch (fallbackErr) {
+          console.error(`${fallbackModel} fallback also failed:`, fallbackErr);
+          setError(
+            `Failed to initialize both ${preferredModelType} and ${fallbackModel} models. ${preferredModelType}: ${detailedError}. ${fallbackModel}: ${fallbackErr instanceof Error ? fallbackErr.message : 'Unknown error'}`
+          );
           setIsInitialized(false);
         }
       }
     } catch (err) {
-      console.error('Failed to initialize AI service:', err);
+      console.error('Failed to initialize Backend AI service:', err);
       setError(
         err instanceof Error ? err.message : 'Failed to initialize AI service'
       );
@@ -472,20 +335,20 @@ export function AIProvider({ children }: AIProviderProps) {
 
   const initializeWithApiKey = async (apiKey: string) => {
     try {
-      if (modelManager) {
-        await modelManager.switchModel(currentModelType, {
-          type: currentModelType,
-          apiKey,
-        });
-        const service = modelManager.getCurrentService();
+      // Store the API key in preferences for backend to use
+      const preferences = getAIPreferences();
+      const updatedPreferences = {
+        ...preferences,
+        geminiApiKey: apiKey,
+      };
 
-        setAiService(service);
-        setIsInitialized(modelManager.isReady());
-        setError(null);
-      } else {
-        // Initialize ModelManager if it doesn't exist
-        await initializeAI();
-      }
+      const storedPrefs = localStorage.getItem('kirapilot-preferences');
+      const allPrefs = storedPrefs ? JSON.parse(storedPrefs) : {};
+      allPrefs.aiSettings = updatedPreferences;
+      localStorage.setItem('kirapilot-preferences', JSON.stringify(allPrefs));
+
+      // Reinitialize the AI service to pick up the new API key
+      await initializeAI();
     } catch (err) {
       console.error('Failed to initialize AI with API key:', err);
       setError(
@@ -502,7 +365,7 @@ export function AIProvider({ children }: AIProviderProps) {
     message: string,
     context: AppContext
   ): Promise<AIResponse | null> => {
-    if (!modelManager) {
+    if (!aiService) {
       setError('AI service not initialized');
       return null;
     }
@@ -526,7 +389,17 @@ export function AIProvider({ children }: AIProviderProps) {
     setError(null);
 
     try {
-      const response = await modelManager.processMessage(message, context);
+      // Log which model we think we're using before sending the message
+      console.log(
+        `🎯 [AIContext] Sending message with model: ${currentModelType}`
+      );
+      const currentStatus = await getModelStatusAsync();
+      console.log(
+        `🔍 [AIContext] Actual backend status before message:`,
+        currentStatus
+      );
+
+      const response = await aiService.processMessage(message, context);
 
       // Apply response style preferences
       if (aiPreferences.responseStyle === 'concise') {
@@ -575,7 +448,7 @@ export function AIProvider({ children }: AIProviderProps) {
       }
 
       // Check if this is a service-specific error that might benefit from fallback
-      const currentStatus = modelManager.getModelStatus();
+      const currentStatus = aiService.getStatus();
       if (!currentStatus.isReady) {
         errorMessage = `${currentModelType} service is not ready: ${currentStatus.error || 'Unknown error'}`;
 
@@ -584,7 +457,7 @@ export function AIProvider({ children }: AIProviderProps) {
           await initializeAI();
 
           // If reinitialization succeeded, don't show the error
-          if (modelManager.isReady()) {
+          if (aiService && aiService.isInitialized()) {
             setError(null);
             // Retry the message
             return await sendMessage(message, context);
@@ -602,38 +475,65 @@ export function AIProvider({ children }: AIProviderProps) {
     }
   };
 
-  const switchModel = async (modelType: ModelType, config?: ModelConfig) => {
-    if (!modelManager) {
-      setError('Model manager not initialized');
+  const switchModel = async (modelType: ModelType, _config?: ModelConfig) => {
+    console.log(`🎯 [AIContext] switchModel called with: ${modelType}`);
+
+    if (!aiService) {
+      console.error('❌ [AIContext] AI service not initialized');
+      setError('AI service not initialized');
       return;
     }
 
+    console.log(
+      `🔄 [AIContext] Starting model switch from ${currentModelType} to ${modelType}`
+    );
     setIsLoading(true);
     setError(null);
 
     try {
-      // Use provided config or build from preferences
-      let modelConfig = config;
-      if (!modelConfig) {
+      // Check if we have the necessary configuration for the target model
+      if (modelType === 'gemini') {
         const preferences = getAIPreferences();
-        const apiKey =
-          import.meta.env.VITE_GOOGLE_API_KEY ||
-          preferences.geminiApiKey ||
-          localStorage.getItem('kira_api_key') ||
-          localStorage.getItem('kirapilot-gemini-api-key');
-
-        modelConfig = {
-          type: modelType,
-          apiKey: apiKey || undefined,
-        };
+        console.log(
+          `🔍 [AIContext] Switching to Gemini - API key available: ${!!preferences.geminiApiKey}`
+        );
+        if (!preferences.geminiApiKey) {
+          setError(
+            'Gemini API key is required. Please set it in Settings > AI.'
+          );
+          return;
+        }
       }
 
-      await modelManager.switchModel(modelType, modelConfig);
+      await aiService.switchModel(modelType);
 
-      const service = modelManager.getCurrentService();
-      setAiService(service);
-      setCurrentModelType(modelManager.getCurrentModelType());
-      setIsInitialized(modelManager.isReady());
+      console.log(
+        `✅ [AIContext] Backend switch completed, updating UI state...`
+      );
+
+      // Trust that the switch worked since the backend returned success
+      setCurrentModelType(modelType);
+      setIsInitialized(true);
+      setError(null);
+
+      // Verify the switch actually worked by checking backend status
+      setTimeout(async () => {
+        try {
+          const verifyStatus = await getModelStatusAsync();
+          console.log(
+            `🔍 [AIContext] Verification check - Backend reports model: ${verifyStatus.type}, UI shows: ${modelType}`
+          );
+          if (verifyStatus.type !== modelType) {
+            console.warn(
+              `⚠️ [AIContext] Model mismatch detected! Backend: ${verifyStatus.type}, UI: ${modelType}`
+            );
+            // Update UI to match backend reality
+            setCurrentModelType(verifyStatus.type);
+          }
+        } catch (error) {
+          console.warn(`⚠️ [AIContext] Failed to verify model switch:`, error);
+        }
+      }, 1000);
 
       // Update preferences to remember the selected model type
       const preferences = getAIPreferences();
@@ -646,39 +546,45 @@ export function AIProvider({ children }: AIProviderProps) {
       const allPrefs = storedPrefs ? JSON.parse(storedPrefs) : {};
       allPrefs.aiSettings = updatedPreferences;
       localStorage.setItem('kirapilot-preferences', JSON.stringify(allPrefs));
+
+      console.log(
+        `🎉 [AIContext] Successfully switched to ${modelType} model and updated UI state`
+      );
     } catch (err) {
       console.error('Failed to switch model:', err);
-      setError(err instanceof Error ? err.message : 'Failed to switch model');
 
-      // If switching to local model fails, try to fallback to Gemini
-      if (modelType === 'local' && currentModelType !== 'gemini') {
-        try {
-          const preferences = getAIPreferences();
-          const apiKey =
-            import.meta.env.VITE_GOOGLE_API_KEY ||
-            preferences.geminiApiKey ||
-            localStorage.getItem('kira_api_key') ||
-            localStorage.getItem('kirapilot-gemini-api-key');
+      // Extract the detailed error message
+      const errorMessage =
+        err instanceof Error ? err.message : 'Failed to switch model';
 
-          await modelManager.switchModel('gemini', {
-            type: 'gemini',
-            apiKey: apiKey || undefined,
-          });
-
-          const service = modelManager.getCurrentService();
-          setAiService(service);
-          setCurrentModelType(modelManager.getCurrentModelType());
-          setIsInitialized(modelManager.isReady());
-
-          setError(
-            `Failed to switch to ${modelType} model, using Gemini instead: ${err instanceof Error ? err.message : 'Unknown error'}`
-          );
-        } catch (fallbackErr) {
-          console.error('Fallback to Gemini also failed:', fallbackErr);
-          setError(
-            `Failed to switch to ${modelType} model and fallback failed: ${fallbackErr instanceof Error ? fallbackErr.message : 'Unknown error'}`
-          );
+      // Handle local model specific errors with user-friendly messages
+      if (modelType === 'local') {
+        if (
+          errorMessage.includes('not available on this system') ||
+          errorMessage.includes('required dependencies') ||
+          errorMessage.includes('system dependencies')
+        ) {
+          const friendlyError = getLocalModelErrorMessage(errorMessage);
+          setError(`Cannot switch to local model: ${friendlyError}`);
+        } else {
+          setError(`Local model switch failed: ${errorMessage}`);
         }
+
+        // Don't attempt automatic fallback for manual user switches
+        // Let the user decide what to do next
+      } else if (modelType === 'gemini') {
+        if (
+          errorMessage.includes('API key') ||
+          errorMessage.includes('unavailable')
+        ) {
+          setError(
+            `Cannot switch to Gemini: ${errorMessage}. Please check your API key in Settings.`
+          );
+        } else {
+          setError(`Gemini model switch failed: ${errorMessage}`);
+        }
+      } else {
+        setError(`Failed to switch to ${modelType}: ${errorMessage}`);
       }
     } finally {
       setIsLoading(false);
@@ -686,8 +592,8 @@ export function AIProvider({ children }: AIProviderProps) {
   };
 
   const clearConversation = () => {
-    if (modelManager) {
-      modelManager.clearConversation();
+    if (aiService) {
+      aiService.clearConversation();
     }
     setConversations([]);
   };
@@ -711,14 +617,14 @@ export function AIProvider({ children }: AIProviderProps) {
   };
 
   const analyzePatterns = async (): Promise<PatternAnalysis | null> => {
-    if (!modelManager) {
+    if (!aiService) {
       setError(t('ai.status.setupRequired'));
       return null;
     }
 
     try {
       setIsLoading(true);
-      const analysis = await modelManager.analyzePatterns();
+      const analysis = await aiService.analyzePatterns();
       return analysis;
     } catch (err) {
       console.error('Error analyzing patterns:', err);
@@ -731,135 +637,67 @@ export function AIProvider({ children }: AIProviderProps) {
     }
   };
 
-  const getModelStatus = () => {
-    if (!modelManager) {
+  const getModelStatus = (): ModelStatus => {
+    if (!aiService) {
       return {
         type: 'gemini' as const,
         isReady: false,
         isLoading: false,
-        error: 'Model manager not initialized',
+        error: 'AI service not initialized',
       };
     }
-    return modelManager.getModelStatus();
+    return aiService.getStatus();
+  };
+
+  const getModelStatusAsync = async (): Promise<ModelStatus> => {
+    if (!aiService) {
+      return {
+        type: 'gemini' as const,
+        isReady: false,
+        isLoading: false,
+        error: 'AI service not initialized',
+      };
+    }
+
+    // Use the async version to get real backend status
+    const backendService = aiService as BackendAIService;
+    if (backendService.getStatusFromBackend) {
+      return await backendService.getStatusFromBackend();
+    }
+
+    return backendService.getStatus();
   };
 
   const getAvailableModels = (): ModelType[] => {
-    if (!modelManager) {
-      return ['gemini'];
-    }
-    return modelManager.getAvailableModels();
+    // Backend supports both local and gemini models
+    console.log('🔍 [KIRAPILOT] getAvailableModels called, returning:', [
+      'local',
+      'gemini',
+    ]);
+    return ['local', 'gemini'];
   };
 
-  const initializeService = async (type: ModelType, config?: ModelConfig) => {
-    if (!modelManager) {
-      setError('Model manager not initialized');
-      return;
+  const getInteractionLogs = async (
+    limit: number = 50
+  ): Promise<BackendInteractionLog[]> => {
+    if (!aiService) {
+      throw new Error('AI service not initialized');
     }
-
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      // Build config if not provided
-      let serviceConfig = config;
-      if (!serviceConfig) {
-        const preferences = getAIPreferences();
-        const apiKey =
-          import.meta.env.VITE_GOOGLE_API_KEY ||
-          preferences.geminiApiKey ||
-          localStorage.getItem('kira_api_key') ||
-          localStorage.getItem('kirapilot-gemini-api-key');
-
-        serviceConfig = {
-          type: type,
-          apiKey: apiKey || undefined,
-        };
-      }
-
-      // Initialize the service without switching to it
-      await modelManager.switchModel(type, serviceConfig);
-
-      // If this was the current model type, update the context
-      if (type === currentModelType) {
-        const service = modelManager.getCurrentService();
-        setAiService(service);
-        setIsInitialized(modelManager.isReady());
-      }
-    } catch (err) {
-      console.error(`Failed to initialize ${type} service:`, err);
-      setError(
-        err instanceof Error
-          ? err.message
-          : `Failed to initialize ${type} service`
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const getServiceStatus = (type: ModelType) => {
-    if (!modelManager) {
-      return null;
-    }
-
-    // If it's the current service, get the current status
-    if (type === currentModelType) {
-      return modelManager.getModelStatus();
-    }
-
-    // For other services, check if they're available
-    if (modelManager.isModelAvailable(type)) {
-      return {
-        type: type,
-        isReady: false,
-        isLoading: false,
-        error: undefined,
-      };
-    }
-
-    return {
-      type: type,
-      isReady: false,
-      isLoading: false,
-      error: 'Service not available',
-    };
-  };
-
-  const getAllServiceStatuses = () => {
-    const statuses: Record<
-      ModelType,
-      import('../services/ai/AIServiceInterface').ModelStatus
-    > = {} as Record<
-      ModelType,
-      import('../services/ai/AIServiceInterface').ModelStatus
-    >;
-
-    const availableModels = getAvailableModels();
-    for (const modelType of availableModels) {
-      const status = getServiceStatus(modelType);
-      if (status) {
-        statuses[modelType] = status;
-      }
-    }
-
-    return statuses;
+    return await aiService.getInteractionLogs(limit);
   };
 
   const isServiceAvailable = (type: ModelType): boolean => {
-    if (!modelManager) {
-      return type === 'gemini'; // Gemini is always available as fallback
-    }
-    return modelManager.isModelAvailable(type);
+    // Backend supports both local and gemini models
+    return type === 'local' || type === 'gemini';
   };
 
   const cleanup = () => {
-    if (modelManager) {
-      modelManager.cleanup();
+    if (aiService) {
+      aiService.cleanup();
     }
     if (retentionManager) {
       retentionManager.stopAutomaticCleanup();
     }
-    setModelManager(null);
     setAiService(null);
     setRetentionManager(null);
     setIsInitialized(false);
@@ -869,7 +707,6 @@ export function AIProvider({ children }: AIProviderProps) {
   };
 
   const value: AIContextType = {
-    modelManager,
     aiService,
     currentModelType,
     isInitialized,
@@ -886,11 +723,10 @@ export function AIProvider({ children }: AIProviderProps) {
     initializeWithApiKey,
     reinitializeAI,
     getModelStatus,
+    getModelStatusAsync,
     getAvailableModels,
-    // Enhanced service management
-    initializeService,
-    getServiceStatus,
-    getAllServiceStatuses,
+    // Backend service management
+    getInteractionLogs,
     isServiceAvailable,
     cleanup,
   };
