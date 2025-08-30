@@ -104,19 +104,9 @@ export const ModelSelectionCard: React.FC<ModelSelectionCardProps> = ({
       // If switching to local model, start auto-loading immediately
       if (modelType === 'local') {
         // Start auto-loading in background (non-blocking)
-        const autoLoadPromise = modelManager.autoLoadLocalModel({
-          type: 'local',
-          options: preferences.aiSettings.localModelConfig,
-        });
-
-        // Don't wait for auto-loading to complete, but show loading state
-        // The user will see the model initializing in the background
-        autoLoadPromise.catch(error => {
-          console.warn(
-            'Auto-loading failed, will initialize on demand:',
-            error
-          );
-        });
+        // Auto-load functionality removed for Gemini-only setup
+        // TODO: Remove this component when local model support is fully removed
+        console.log('Auto-load not available in Gemini-only mode');
 
         // Update the UI immediately to show we're switching
         setIsLoading(false);

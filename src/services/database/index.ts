@@ -1,36 +1,14 @@
 // Database service for KiraPilot using SeaORM backend via Tauri commands
 import { invoke } from '@tauri-apps/api/core';
 import { TranslationKey } from '../../i18n';
+import { getDatabaseErrorMessage } from './utils';
 
-// Translation function type for database services
-export type DatabaseTranslationFunction = (
-  key: TranslationKey,
-  variables?: Record<string, string | number>
-) => string;
-
-// Global translation function for database services
-let databaseTranslationFunction: DatabaseTranslationFunction = (
-  key: TranslationKey
-) => key;
-
-/**
- * Set translation function for database services
- */
-export function setDatabaseTranslationFunction(
-  translationFunction: DatabaseTranslationFunction
-): void {
-  databaseTranslationFunction = translationFunction;
-}
-
-/**
- * Get localized database error message
- */
-export function getDatabaseErrorMessage(
-  key: TranslationKey,
-  variables?: Record<string, string | number>
-): string {
-  return databaseTranslationFunction(key, variables);
-}
+// Re-export database utilities
+export {
+  setDatabaseTranslationFunction,
+  getDatabaseErrorMessage,
+} from './utils';
+export type { DatabaseTranslationFunction } from './utils';
 
 /**
  * Initialize the database connection (handled by Rust backend)
@@ -82,3 +60,29 @@ export async function checkDatabaseHealth(): Promise<{
     };
   }
 }
+
+// Logging services - export LogStorageService first to avoid circular dependency
+export { LogStorageService } from './repositories/LogStorageService';
+
+// Enhanced logging services - export after base service to avoid circular dependency
+export {
+  EnhancedLogStorageService,
+  getEnhancedLogStorageService,
+} from './repositories/EnhancedLogStorageService';
+export type {
+  EnhancedLogFilter,
+  PerformanceAnalytics,
+  EmotionalTrends,
+  PerformanceTrends,
+} from './repositories/EnhancedLogStorageService';
+
+// Repository functions
+export {
+  getTaskRepository,
+  getTimeTrackingRepository,
+  getFocusRepository,
+  getPatternRepository,
+  getTaskListRepository,
+  getLogStorageRepository,
+  getEmotionalIntelligenceRepository,
+} from './repositories';

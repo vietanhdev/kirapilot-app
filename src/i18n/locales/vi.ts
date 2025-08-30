@@ -269,6 +269,14 @@ export const vi = {
   'ai.status.confidence': 'độ tin cậy',
   'ai.welcome.title': 'Chào mừng đến với Kira AI!',
   'ai.welcome.description': 'Thiết lập khóa API của bạn để bắt đầu.',
+  'ai.greeting.title': 'Xin chào! Tôi là Kira, trợ lý AI của bạn.',
+  'ai.greeting.description':
+    'Tôi ở đây để giúp bạn quản lý công việc, theo dõi thời gian và tăng năng suất. Hôm nay tôi có thể giúp gì cho bạn?',
+  'ai.greeting.suggestions': 'Đây là một số điều bạn có thể hỏi tôi:',
+  'ai.greeting.suggestion.createTask': 'Tạo một công việc mới',
+  'ai.greeting.suggestion.startTimer':
+    'Bắt đầu bộ đếm thời gian cho công việc hiện tại',
+  'ai.greeting.suggestion.productivity': 'Hiển thị thông tin năng suất của tôi',
   'ai.button.openSettings': 'Mở Cài Đặt',
   'ai.button.resumeAutoScroll': 'Tiếp tục cuộn tự động',
   'ai.suggestions.title': 'Gợi ý',

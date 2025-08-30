@@ -478,7 +478,7 @@ export function TaskCard({
       {...(editMode === 'none' ? listeners : {})}
       {...(editMode === 'none' ? attributes : {})}
       className={`
-        group relative bg-content1 dark:bg-content2 rounded-lg shadow-sm
+        group relative bg-blue-50 dark:bg-content2 rounded-lg shadow-sm
         border-l-4 transition-all duration-300 ease-out
         ${editMode === 'none' ? 'cursor-grab active:cursor-grabbing touch-none' : 'cursor-default'}
         ${isOverdue ? 'border-l-rose-500' : ''}
@@ -611,7 +611,7 @@ export function TaskCard({
               <div
                 className={`
                   mt-2 transition-all duration-200 ease-in-out
-                  ${editMode === 'expanded' ? 'fixed inset-4 z-50 bg-content1 dark:bg-content2 rounded-lg shadow-2xl border border-indigo-300 dark:border-indigo-600 p-4' : 'w-full'}
+                  ${editMode === 'expanded' ? 'fixed inset-4 z-50 bg-blue-50 dark:bg-content2 rounded-lg shadow-2xl border border-indigo-300 dark:border-indigo-600 p-4' : 'w-full'}
                 `}
               >
                 {/* Minimal Header */}

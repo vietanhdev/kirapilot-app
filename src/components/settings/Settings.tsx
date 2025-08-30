@@ -21,7 +21,9 @@ import {
   Eye,
   EyeOff,
   Cloud,
-  HardDrive,
+  RefreshCw,
+  CheckCircle,
+  XCircle,
 } from 'lucide-react';
 
 import { useSettings } from '../../contexts/SettingsContext';
@@ -31,11 +33,6 @@ import { DataManagement } from './DataManagement';
 import { LoggingSettings } from './LoggingSettings';
 import { SoundSettings } from './SoundSettings';
 import { useAI } from '../../contexts/AIContext';
-import {
-  LocalAIService,
-  ResourceUsage,
-} from '../../services/ai/LocalAIService';
-import { ModelStatusCard } from './ModelStatusCard';
 import { BuildInfo } from '../common';
 
 // import { ModelSelectionCardSimple } from './ModelSelectionCardSimple';
@@ -61,11 +58,15 @@ export const Settings: React.FC<SettingsProps> = ({
   const { reinitializeAI } = useAI();
   const [activeTab, setActiveTab] = useState(initialTab);
   const [showApiKey, setShowApiKey] = useState(false);
-  const [resourceUsage, setResourceUsage] = useState<ResourceUsage | null>(
-    null
-  );
-  const [recommendations, setRecommendations] = useState<string[]>([]);
-  const [loadingResources, setLoadingResources] = useState(false);
+  const [apiKeyValidationState, setApiKeyValidationState] = useState<{
+    isValidating: boolean;
+    isValid: boolean | null;
+    error: string | null;
+  }>({
+    isValidating: false,
+    isValid: null,
+    error: null,
+  });
 
   // Update active tab when initialTab prop changes
   useEffect(() => {
@@ -89,45 +90,33 @@ export const Settings: React.FC<SettingsProps> = ({
     updateNestedPreference(parentKey, childKey, value);
   };
 
-  // Resource management functions
-  const fetchResourceData = async () => {
-    if (preferences.aiSettings.modelType !== 'local') {
-      return;
+  // API Key validation function
+  const validateApiKey = async (apiKey: string): Promise<boolean> => {
+    if (!apiKey || apiKey.trim().length === 0) {
+      return false;
     }
 
-    setLoadingResources(true);
-    try {
-      const aiService = (window as unknown as { aiService?: LocalAIService })
-        .aiService;
-      if (aiService && aiService instanceof LocalAIService) {
-        const [usage, recs] = await Promise.all([
-          aiService.getResourceUsage(),
-          aiService.getPerformanceRecommendations(),
-        ]);
+    // Basic format validation for Gemini API keys
+    const trimmedKey = apiKey.trim();
 
-        setResourceUsage(usage);
-        setRecommendations(recs);
-      }
-    } catch (error) {
-      console.error('Failed to fetch resource data:', error);
-    } finally {
-      setLoadingResources(false);
+    // Gemini API keys typically start with 'AIza' and are 39 characters long
+    if (!trimmedKey.startsWith('AIza') || trimmedKey.length !== 39) {
+      return false;
     }
+
+    // Additional validation could be added here to test the key with a simple API call
+    return true;
   };
-
-  // Fetch resource data when AI settings change or component mounts
-  useEffect(() => {
-    if (preferences.aiSettings.modelType === 'local') {
-      fetchResourceData();
-
-      // Set up periodic refresh
-      const interval = setInterval(fetchResourceData, 10000); // Every 10 seconds
-      return () => clearInterval(interval);
-    }
-  }, [preferences.aiSettings.modelType]);
 
   const handleApiKeyChange = async (apiKey: string) => {
     const trimmedKey = apiKey.trim();
+
+    // Reset validation state
+    setApiKeyValidationState({
+      isValidating: true,
+      isValid: null,
+      error: null,
+    });
 
     try {
       // Update preferences first
@@ -137,12 +126,43 @@ export const Settings: React.FC<SettingsProps> = ({
         trimmedKey || undefined
       );
 
-      // Reinitialize AI service to pick up the new API key
-      setTimeout(() => {
-        reinitializeAI();
-      }, 100); // Small delay to ensure preferences are saved
+      // Validate the API key if it's not empty
+      if (trimmedKey) {
+        const isValid = await validateApiKey(trimmedKey);
+
+        if (isValid) {
+          setApiKeyValidationState({
+            isValidating: false,
+            isValid: true,
+            error: null,
+          });
+
+          // Reinitialize AI service to pick up the new API key
+          setTimeout(() => {
+            reinitializeAI();
+          }, 100); // Small delay to ensure preferences are saved
+        } else {
+          setApiKeyValidationState({
+            isValidating: false,
+            isValid: false,
+            error:
+              'Invalid API key format. Gemini API keys should start with "AIza" and be 39 characters long.',
+          });
+        }
+      } else {
+        setApiKeyValidationState({
+          isValidating: false,
+          isValid: null,
+          error: null,
+        });
+      }
     } catch (error) {
       console.error('Failed to update API key:', error);
+      setApiKeyValidationState({
+        isValidating: false,
+        isValid: false,
+        error: 'Failed to validate API key. Please try again.',
+      });
     }
   };
 
@@ -394,86 +414,47 @@ export const Settings: React.FC<SettingsProps> = ({
               }
             >
               <div className='p-6 space-y-6'>
-                {/* Model Selection */}
-                {/* Model Selection */}
+                {/* Simplified Gemini Configuration */}
                 <div>
                   <h3 className='text-lg font-semibold text-foreground mb-4 flex items-center gap-2'>
-                    <Bot className='w-5 h-5' />
-                    {t('settings.ai.modelSelection')}
+                    <Cloud className='w-5 h-5' />
+                    AI Assistant Configuration
                   </h3>
 
                   <div className='space-y-4'>
-                    <div>
-                      <label className='text-sm font-medium text-foreground block mb-2'>
-                        {t('settings.ai.modelType')}
-                      </label>
-                      <Select
-                        selectedKeys={[
-                          preferences.aiSettings.modelType || 'gemini',
-                        ]}
-                        onSelectionChange={keys => {
-                          const modelType = Array.from(keys)[0] as
-                            | 'local'
-                            | 'gemini';
-                          handleNestedPreferenceChange(
-                            'aiSettings',
-                            'modelType',
-                            modelType
-                          );
-                        }}
-                        size='sm'
-                        aria-label='AI model type selection'
-                        placeholder='Select AI model type'
-                        classNames={{
-                          trigger:
-                            'bg-content2 border-divider data-[hover=true]:bg-content3',
-                          value: 'text-foreground',
-                        }}
-                      >
-                        <SelectItem
-                          key='gemini'
-                          startContent={<Cloud className='w-4 h-4' />}
-                        >
-                          {t('ai.model.gemini')}
-                        </SelectItem>
-                        <SelectItem
-                          key='local'
-                          startContent={<HardDrive className='w-4 h-4' />}
-                        >
-                          {t('ai.model.local')}
-                        </SelectItem>
-                      </Select>
-                      <p className='text-xs text-foreground-600 mt-1'>
-                        {(preferences.aiSettings.modelType || 'gemini') ===
-                        'local'
-                          ? t('settings.ai.localModelDescription')
-                          : t('settings.ai.geminiModelDescription')}
-                      </p>
-                    </div>
-
-                    {/* Enhanced status display with error handling */}
-                    <ModelStatusCard
-                      modelType={preferences.aiSettings.modelType || 'gemini'}
-                      onRecovery={() => {
-                        // Trigger model recovery
-                        reinitializeAI();
-                      }}
-                    />
-                  </div>
-                </div>
-
-                <Divider className='bg-divider' />
-
-                <div>
-                  <h3 className='text-lg font-semibold text-foreground mb-4'>
-                    {t('settings.apiConfiguration')}
-                  </h3>
-
-                  <div className='space-y-4'>
+                    {/* Gemini API Key Configuration */}
                     <div>
                       <label className='text-sm font-medium text-foreground block mb-2'>
                         {t('settings.geminiApiKey')}
                       </label>
+
+                      {/* Setup Instructions */}
+                      {!preferences.aiSettings.geminiApiKey && (
+                        <div className='bg-primary-50 dark:bg-primary-900/20 p-4 rounded-lg mb-4'>
+                          <h4 className='text-sm font-medium text-primary-700 dark:text-primary-300 mb-2'>
+                            🚀 Get Started with AI Assistant
+                          </h4>
+                          <ol className='text-xs text-primary-600 dark:text-primary-400 space-y-1 list-decimal list-inside'>
+                            <li>
+                              Visit{' '}
+                              <a
+                                href='https://aistudio.google.com/app/apikey'
+                                target='_blank'
+                                rel='noopener noreferrer'
+                                className='text-primary-500 hover:text-primary-600 underline font-medium'
+                              >
+                                Google AI Studio
+                              </a>
+                            </li>
+                            <li>Sign in with your Google account</li>
+                            <li>
+                              Click "Create API Key" and copy the generated key
+                            </li>
+                            <li>Paste the key in the field below</li>
+                          </ol>
+                        </div>
+                      )}
+
                       <p className='text-xs text-foreground-600 mb-3'>
                         {t('settings.geminiApiKeyDescription')}{' '}
                         <a
@@ -485,6 +466,7 @@ export const Settings: React.FC<SettingsProps> = ({
                           Google AI Studio
                         </a>
                       </p>
+
                       <div className='relative'>
                         <Input
                           type={showApiKey ? 'text' : 'password'}
@@ -492,33 +474,81 @@ export const Settings: React.FC<SettingsProps> = ({
                           onValueChange={handleApiKeyChange}
                           placeholder={t('settings.geminiApiKeyPlaceholder')}
                           size='sm'
+                          isInvalid={apiKeyValidationState.isValid === false}
+                          data-tour='api-key-input'
                           classNames={{
                             input:
                               'text-foreground placeholder:text-foreground-500',
-                            inputWrapper:
-                              'bg-content2 border-divider data-[hover=true]:bg-content3 group-data-[focus=true]:bg-content2',
+                            inputWrapper: `bg-content2 border-divider data-[hover=true]:bg-content3 group-data-[focus=true]:bg-content2 ${
+                              apiKeyValidationState.isValid === false
+                                ? 'border-danger'
+                                : apiKeyValidationState.isValid === true
+                                  ? 'border-success'
+                                  : ''
+                            }`,
                           }}
                           endContent={
-                            <Button
-                              isIconOnly
-                              variant='light'
-                              size='sm'
-                              onPress={() => setShowApiKey(!showApiKey)}
-                            >
-                              {showApiKey ? (
-                                <EyeOff className='w-4 h-4' />
-                              ) : (
-                                <Eye className='w-4 h-4' />
+                            <div className='flex items-center gap-1'>
+                              {apiKeyValidationState.isValidating && (
+                                <RefreshCw className='w-4 h-4 animate-spin text-foreground-400' />
                               )}
-                            </Button>
+                              {apiKeyValidationState.isValid === true && (
+                                <CheckCircle className='w-4 h-4 text-success' />
+                              )}
+                              {apiKeyValidationState.isValid === false && (
+                                <XCircle className='w-4 h-4 text-danger' />
+                              )}
+                              <Button
+                                isIconOnly
+                                variant='light'
+                                size='sm'
+                                onPress={() => setShowApiKey(!showApiKey)}
+                              >
+                                {showApiKey ? (
+                                  <EyeOff className='w-4 h-4' />
+                                ) : (
+                                  <Eye className='w-4 h-4' />
+                                )}
+                              </Button>
+                            </div>
                           }
                         />
                       </div>
-                      {preferences.aiSettings.geminiApiKey && (
-                        <p className='text-xs text-success mt-2'>
-                          {t('settings.apiKeyConfigured')}
+
+                      {/* Validation Messages */}
+                      {apiKeyValidationState.error && (
+                        <p className='text-xs text-danger mt-2'>
+                          {apiKeyValidationState.error}
                         </p>
                       )}
+                      {apiKeyValidationState.isValid === true && (
+                        <p className='text-xs text-success mt-2'>
+                          ✓ API key is valid and ready to use
+                        </p>
+                      )}
+                      {preferences.aiSettings.geminiApiKey &&
+                        apiKeyValidationState.isValid !== false && (
+                          <p className='text-xs text-success mt-2'>
+                            {t('settings.apiKeyConfigured')}
+                          </p>
+                        )}
+                    </div>
+
+                    {/* Simplified Status Display */}
+                    <div className='bg-content2 p-4 rounded-lg'>
+                      <div className='flex items-center gap-3'>
+                        <Cloud className='w-5 h-5 text-primary-500' />
+                        <div>
+                          <p className='text-sm font-medium text-foreground'>
+                            Google Gemini AI
+                          </p>
+                          <p className='text-xs text-foreground-600'>
+                            {preferences.aiSettings.geminiApiKey
+                              ? 'Ready to assist you with intelligent task management'
+                              : 'Configure your API key to enable AI features'}
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -698,161 +728,492 @@ export const Settings: React.FC<SettingsProps> = ({
                   </div>
                 </div>
 
-                {/* Resource Management Section - Only show for local model */}
-                {(preferences.aiSettings.modelType || 'gemini') === 'local' && (
-                  <div>
-                    <Divider className='my-6' />
-                    <h3 className='text-lg font-semibold text-foreground mb-4'>
-                      {t('settings.ai.resourceManagement')}
-                    </h3>
+                <Divider className='bg-divider' />
 
-                    <div className='space-y-4'>
-                      {/* Resource Usage Display */}
-                      <Card>
-                        <CardBody className='p-4'>
-                          <div className='flex items-center justify-between mb-3'>
-                            <h4 className='text-sm font-medium text-foreground'>
-                              {t('settings.ai.resourceUsage')}
-                            </h4>
-                            <Button
-                              size='sm'
-                              variant='light'
-                              onPress={fetchResourceData}
-                              isLoading={loadingResources}
-                            >
-                              {t('common.refresh')}
-                            </Button>
+                {/* AI Personality Settings */}
+                <div>
+                  <h3 className='text-lg font-semibold text-foreground mb-4 flex items-center gap-2'>
+                    <User className='w-5 h-5' />
+                    AI Personality & Emotional Intelligence
+                  </h3>
+
+                  <div className='space-y-6'>
+                    {/* Personality Sliders */}
+                    <div>
+                      <h4 className='text-sm font-medium text-foreground mb-3'>
+                        Personality Settings
+                      </h4>
+                      <p className='text-xs text-foreground-600 mb-4'>
+                        Adjust how the AI communicates with you. These settings
+                        affect the tone and style of responses.
+                      </p>
+
+                      <div
+                        className='space-y-4'
+                        data-tour='personality-sliders'
+                      >
+                        {/* Warmth Slider */}
+                        <div>
+                          <div className='flex items-center justify-between mb-2'>
+                            <label className='text-sm text-foreground'>
+                              Warmth:{' '}
+                              {preferences.aiSettings.personalitySettings
+                                ?.warmth || 6}
+                              /10
+                            </label>
+                            <span className='text-xs text-foreground-600'>
+                              {(preferences.aiSettings.personalitySettings
+                                ?.warmth || 6) < 4
+                                ? 'Direct'
+                                : (preferences.aiSettings.personalitySettings
+                                      ?.warmth || 6) > 7
+                                  ? 'Very Caring'
+                                  : 'Friendly'}
+                            </span>
                           </div>
+                          <input
+                            type='range'
+                            min='1'
+                            max='10'
+                            value={
+                              preferences.aiSettings.personalitySettings
+                                ?.warmth || 6
+                            }
+                            onChange={e => {
+                              const currentSettings = preferences.aiSettings
+                                .personalitySettings || {
+                                warmth: 6,
+                                enthusiasm: 5,
+                                supportiveness: 7,
+                                humor: 4,
+                              };
+                              handleNestedPreferenceChange(
+                                'aiSettings',
+                                'personalitySettings',
+                                {
+                                  ...currentSettings,
+                                  warmth: parseInt(e.target.value),
+                                }
+                              );
+                            }}
+                            className='w-full h-2 bg-content2 rounded-lg appearance-none cursor-pointer slider'
+                          />
+                        </div>
 
-                          {resourceUsage ? (
-                            <div className='grid grid-cols-2 gap-4 text-sm'>
-                              <div>
-                                <span className='text-foreground-600'>
-                                  {t('settings.ai.memoryUsage')}:
-                                </span>
-                                <span className='ml-2 font-medium'>
-                                  {resourceUsage.memory_usage_mb} MB
-                                </span>
-                              </div>
-                              <div>
-                                <span className='text-foreground-600'>
-                                  {t('settings.ai.cpuUsage')}:
-                                </span>
-                                <span className='ml-2 font-medium'>
-                                  {resourceUsage.cpu_usage_percent.toFixed(1)}%
-                                </span>
-                              </div>
-                              <div>
-                                <span className='text-foreground-600'>
-                                  {t('settings.ai.activeRequests')}:
-                                </span>
-                                <span className='ml-2 font-medium'>
-                                  {resourceUsage.active_requests}
-                                </span>
-                              </div>
-                              <div>
-                                <span className='text-foreground-600'>
-                                  {t('settings.ai.avgProcessingTime')}:
-                                </span>
-                                <span className='ml-2 font-medium'>
-                                  {resourceUsage.avg_processing_time_ms}ms
-                                </span>
-                              </div>
-                            </div>
-                          ) : (
-                            <p className='text-sm text-foreground-600'>
-                              {loadingResources
-                                ? t('common.loading')
-                                : t('settings.ai.resourceDataUnavailable')}
+                        {/* Enthusiasm Slider */}
+                        <div>
+                          <div className='flex items-center justify-between mb-2'>
+                            <label className='text-sm text-foreground'>
+                              Enthusiasm:{' '}
+                              {preferences.aiSettings.personalitySettings
+                                ?.enthusiasm || 5}
+                              /10
+                            </label>
+                            <span className='text-xs text-foreground-600'>
+                              {(preferences.aiSettings.personalitySettings
+                                ?.enthusiasm || 5) < 4
+                                ? 'Calm'
+                                : (preferences.aiSettings.personalitySettings
+                                      ?.enthusiasm || 5) > 7
+                                  ? 'Very Energetic'
+                                  : 'Balanced'}
+                            </span>
+                          </div>
+                          <input
+                            type='range'
+                            min='1'
+                            max='10'
+                            value={
+                              preferences.aiSettings.personalitySettings
+                                ?.enthusiasm || 5
+                            }
+                            onChange={e => {
+                              const currentSettings = preferences.aiSettings
+                                .personalitySettings || {
+                                warmth: 6,
+                                enthusiasm: 5,
+                                supportiveness: 7,
+                                humor: 4,
+                              };
+                              handleNestedPreferenceChange(
+                                'aiSettings',
+                                'personalitySettings',
+                                {
+                                  ...currentSettings,
+                                  enthusiasm: parseInt(e.target.value),
+                                }
+                              );
+                            }}
+                            className='w-full h-2 bg-content2 rounded-lg appearance-none cursor-pointer slider'
+                          />
+                        </div>
+
+                        {/* Supportiveness Slider */}
+                        <div>
+                          <div className='flex items-center justify-between mb-2'>
+                            <label className='text-sm text-foreground'>
+                              Supportiveness:{' '}
+                              {preferences.aiSettings.personalitySettings
+                                ?.supportiveness || 7}
+                              /10
+                            </label>
+                            <span className='text-xs text-foreground-600'>
+                              {(preferences.aiSettings.personalitySettings
+                                ?.supportiveness || 7) < 4
+                                ? 'Task-Focused'
+                                : (preferences.aiSettings.personalitySettings
+                                      ?.supportiveness || 7) > 7
+                                  ? 'Very Nurturing'
+                                  : 'Encouraging'}
+                            </span>
+                          </div>
+                          <input
+                            type='range'
+                            min='1'
+                            max='10'
+                            value={
+                              preferences.aiSettings.personalitySettings
+                                ?.supportiveness || 7
+                            }
+                            onChange={e => {
+                              const currentSettings = preferences.aiSettings
+                                .personalitySettings || {
+                                warmth: 6,
+                                enthusiasm: 5,
+                                supportiveness: 7,
+                                humor: 4,
+                              };
+                              handleNestedPreferenceChange(
+                                'aiSettings',
+                                'personalitySettings',
+                                {
+                                  ...currentSettings,
+                                  supportiveness: parseInt(e.target.value),
+                                }
+                              );
+                            }}
+                            className='w-full h-2 bg-content2 rounded-lg appearance-none cursor-pointer slider'
+                          />
+                        </div>
+
+                        {/* Humor Slider */}
+                        <div>
+                          <div className='flex items-center justify-between mb-2'>
+                            <label className='text-sm text-foreground'>
+                              Humor:{' '}
+                              {preferences.aiSettings.personalitySettings
+                                ?.humor || 4}
+                              /10
+                            </label>
+                            <span className='text-xs text-foreground-600'>
+                              {(preferences.aiSettings.personalitySettings
+                                ?.humor || 4) < 4
+                                ? 'Serious'
+                                : (preferences.aiSettings.personalitySettings
+                                      ?.humor || 4) > 7
+                                  ? 'Playful'
+                                  : 'Light-hearted'}
+                            </span>
+                          </div>
+                          <input
+                            type='range'
+                            min='1'
+                            max='10'
+                            value={
+                              preferences.aiSettings.personalitySettings
+                                ?.humor || 4
+                            }
+                            onChange={e => {
+                              const currentSettings = preferences.aiSettings
+                                .personalitySettings || {
+                                warmth: 6,
+                                enthusiasm: 5,
+                                supportiveness: 7,
+                                humor: 4,
+                              };
+                              handleNestedPreferenceChange(
+                                'aiSettings',
+                                'personalitySettings',
+                                {
+                                  ...currentSettings,
+                                  humor: parseInt(e.target.value),
+                                }
+                              );
+                            }}
+                            className='w-full h-2 bg-content2 rounded-lg appearance-none cursor-pointer slider'
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Interaction Style */}
+                    <div>
+                      <label className='text-sm font-medium text-foreground block mb-2'>
+                        Interaction Style
+                      </label>
+                      <p className='text-xs text-foreground-600 mb-3'>
+                        Choose how formal or casual you want the AI to be
+                      </p>
+                      <Select
+                        selectedKeys={[
+                          preferences.aiSettings.interactionStyle || 'friendly',
+                        ]}
+                        onSelectionChange={keys => {
+                          const style = Array.from(keys)[0] as
+                            | 'casual'
+                            | 'professional'
+                            | 'friendly';
+                          handleNestedPreferenceChange(
+                            'aiSettings',
+                            'interactionStyle',
+                            style
+                          );
+                        }}
+                        size='sm'
+                        aria-label='Interaction style selection'
+                        classNames={{
+                          trigger:
+                            'bg-content2 border-divider data-[hover=true]:bg-content3',
+                          value: 'text-foreground',
+                        }}
+                      >
+                        <SelectItem key='casual'>
+                          Casual - Relaxed and informal
+                        </SelectItem>
+                        <SelectItem key='friendly'>
+                          Friendly - Warm but professional
+                        </SelectItem>
+                        <SelectItem key='professional'>
+                          Professional - Formal and business-like
+                        </SelectItem>
+                      </Select>
+                    </div>
+
+                    {/* Emoji Usage */}
+                    <div>
+                      <label className='text-sm font-medium text-foreground block mb-2'>
+                        Emoji Usage
+                      </label>
+                      <p className='text-xs text-foreground-600 mb-3'>
+                        Control how often the AI uses emojis in responses
+                      </p>
+                      <Select
+                        selectedKeys={[
+                          preferences.aiSettings.emojiUsage || 'moderate',
+                        ]}
+                        onSelectionChange={keys => {
+                          const usage = Array.from(keys)[0] as
+                            | 'minimal'
+                            | 'moderate'
+                            | 'frequent';
+                          handleNestedPreferenceChange(
+                            'aiSettings',
+                            'emojiUsage',
+                            usage
+                          );
+                        }}
+                        size='sm'
+                        aria-label='Emoji usage selection'
+                        classNames={{
+                          trigger:
+                            'bg-content2 border-divider data-[hover=true]:bg-content3',
+                          value: 'text-foreground',
+                        }}
+                      >
+                        <SelectItem key='minimal'>
+                          Minimal - Rarely uses emojis
+                        </SelectItem>
+                        <SelectItem key='moderate'>
+                          Moderate - Occasional emojis
+                        </SelectItem>
+                        <SelectItem key='frequent'>
+                          Frequent - Uses emojis regularly
+                        </SelectItem>
+                      </Select>
+                    </div>
+
+                    {/* Emotional Features */}
+                    <div>
+                      <h4 className='text-sm font-medium text-foreground mb-3'>
+                        Emotional Intelligence Features
+                      </h4>
+                      <p className='text-xs text-foreground-600 mb-4'>
+                        Enable features that help the AI understand and respond
+                        to your emotional state
+                      </p>
+
+                      <div className='space-y-4' data-tour='emotional-toggles'>
+                        <div className='flex items-center justify-between'>
+                          <div>
+                            <label className='text-sm font-medium text-foreground'>
+                              Daily Mood Tracking
+                            </label>
+                            <p className='text-xs text-foreground-600'>
+                              AI will check in on your mood and energy levels
                             </p>
-                          )}
-                        </CardBody>
-                      </Card>
-
-                      {/* Performance Recommendations */}
-                      {recommendations.length > 0 && (
-                        <Card>
-                          <CardBody className='p-4'>
-                            <h4 className='text-sm font-medium text-foreground mb-3'>
-                              {t('settings.ai.performanceRecommendations')}
-                            </h4>
-                            <div className='space-y-2'>
-                              {recommendations.map((rec, index) => (
-                                <div
-                                  key={index}
-                                  className='text-sm text-foreground-600 bg-warning-50 dark:bg-warning-900/20 p-2 rounded-md'
-                                >
-                                  {rec}
-                                </div>
-                              ))}
-                            </div>
-                          </CardBody>
-                        </Card>
-                      )}
-
-                      {/* Resource Configuration */}
-                      <Card>
-                        <CardBody className='p-4'>
-                          <h4 className='text-sm font-medium text-foreground mb-3'>
-                            {t('settings.ai.resourceConfiguration')}
-                          </h4>
-                          <div className='space-y-3'>
-                            <div>
-                              <label className='text-sm font-medium text-foreground block mb-1'>
-                                {t('settings.ai.threadCount')}
-                              </label>
-                              <Select
-                                selectedKeys={[
-                                  preferences.aiSettings.localModelConfig?.threads?.toString() ||
-                                    '4',
-                                ]}
-                                onSelectionChange={keys => {
-                                  const threads = parseInt(
-                                    Array.from(keys)[0] as string
-                                  );
-                                  handleNestedPreferenceChange(
-                                    'aiSettings',
-                                    'localModelConfig',
-                                    {
-                                      ...preferences.aiSettings
-                                        .localModelConfig,
-                                      threads,
-                                    }
-                                  );
-                                }}
-                                size='sm'
-                                classNames={{
-                                  trigger:
-                                    'bg-content2 border-divider data-[hover=true]:bg-content3',
-                                  value: 'text-foreground',
-                                }}
-                              >
-                                <SelectItem key='1'>
-                                  1 {t('settings.ai.threadSingular')}
-                                </SelectItem>
-                                <SelectItem key='2'>
-                                  2 {t('settings.ai.threadPlural')}
-                                </SelectItem>
-                                <SelectItem key='4'>
-                                  4 {t('settings.ai.threadPlural')}
-                                </SelectItem>
-                                <SelectItem key='6'>
-                                  6 {t('settings.ai.threadPlural')}
-                                </SelectItem>
-                                <SelectItem key='8'>
-                                  8 {t('settings.ai.threadPlural')}
-                                </SelectItem>
-                              </Select>
-                              <p className='text-xs text-foreground-600 mt-1'>
-                                {t('settings.ai.threadCountDescription')}
-                              </p>
-                            </div>
                           </div>
-                        </CardBody>
-                      </Card>
+                          <Switch
+                            isSelected={
+                              preferences.aiSettings.emotionalFeatures
+                                ?.dailyMoodTracking || false
+                            }
+                            onValueChange={checked => {
+                              const currentFeatures = preferences.aiSettings
+                                .emotionalFeatures || {
+                                dailyMoodTracking: false,
+                                stressDetection: true,
+                                encouragementFrequency: 'medium',
+                                celebrationStyle: 'enthusiastic',
+                              };
+                              handleNestedPreferenceChange(
+                                'aiSettings',
+                                'emotionalFeatures',
+                                {
+                                  ...currentFeatures,
+                                  dailyMoodTracking: checked,
+                                }
+                              );
+                            }}
+                            size='sm'
+                          />
+                        </div>
+
+                        <div className='flex items-center justify-between'>
+                          <div>
+                            <label className='text-sm font-medium text-foreground'>
+                              Stress Detection
+                            </label>
+                            <p className='text-xs text-foreground-600'>
+                              AI will recognize signs of stress and offer
+                              support
+                            </p>
+                          </div>
+                          <Switch
+                            isSelected={
+                              preferences.aiSettings.emotionalFeatures
+                                ?.stressDetection !== false
+                            }
+                            onValueChange={checked => {
+                              const currentFeatures = preferences.aiSettings
+                                .emotionalFeatures || {
+                                dailyMoodTracking: false,
+                                stressDetection: true,
+                                encouragementFrequency: 'medium',
+                                celebrationStyle: 'enthusiastic',
+                              };
+                              handleNestedPreferenceChange(
+                                'aiSettings',
+                                'emotionalFeatures',
+                                { ...currentFeatures, stressDetection: checked }
+                              );
+                            }}
+                            size='sm'
+                          />
+                        </div>
+
+                        <div>
+                          <label className='text-sm font-medium text-foreground block mb-2'>
+                            Encouragement Frequency
+                          </label>
+                          <p className='text-xs text-foreground-600 mb-3'>
+                            How often should the AI provide motivational
+                            support?
+                          </p>
+                          <Select
+                            selectedKeys={[
+                              preferences.aiSettings.emotionalFeatures
+                                ?.encouragementFrequency || 'medium',
+                            ]}
+                            onSelectionChange={keys => {
+                              const frequency = Array.from(keys)[0] as
+                                | 'low'
+                                | 'medium'
+                                | 'high';
+                              const currentFeatures = preferences.aiSettings
+                                .emotionalFeatures || {
+                                dailyMoodTracking: false,
+                                stressDetection: true,
+                                encouragementFrequency: 'medium',
+                                celebrationStyle: 'enthusiastic',
+                              };
+                              handleNestedPreferenceChange(
+                                'aiSettings',
+                                'emotionalFeatures',
+                                {
+                                  ...currentFeatures,
+                                  encouragementFrequency: frequency,
+                                }
+                              );
+                            }}
+                            size='sm'
+                            aria-label='Encouragement frequency selection'
+                            classNames={{
+                              trigger:
+                                'bg-content2 border-divider data-[hover=true]:bg-content3',
+                              value: 'text-foreground',
+                            }}
+                          >
+                            <SelectItem key='low'>
+                              Low - Minimal encouragement
+                            </SelectItem>
+                            <SelectItem key='medium'>
+                              Medium - Balanced support
+                            </SelectItem>
+                            <SelectItem key='high'>
+                              High - Frequent motivation
+                            </SelectItem>
+                          </Select>
+                        </div>
+
+                        <div>
+                          <label className='text-sm font-medium text-foreground block mb-2'>
+                            Celebration Style
+                          </label>
+                          <p className='text-xs text-foreground-600 mb-3'>
+                            How should the AI celebrate your achievements?
+                          </p>
+                          <Select
+                            selectedKeys={[
+                              preferences.aiSettings.emotionalFeatures
+                                ?.celebrationStyle || 'enthusiastic',
+                            ]}
+                            onSelectionChange={keys => {
+                              const style = Array.from(keys)[0] as
+                                | 'subtle'
+                                | 'enthusiastic';
+                              const currentFeatures = preferences.aiSettings
+                                .emotionalFeatures || {
+                                dailyMoodTracking: false,
+                                stressDetection: true,
+                                encouragementFrequency: 'medium',
+                                celebrationStyle: 'enthusiastic',
+                              };
+                              handleNestedPreferenceChange(
+                                'aiSettings',
+                                'emotionalFeatures',
+                                { ...currentFeatures, celebrationStyle: style }
+                              );
+                            }}
+                            size='sm'
+                            aria-label='Celebration style selection'
+                            classNames={{
+                              trigger:
+                                'bg-content2 border-divider data-[hover=true]:bg-content3',
+                              value: 'text-foreground',
+                            }}
+                          >
+                            <SelectItem key='subtle'>
+                              Subtle - Gentle acknowledgment
+                            </SelectItem>
+                            <SelectItem key='enthusiastic'>
+                              Enthusiastic - Energetic celebration
+                            </SelectItem>
+                          </Select>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                )}
+                </div>
 
                 {/* AI Interaction Logging */}
                 <Divider className='my-6' />

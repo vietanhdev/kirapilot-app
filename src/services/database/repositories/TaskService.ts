@@ -10,7 +10,7 @@ import {
   ValidationResult,
   TimePreset,
 } from '../../../types';
-import { getDatabaseErrorMessage } from '../index';
+import { getDatabaseErrorMessage } from '../utils';
 import { TranslationKey } from '../../../i18n';
 
 export class TaskService {

@@ -12,11 +12,13 @@ html,
 body,
 #root {
   height: 100%;
-  margin: 0;
-  padding: 0;
+  margin: 0 !important;
+  padding: 0 !important;
   overflow: hidden;
   /* Keep overflow hidden on root elements for app container management */
   background: transparent;
+  border: none;
+  outline: none;
 }
 
 /* Ensure app content can scroll properly */
@@ -28,6 +30,19 @@ body,
   position: relative;
   margin: 0;
   padding: 0;
+}
+
+/* When maximized, ensure the app fills the entire screen */
+.app-content.maximized-window {
+  height: 100vh;
+  width: 100vw;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 0;
+  overflow: hidden;
 }
 
 /* Rounded window styling - only when not maximized */
@@ -239,6 +254,35 @@ select,
   position: relative;
 }
 
+/* When maximized, ensure title bar fills the top edge completely */
+.maximized-title-bar {
+  position: sticky !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  width: 100% !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  border-top: none !important;
+  /* Ensure it extends to the very top of the window */
+  transform: translateY(0) !important;
+}
+
+/* Ensure maximized window has no gaps */
+.app-content.maximized-window {
+  height: 100vh;
+  width: 100vw;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 0;
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+}
+
 /* Ensure all HeroUI modals stay below the TitleBar */
 [data-slot='backdrop'] {
   z-index: 9998 !important;
@@ -255,4 +299,59 @@ select,
 
 .heroui-modal-backdrop {
   z-index: 9998 !important;
+}
+
+/* Custom slider styles for personality settings */
+.slider {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.slider::-webkit-slider-track {
+  background: hsl(var(--heroui-content2));
+  height: 8px;
+  border-radius: 4px;
+}
+
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  background: hsl(var(--heroui-primary));
+  cursor: pointer;
+  border: 2px solid hsl(var(--heroui-background));
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+}
+
+.slider::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.slider::-moz-range-track {
+  background: hsl(var(--heroui-content2));
+  height: 8px;
+  border-radius: 4px;
+  border: none;
+}
+
+.slider::-moz-range-thumb {
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  background: hsl(var(--heroui-primary));
+  cursor: pointer;
+  border: 2px solid hsl(var(--heroui-background));
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+}
+
+.slider::-moz-range-thumb:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }

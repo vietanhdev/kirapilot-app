@@ -5,6 +5,7 @@ import { FocusService } from './FocusService';
 import { PatternService } from './PatternService';
 import { TaskListService } from './TaskListService';
 import { LogStorageService } from './LogStorageService';
+import { EmotionalIntelligenceRepository } from './EmotionalIntelligenceRepository';
 
 // Singleton instances
 let taskService: TaskService | null = null;
@@ -13,6 +14,8 @@ let focusService: FocusService | null = null;
 let patternService: PatternService | null = null;
 let taskListService: TaskListService | null = null;
 let logStorageService: LogStorageService | null = null;
+let emotionalIntelligenceRepository: EmotionalIntelligenceRepository | null =
+  null;
 
 // Export services
 export { TaskService } from './TaskService';
@@ -21,6 +24,7 @@ export { FocusService } from './FocusService';
 export { PatternService } from './PatternService';
 export { TaskListService } from './TaskListService';
 export { LogStorageService } from './LogStorageService';
+export { EmotionalIntelligenceRepository } from './EmotionalIntelligenceRepository';
 
 /**
  * Get TaskService instance (replaces TaskRepository)
@@ -80,4 +84,14 @@ export function getLogStorageRepository(): LogStorageService {
     logStorageService = new LogStorageService();
   }
   return logStorageService;
+}
+
+/**
+ * Get EmotionalIntelligenceRepository instance
+ */
+export function getEmotionalIntelligenceRepository(): EmotionalIntelligenceRepository {
+  if (!emotionalIntelligenceRepository) {
+    emotionalIntelligenceRepository = new EmotionalIntelligenceRepository();
+  }
+  return emotionalIntelligenceRepository;
 }

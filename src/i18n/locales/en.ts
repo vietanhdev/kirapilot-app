@@ -19,6 +19,8 @@ export const en = {
   'common.info': 'Information',
   'common.show': 'Show',
   'common.hide': 'Hide',
+  'common.showLess': 'Show Less',
+  'common.showMoreActions': 'Show more actions',
   'common.clearDatabase': 'Clear Database (Dev Only)',
   'common.clearDatabaseConfirm':
     'Are you sure you want to clear all database data? This action cannot be undone.',
@@ -46,6 +48,71 @@ export const en = {
   'settings.general.language': 'Language',
   'settings.general.languageDescription': 'Select your preferred language',
   'settings.general.dateFormat': 'Date Format',
+
+  // Onboarding
+  'onboarding.welcome.title': 'Welcome to Enhanced AI Experience',
+  'onboarding.welcome.description':
+    "Discover how KiraPilot's AI can become your supportive productivity companion",
+  'onboarding.emotional.title': 'Emotional Intelligence Features',
+  'onboarding.emotional.description':
+    'Learn how AI can support your well-being and motivation',
+  'onboarding.smartTools.title': 'Smart Task Management',
+  'onboarding.smartTools.description':
+    'Discover intuitive ways to interact with your tasks',
+  'onboarding.personality.title': 'Customize AI Personality',
+  'onboarding.personality.description':
+    'Make the AI assistant feel right for you',
+  'onboarding.complete.title': "You're All Set!",
+  'onboarding.complete.description':
+    'Start enjoying your enhanced AI experience',
+  'onboarding.skip': 'Skip Tour',
+  'onboarding.next': 'Next',
+  'onboarding.previous': 'Previous',
+  'onboarding.getStarted': 'Get Started',
+  'onboarding.complete': 'Complete',
+
+  // Contextual Help
+  'help.naturalLanguage.title': 'Natural Language Commands',
+  'help.naturalLanguage.description':
+    'You can reference tasks naturally, like "complete my presentation task" instead of using technical IDs.',
+  'help.actionButtons.title': 'Quick Action Buttons',
+  'help.actionButtons.description':
+    'Look for action buttons in AI responses to quickly complete tasks, start timers, or create new items.',
+  'help.interactionDetails.title': 'Interaction Details',
+  'help.interactionDetails.description':
+    'Click the info icon (ℹ️) next to AI messages to see detailed logs of what the AI did.',
+  'help.moodCheckin.title': 'Daily Mood Check-ins',
+  'help.moodCheckin.description':
+    'Try asking "How are you feeling today?" to start a mood check-in and get personalized support.',
+
+  // Feature Discovery
+  'features.discover.title': 'Discover New Features',
+  'features.discover.description':
+    'Unlock the full potential of your AI assistant',
+  'features.progress': 'Progress',
+  'features.moodTracking.title': 'Daily Mood Check-ins',
+  'features.moodTracking.description':
+    "Start your day by sharing how you're feeling. The AI will adapt its responses to support you better.",
+  'features.naturalCommands.title': 'Natural Task Commands',
+  'features.naturalCommands.description':
+    'Say "complete my presentation task" instead of using technical IDs. The AI will find the right task.',
+  'features.smartConfirmations.title': 'Smart Confirmation Dialogs',
+  'features.smartConfirmations.description':
+    'Before making changes, the AI shows you exactly what will happen with clear previews.',
+
+  // Guided Tour
+  'tour.chatInput.title': 'Natural Language Input',
+  'tour.chatInput.description':
+    'Type naturally here. Try "complete my presentation task" or "how are you feeling today?"',
+  'tour.actionButtons.title': 'Quick Action Buttons',
+  'tour.actionButtons.description':
+    'Look for these buttons in AI responses for quick actions like completing tasks or starting timers.',
+  'tour.interactionDetails.title': 'Interaction Details',
+  'tour.interactionDetails.description':
+    'Click this icon to see detailed logs of what the AI did behind the scenes.',
+  'tour.feedbackButtons.title': 'Feedback System',
+  'tour.feedbackButtons.description':
+    'Rate AI responses to help improve future interactions.',
   'settings.general.dateFormatDescription':
     'Choose how dates are displayed throughout the app',
   'settings.general.workingHours': 'Working Hours',
@@ -379,6 +446,17 @@ export const en = {
   'tasks.deleteConfirmButton': 'Delete',
   'tasks.cancelButton': 'Cancel',
   'tasks.editingNotes': 'Editing notes',
+
+  // Task Actions
+  'task.complete': 'Complete',
+  'task.markComplete': 'Mark Complete',
+  'task.markTaskComplete': 'Mark this task as complete',
+  'task.new': 'New',
+  'task.createNew': 'Create New',
+  'task.createNewTask': 'Create a new task',
+  'task.schedule': 'Schedule',
+  'task.scheduleTask': 'Schedule Task',
+  'task.scheduleTaskForLater': 'Schedule this task for later',
   'tasks.expandEditor': 'Expand editor',
   'tasks.collapseEditor': 'Collapse editor',
 
@@ -407,6 +485,14 @@ export const en = {
   'timer.recording': 'Recording',
   'timer.paused': 'Paused',
   'timer.active': 'Active',
+  'timer.startTimerForTask': 'Start timer for {task}',
+  'timer.pauseCurrentTimer': 'Pause the current timer',
+  'timer.stopCurrentTimer': 'Stop the current timer',
+
+  // Focus
+  'focus.start': 'Focus',
+  'focus.startSession': 'Start Focus',
+  'focus.startFocusSession': 'Start a focus session for this task',
 
   // Reports
   'reports.title': 'Time Analytics',
@@ -481,6 +567,13 @@ export const en = {
   'ai.status.confidence': 'confidence',
   'ai.welcome.title': 'Welcome to Kira AI!',
   'ai.welcome.description': 'Setup your API key to get started.',
+  'ai.greeting.title': "Hello! I'm Kira, your AI assistant.",
+  'ai.greeting.description':
+    "I'm here to help you manage tasks, track time, and boost your productivity. What can I help you with today?",
+  'ai.greeting.suggestions': 'Here are some things you can ask me:',
+  'ai.greeting.suggestion.createTask': 'Create a new task',
+  'ai.greeting.suggestion.startTimer': 'Start a timer for my current task',
+  'ai.greeting.suggestion.productivity': 'Show me my productivity insights',
   'ai.button.openSettings': 'Open Settings',
   'ai.button.resumeAutoScroll': 'Resume auto-scroll',
   'ai.suggestions.title': 'Suggestions',
@@ -530,6 +623,10 @@ export const en = {
     'Enter your Google Gemini API key to enable AI features. Get your key from',
   'settings.geminiApiKeyPlaceholder': 'Enter your Gemini API key...',
   'settings.apiKeyConfigured': '✓ API key configured',
+  'settings.ai.setupInstructions': 'Setup Instructions',
+  'settings.ai.getStarted': 'Get Started with AI Assistant',
+  'settings.ai.validApiKey': '✓ API key is valid and ready to use',
+  'settings.ai.invalidApiKey': 'Invalid API key format',
   'settings.defaultSessionLength': 'Default Session Length',
   'settings.breakInterval': 'Break Interval',
   'settings.platform': 'Platform',
@@ -654,6 +751,59 @@ export const en = {
   'timeHistory.yesterday': 'Yesterday',
   'timeHistory.daysAgo': '{days} days ago',
   'timeHistory.active': 'Active',
+
+  // AI Feedback System
+  'ai.feedback.wasThisHelpful': 'Was this helpful?',
+  'ai.feedback.yes': 'Yes',
+  'ai.feedback.no': 'No',
+  'ai.feedback.rate': 'Rate',
+  'ai.feedback.helpful': 'Helpful',
+  'ai.feedback.notHelpful': 'Not helpful',
+  'ai.feedback.rateDetailed': 'Rate in detail',
+  'ai.feedback.thankYou': 'Thank you!',
+
+  // Feedback Modal
+  'ai.feedback.modal.title': 'Rate AI Response',
+  'ai.feedback.modal.subtitle': 'Help us improve by rating this response',
+  'ai.feedback.modal.overallRating': 'Overall Rating',
+  'ai.feedback.modal.categoryRatings': 'Detailed Ratings',
+  'ai.feedback.modal.additionalComments': 'Additional Comments (Optional)',
+  'ai.feedback.modal.commentPlaceholder':
+    'Tell us what you think about this response...',
+  'ai.feedback.modal.quickFeedback': 'Quick Feedback',
+  'ai.feedback.modal.submit': 'Submit Feedback',
+
+  // Rating Labels
+  'ai.feedback.rating.1': 'Very Poor',
+  'ai.feedback.rating.2': 'Poor',
+  'ai.feedback.rating.3': 'Average',
+  'ai.feedback.rating.4': 'Good',
+  'ai.feedback.rating.5': 'Excellent',
+
+  // Feedback Categories
+  'ai.feedback.category.helpfulness.title': 'Helpfulness',
+  'ai.feedback.category.helpfulness.description':
+    'How useful was this response?',
+  'ai.feedback.category.accuracy.title': 'Accuracy',
+  'ai.feedback.category.accuracy.description':
+    'How accurate was the information?',
+  'ai.feedback.category.clarity.title': 'Clarity',
+  'ai.feedback.category.clarity.description':
+    'How clear and understandable was it?',
+  'ai.feedback.category.speed.title': 'Response Speed',
+  'ai.feedback.category.speed.description': 'How was the response time?',
+  'ai.feedback.category.personality.title': 'Personality',
+  'ai.feedback.category.personality.description': 'How was the tone and style?',
+
+  // Quick Feedback Options
+  'ai.feedback.quick.veryHelpful': 'Very helpful',
+  'ai.feedback.quick.couldBeImproved': 'Could be improved',
+  'ai.feedback.quick.tooSlow': 'Too slow',
+  'ai.feedback.quick.perfectTiming': 'Perfect timing',
+  'ai.feedback.quick.needsMoreDetail': 'Needs more detail',
+  'ai.feedback.quick.tooVerbose': 'Too verbose',
+  'ai.feedback.quick.greatPersonality': 'Great personality',
+  'ai.feedback.quick.tooFormal': 'Too formal',
 
   // AI Tools
   'ai.tools.get_tasks.description': 'Retrieve and search tasks',
@@ -1045,4 +1195,107 @@ export const en = {
   'logViewer.notifications.redactSuccess':
     'Sensitive data redacted successfully',
   'logViewer.notifications.redactError': 'Failed to redact sensitive data',
+
+  // Productivity Insights
+  'productivity.insights.title': 'Productivity Insights',
+  'productivity.insights.subtitle':
+    'Understand your work patterns and optimize your productivity',
+  'productivity.insights.refresh': 'Refresh',
+  'productivity.insights.overview': 'Overview',
+  'productivity.insights.recommendations': 'Recommendations',
+  'productivity.insights.patterns': 'Patterns',
+  'productivity.insights.noData': 'No Data Available',
+  'productivity.insights.noDataDescription':
+    'We need more data to generate insights. Keep using KiraPilot to build your productivity profile.',
+  'productivity.insights.analyzing': 'Analyzing your productivity patterns...',
+  'productivity.insights.generatingTips':
+    'Generating personalized recommendations...',
+  'productivity.insights.error': 'Unable to Load Insights',
+  'productivity.insights.tryAgain': 'Try Again',
+
+  // Current Status
+  'productivity.currentEnergy.title': 'Current Energy Level',
+  'productivity.currentEnergy.high': 'Perfect time for challenging tasks!',
+  'productivity.currentEnergy.medium': 'Good time for routine tasks.',
+  'productivity.currentEnergy.low': 'Consider lighter tasks or taking a break.',
+
+  // Metrics
+  'productivity.metrics.completionRate': 'Completion Rate',
+  'productivity.metrics.averageTaskDuration': 'Avg Task Duration',
+  'productivity.metrics.focusEfficiency': 'Focus Efficiency',
+  'productivity.metrics.energy': 'Energy',
+
+  // Working Hours
+  'productivity.workingHours.title': 'Your Best Working Hours',
+  'productivity.workingHours.noData':
+    'No preferred working hours identified yet',
+
+  // Working Style
+  'productivity.workingStyle.title': 'Your Working Style',
+  'productivity.workingStyle.focusPattern': 'Focus Pattern',
+  'productivity.workingStyle.taskCompletionStyle': 'Task Completion Style',
+  'productivity.workingStyle.averageTaskDuration': 'Average Task Duration',
+  'productivity.workingStyle.breakFrequency': 'Break Frequency',
+  'productivity.workingStyle.focusPattern.morning': 'Morning',
+  'productivity.workingStyle.focusPattern.afternoon': 'Afternoon',
+  'productivity.workingStyle.focusPattern.evening': 'Evening',
+  'productivity.workingStyle.focusPattern.flexible': 'Flexible',
+  'productivity.workingStyle.completionStyle.batch': 'Batch',
+  'productivity.workingStyle.completionStyle.distributed': 'Distributed',
+  'productivity.workingStyle.completionStyle.deadlineDriven': 'Deadline Driven',
+
+  // Recommendations
+  'productivity.recommendations.title': 'Personalized Recommendations',
+  'productivity.recommendations.noRecommendations': 'No Recommendations Yet',
+  'productivity.recommendations.noRecommendationsDescription':
+    'We need more data to generate personalized recommendations.',
+  'productivity.recommendations.generate': 'Generate Recommendations',
+  'productivity.recommendations.showMore': 'Show More Details',
+  'productivity.recommendations.showLess': 'Show Less',
+  'productivity.recommendations.whyThisHelps': 'Why this helps:',
+  'productivity.recommendations.additionalActions': 'Additional actions:',
+  'productivity.recommendations.recommendedAction': 'Recommended Action:',
+  'productivity.recommendations.confidence': 'Confidence',
+  'productivity.recommendations.impact': 'Impact',
+  'productivity.recommendations.difficulty.easy': 'Easy',
+  'productivity.recommendations.difficulty.medium': 'Medium',
+  'productivity.recommendations.difficulty.hard': 'Hard',
+  'productivity.recommendations.timeToImplement': 'min to implement',
+  'productivity.recommendations.dismiss': 'Dismiss',
+
+  // Patterns
+  'productivity.patterns.title': 'Productivity Patterns',
+  'productivity.patterns.productivityPatterns': 'Productivity Patterns Found',
+  'productivity.patterns.energyPatterns': 'Energy Patterns Found',
+  'productivity.patterns.productivity': 'productivity',
+  'productivity.patterns.confidence': 'confidence',
+  'productivity.patterns.energyLevel': 'energy level',
+  'productivity.patterns.dailyPattern': 'Daily Pattern',
+  'productivity.patterns.weeklyPattern': 'Weekly Pattern',
+  'productivity.patterns.taskBasedPattern': 'Task Based Pattern',
+  'productivity.patterns.energyBasedPattern': 'Energy Based Pattern',
+
+  // Advice Widget
+  'productivity.advice.title': 'Productivity Tip',
+  'productivity.advice.moreTips': 'more tip',
+  'productivity.advice.moreTipsPlural': 'more tips',
+  'productivity.advice.available': 'available',
+  'productivity.advice.priority.high': 'High',
+  'productivity.advice.priority.medium': 'Medium',
+  'productivity.advice.priority.low': 'Low',
+  'productivity.advice.priority.label': 'Priority',
+
+  // Categories
+  'productivity.category.scheduling': 'Scheduling',
+  'productivity.category.taskManagement': 'Task Management',
+  'productivity.category.energyOptimization': 'Energy Optimization',
+  'productivity.category.focusImprovement': 'Focus Improvement',
+
+  // Advice Types
+  'productivity.adviceType.schedule': 'Schedule',
+  'productivity.adviceType.energy': 'Energy',
+  'productivity.adviceType.focus': 'Focus',
+  'productivity.adviceType.productivity': 'Productivity',
+  'productivity.adviceType.task': 'Task',
+  'productivity.adviceType.break': 'Break',
 };

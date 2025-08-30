@@ -15,6 +15,7 @@ import { Settings } from './components/settings/Settings';
 import { LogViewerContainer } from './components/ai/LogViewerContainer';
 import { Header } from './components/common/Header';
 import { AIFloatingButton } from './components/ai/AIFloatingButton';
+import { OnboardingManager } from './components/ai/OnboardingManager';
 import TitleBar from './components/TitleBar';
 import { useTheme } from './hooks/useTheme';
 import { useWindowState } from './hooks/useWindowState';
@@ -31,45 +32,60 @@ function AppContent() {
     setViewParams(params || {});
   };
 
+  const getCurrentPageContext = () => {
+    if (currentView === 'settings') {
+      return 'settings';
+    }
+    if (currentView === 'week' || currentView === 'day') {
+      return 'tasks';
+    }
+    if (currentView === 'logs') {
+      return 'chat';
+    }
+    return 'general';
+  };
+
   return (
     <NavigationProvider
       currentView={currentView}
       viewParams={viewParams}
       onViewChange={handleViewChange}
     >
-      <div
-        className={`${resolvedTheme} text-foreground bg-background app-content ${
-          isMaximized ? '' : 'rounded-lg overflow-hidden'
-        }`}
-      >
-        {/* Custom Title Bar */}
-        <TitleBar />
+      <OnboardingManager currentPage={getCurrentPageContext()}>
+        <div
+          className={`${resolvedTheme} text-foreground bg-background app-content ${
+            isMaximized ? 'maximized-window' : 'rounded-lg overflow-hidden'
+          }`}
+        >
+          {/* Custom Title Bar */}
+          <TitleBar />
 
-        {/* Header with Timer Integration */}
-        <Header currentView={currentView} onViewChange={handleViewChange} />
+          {/* Header with Timer Integration */}
+          <Header currentView={currentView} onViewChange={handleViewChange} />
 
-        {/* Main Content - Now scrollable */}
-        <main className='app-main-content'>
-          {(currentView === 'week' || currentView === 'day') && (
-            <Planner viewMode={currentView as 'week' | 'day'} />
-          )}
+          {/* Main Content - Now scrollable */}
+          <main className='app-main-content'>
+            {(currentView === 'week' || currentView === 'day') && (
+              <Planner viewMode={currentView as 'week' | 'day'} />
+            )}
 
-          {currentView === 'reports' && <Reports />}
+            {currentView === 'reports' && <Reports />}
 
-          {currentView === 'logs' && (
-            <div className='p-4 sm:p-6'>
-              <LogViewerContainer />
-            </div>
-          )}
+            {currentView === 'logs' && (
+              <div className='p-4 sm:p-6'>
+                <LogViewerContainer />
+              </div>
+            )}
 
-          {currentView === 'settings' && (
-            <Settings initialTab={viewParams.tab as string} />
-          )}
-        </main>
+            {currentView === 'settings' && (
+              <Settings initialTab={viewParams.tab as string} />
+            )}
+          </main>
 
-        {/* AI Floating Button */}
-        <AIFloatingButton />
-      </div>
+          {/* AI Floating Button */}
+          <AIFloatingButton />
+        </div>
+      </OnboardingManager>
     </NavigationProvider>
   );
 }

@@ -13,3 +13,14 @@ export {
   useResponsiveColumnWidth,
   COLUMN_WIDTH_PRESETS,
 } from './useResponsiveColumnWidth';
+export { useTaskMatcher, useAITaskMatcher } from './useTaskMatcher';
+export {
+  useConfirmationDialog,
+  useSmartConfirmation,
+} from './useConfirmationDialog';
+export { useResponsiveActions } from './useResponsiveActions';
+export {
+  useProductivityInsights,
+  useCurrentContextInsights,
+  useWorkingStyleInsights,
+} from './useProductivityInsights';

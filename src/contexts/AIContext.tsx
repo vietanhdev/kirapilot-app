@@ -15,6 +15,7 @@ import { AIServiceInterface } from '../services/ai/AIServiceInterface';
 import { LogRetentionManager } from '../services/ai/LogRetentionManager';
 import { LogStorageService } from '../services/database/repositories/LogStorageService';
 import { LoggingConfigService } from '../services/database/repositories/LoggingConfigService';
+import { EnhancedLogStorageService } from '../services/database/repositories/EnhancedLogStorageService';
 import { initializeLoggingInterceptor } from '../services/ai/LoggingInterceptor';
 import { useTranslation } from '../hooks/useTranslation';
 import { useLoggingStatus } from './LoggingStatusContext';
@@ -26,6 +27,8 @@ import {
   AIAction,
   PatternAnalysis,
 } from '../types';
+import { UserFeedback } from '../types/aiLogging';
+import { FeedbackAnalysisService } from '../services/ai/FeedbackAnalysisService';
 
 interface AIContextType {
   modelManager: ModelManager | null;
@@ -60,6 +63,20 @@ interface AIContextType {
   >;
   isServiceAvailable: (type: ModelType) => boolean;
   cleanup: () => void;
+  // Interaction details
+  getInteractionDetails: (
+    conversationId: string
+  ) => Promise<import('../types/aiLogging').EnhancedInteractionLogEntry | null>;
+  // Feedback system
+  submitFeedback: (
+    conversationId: string,
+    feedback: UserFeedback
+  ) => Promise<void>;
+  getFeedbackSummary: (
+    days?: number
+  ) => Promise<
+    import('../services/ai/FeedbackAnalysisService').FeedbackSummary
+  >;
 }
 
 interface AIConversation {
@@ -70,6 +87,8 @@ interface AIConversation {
   actions: AIAction[];
   suggestions: AISuggestion[];
   reasoning?: string;
+  interactionLogId?: string; // ID of the detailed interaction log entry
+  userFeedback?: UserFeedback; // User feedback for this conversation
 }
 
 interface AIProviderProps {
@@ -292,172 +311,91 @@ export function AIProvider({ children }: AIProviderProps) {
         localStorage.getItem('kira_api_key') || // Legacy fallback
         localStorage.getItem('kirapilot-gemini-api-key'); // Legacy fallback
 
-      // Get model type preference from user settings
-      const modelType: ModelType = preferences.modelType || 'gemini';
+      // Always use Gemini as the only available model
+      const config: ModelConfig = {
+        type: 'gemini',
+        apiKey: apiKey || undefined,
+      };
 
-      // Always try to initialize the preferred model first
-      try {
-        const config: ModelConfig = {
-          type: modelType,
-          apiKey: apiKey || undefined,
-        };
+      await manager.switchModel('gemini', config);
 
-        // If switching to local model, use auto-loading for better UX
-        if (modelType === 'local') {
-          // Start auto-loading immediately (non-blocking)
-          manager.autoLoadLocalModel(config).catch(error => {
-            console.warn('Auto-loading local model failed:', error);
-          });
+      const service = manager.getCurrentService();
+      setAiService(service);
+      setCurrentModelType(manager.getCurrentModelType());
+      setIsInitialized(manager.isReady());
+      setError(null);
 
-          // Try to switch to local model, but don't block if it's still initializing
-          try {
-            await manager.switchModel(modelType, config);
-          } catch (localErr) {
-            // If local model isn't ready yet, that's okay - it's loading in background
-            if (
-              localErr instanceof Error &&
-              localErr.message.includes('not initialized')
-            ) {
-              // Set up the service reference even if not fully ready
-              const service = manager.getCurrentService();
-              setAiService(service);
-              setCurrentModelType(manager.getCurrentModelType());
-              setIsInitialized(false); // Not ready yet, but will be
-              setError('Local model is initializing...');
-              return;
-            }
-            throw localErr; // Re-throw other errors
-          }
-        } else {
-          await manager.switchModel(modelType, config);
-        }
+      // Initialize logging interceptor with status callback - only if database is ready
+      if (isDatabaseReady) {
+        try {
+          console.log('🔍 Debug: Initializing logging interceptor...');
+          const logStorageService = new LogStorageService();
+          const loggingConfigService = new LoggingConfigService();
 
-        const service = manager.getCurrentService();
-        setAiService(service);
-        setCurrentModelType(manager.getCurrentModelType());
-        setIsInitialized(manager.isReady());
-        setError(null);
-
-        // Initialize logging interceptor with status callback - only if database is ready
-        if (isDatabaseReady) {
-          try {
-            console.log('🔍 Debug: Initializing logging interceptor...');
-            const logStorageService = new LogStorageService();
-            const loggingConfigService = new LoggingConfigService();
-
-            // Initialize logging interceptor with status callback
-            const statusCallback = (
-              type: 'capture' | 'error',
-              message?: string
-            ) => {
-              console.log(
-                `🔍 Debug: Logging status callback - ${type}:`,
-                message
-              );
-              if (type === 'capture') {
-                recordCapture();
-              } else {
-                recordCaptureError(message || 'Unknown logging error');
-              }
-            };
-
-            const loggingInterceptor = initializeLoggingInterceptor(
-              logStorageService,
-              loggingConfigService,
-              statusCallback
-            );
-
+          // Initialize logging interceptor with status callback
+          const statusCallback = (
+            type: 'capture' | 'error',
+            message?: string
+          ) => {
             console.log(
-              '🔍 Debug: Logging interceptor created, setting on ModelManager...'
+              `🔍 Debug: Logging status callback - ${type}:`,
+              message
             );
-            // Set logging interceptor on ModelManager
-            manager.setLoggingInterceptor(loggingInterceptor);
-
-            // Also set it on the current service if available
-            const currentService = manager.getCurrentService();
-            if (currentService && 'setLoggingInterceptor' in currentService) {
-              console.log(
-                '🔍 Debug: Setting logging interceptor on current service...'
-              );
-              (
-                currentService as {
-                  setLoggingInterceptor: (
-                    interceptor: typeof loggingInterceptor
-                  ) => void;
-                }
-              ).setLoggingInterceptor(loggingInterceptor);
-            }
-
-            // Initialize log retention manager
-            const retentionMgr = new LogRetentionManager(
-              logStorageService,
-              loggingConfigService
-            );
-            setRetentionManager(retentionMgr);
-
-            // Start automatic cleanup if enabled
-            await retentionMgr.startAutomaticCleanup();
-            console.log('🔍 Debug: Logging system fully initialized');
-          } catch (retentionErr) {
-            console.warn(
-              'Failed to initialize log retention manager:',
-              retentionErr
-            );
-            // Don't fail the entire AI initialization for retention manager issues
-          }
-        } else {
-          console.log(
-            '🔍 Debug: Database not ready, skipping logging interceptor initialization'
-          );
-        }
-      } catch (modelErr) {
-        console.error(`Failed to initialize ${modelType} model:`, modelErr);
-
-        // If preferred model fails and it's not Gemini, try Gemini as fallback
-        if (modelType !== 'gemini') {
-          try {
-            console.log('Attempting fallback to Gemini...');
-            const geminiConfig: ModelConfig = {
-              type: 'gemini',
-              apiKey: apiKey || undefined,
-            };
-            await manager.switchModel('gemini', geminiConfig);
-
-            const service = manager.getCurrentService();
-            setAiService(service);
-            setCurrentModelType(manager.getCurrentModelType());
-            setIsInitialized(manager.isReady());
-
-            if (apiKey) {
-              setError(
-                `Failed to initialize ${modelType} model, using Gemini instead: ${modelErr instanceof Error ? modelErr.message : 'Unknown error'}`
-              );
+            if (type === 'capture') {
+              recordCapture();
             } else {
-              setError(t('ai.error.apiKeyRequired'));
-              setIsInitialized(false);
+              recordCaptureError(message || 'Unknown logging error');
             }
-          } catch (geminiErr) {
-            console.error('Gemini fallback also failed:', geminiErr);
-            setError(
-              apiKey
-                ? `Failed to initialize both ${modelType} and Gemini models: ${geminiErr instanceof Error ? geminiErr.message : 'Unknown error'}`
-                : t('ai.error.apiKeyRequired')
+          };
+
+          const loggingInterceptor = initializeLoggingInterceptor(
+            logStorageService,
+            loggingConfigService,
+            statusCallback
+          );
+
+          console.log(
+            '🔍 Debug: Logging interceptor created, setting on ModelManager...'
+          );
+          // Set logging interceptor on ModelManager
+          manager.setLoggingInterceptor(loggingInterceptor);
+
+          // Also set it on the current service if available
+          const currentService = manager.getCurrentService();
+          if (currentService && 'setLoggingInterceptor' in currentService) {
+            console.log(
+              '🔍 Debug: Setting logging interceptor on current service...'
             );
-            setIsInitialized(false);
+            (
+              currentService as {
+                setLoggingInterceptor: (
+                  interceptor: typeof loggingInterceptor
+                ) => void;
+              }
+            ).setLoggingInterceptor(loggingInterceptor);
           }
-        } else {
-          // Gemini failed and it was the preferred model
-          if (apiKey) {
-            setError(
-              modelErr instanceof Error
-                ? modelErr.message
-                : 'Failed to initialize Gemini model'
-            );
-          } else {
-            setError(t('ai.error.apiKeyRequired'));
-          }
-          setIsInitialized(false);
+
+          // Initialize log retention manager
+          const retentionMgr = new LogRetentionManager(
+            logStorageService,
+            loggingConfigService
+          );
+          setRetentionManager(retentionMgr);
+
+          // Start automatic cleanup if enabled
+          await retentionMgr.startAutomaticCleanup();
+          console.log('🔍 Debug: Logging system fully initialized');
+        } catch (retentionErr) {
+          console.warn(
+            'Failed to initialize log retention manager:',
+            retentionErr
+          );
+          // Don't fail the entire AI initialization for retention manager issues
         }
+      } else {
+        console.log(
+          '🔍 Debug: Database not ready, skipping logging interceptor initialization'
+        );
       }
     } catch (err) {
       console.error('Failed to initialize AI service:', err);
@@ -540,14 +478,16 @@ export function AIProvider({ children }: AIProviderProps) {
         aiPreferences.conversationHistory &&
         (!privacySettings || privacySettings.conversationRetention)
       ) {
+        const conversationTimestamp = new Date();
         const conversation: AIConversation = {
-          id: `conv-${Date.now()}`,
+          id: `conv-${conversationTimestamp.getTime()}`,
           message,
           response: response.message,
-          timestamp: new Date(),
+          timestamp: conversationTimestamp,
           actions: response.actions,
           suggestions: response.suggestions,
           reasoning: response.reasoning,
+          interactionLogId: `conv-${conversationTimestamp.getTime()}`, // Use same ID for correlation
         };
 
         setConversations(prev => [...prev, conversation]);
@@ -650,36 +590,7 @@ export function AIProvider({ children }: AIProviderProps) {
       console.error('Failed to switch model:', err);
       setError(err instanceof Error ? err.message : 'Failed to switch model');
 
-      // If switching to local model fails, try to fallback to Gemini
-      if (modelType === 'local' && currentModelType !== 'gemini') {
-        try {
-          const preferences = getAIPreferences();
-          const apiKey =
-            import.meta.env.VITE_GOOGLE_API_KEY ||
-            preferences.geminiApiKey ||
-            localStorage.getItem('kira_api_key') ||
-            localStorage.getItem('kirapilot-gemini-api-key');
-
-          await modelManager.switchModel('gemini', {
-            type: 'gemini',
-            apiKey: apiKey || undefined,
-          });
-
-          const service = modelManager.getCurrentService();
-          setAiService(service);
-          setCurrentModelType(modelManager.getCurrentModelType());
-          setIsInitialized(modelManager.isReady());
-
-          setError(
-            `Failed to switch to ${modelType} model, using Gemini instead: ${err instanceof Error ? err.message : 'Unknown error'}`
-          );
-        } catch (fallbackErr) {
-          console.error('Fallback to Gemini also failed:', fallbackErr);
-          setError(
-            `Failed to switch to ${modelType} model and fallback failed: ${fallbackErr instanceof Error ? fallbackErr.message : 'Unknown error'}`
-          );
-        }
-      }
+      // Since we only support Gemini now, no fallback needed
     } finally {
       setIsLoading(false);
     }
@@ -868,6 +779,83 @@ export function AIProvider({ children }: AIProviderProps) {
     setSuggestions([]);
   };
 
+  const getInteractionDetails = async (conversationId: string) => {
+    try {
+      const enhancedLogService = new EnhancedLogStorageService();
+
+      // Find the conversation to get its timestamp
+      const conversation = conversations.find(c => c.id === conversationId);
+      if (!conversation) {
+        return null;
+      }
+
+      // Get logs around the conversation timestamp (within 5 seconds)
+      const startTime = new Date(conversation.timestamp.getTime() - 5000);
+      const endTime = new Date(conversation.timestamp.getTime() + 5000);
+
+      const logs = await enhancedLogService.getEnhancedLogs({
+        startDate: startTime,
+        endDate: endTime,
+        limit: 10,
+      });
+
+      // Find the log that matches the conversation message
+      const matchingLog = logs.find(
+        log =>
+          log.userMessage === conversation.message &&
+          log.aiResponse === conversation.response
+      );
+
+      return matchingLog || null;
+    } catch (error) {
+      console.error('Failed to get interaction details:', error);
+      return null;
+    }
+  };
+
+  const submitFeedback = async (
+    conversationId: string,
+    feedback: UserFeedback
+  ) => {
+    try {
+      const enhancedLogService = new EnhancedLogStorageService();
+
+      // Find the conversation to get its interaction log ID
+      const conversation = conversations.find(c => c.id === conversationId);
+      if (!conversation || !conversation.interactionLogId) {
+        throw new Error('Conversation not found or missing interaction log ID');
+      }
+
+      // Store the feedback
+      await enhancedLogService.storeUserFeedback(
+        conversation.interactionLogId,
+        feedback
+      );
+
+      // Update the conversation in memory to reflect feedback submission
+      setConversations(prev =>
+        prev.map(conv =>
+          conv.id === conversationId
+            ? { ...conv, userFeedback: feedback }
+            : conv
+        )
+      );
+    } catch (error) {
+      console.error('Failed to submit feedback:', error);
+      throw error;
+    }
+  };
+
+  const getFeedbackSummary = async (days: number = 7) => {
+    try {
+      const feedbackService = new FeedbackAnalysisService();
+      return await feedbackService.getFeedbackSummary(days);
+    } catch (error) {
+      console.error('Failed to get feedback summary:', error);
+      throw error;
+    }
+  };
+
   const value: AIContextType = {
     modelManager,
     aiService,
@@ -893,6 +881,11 @@ export function AIProvider({ children }: AIProviderProps) {
     getAllServiceStatuses,
     isServiceAvailable,
     cleanup,
+    // Interaction details
+    getInteractionDetails,
+    // Feedback system
+    submitFeedback,
+    getFeedbackSummary,
   };
 
   return <AIContext.Provider value={value}>{children}</AIContext.Provider>;

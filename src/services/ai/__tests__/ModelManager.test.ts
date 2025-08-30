@@ -1,8 +1,5 @@
 import { ModelManager, getModelManager, ModelType } from '../ModelManager';
-import {
-  AIServiceError,
-  ModelInitializationError,
-} from '../AIServiceInterface';
+import { AIServiceError } from '../AIServiceInterface';
 import { DistractionLevel } from '../../../types';
 
 // Mock ReactAIService module
@@ -40,45 +37,6 @@ jest.mock('../ReactAIService', () => ({
   ReactAIService: jest.fn().mockImplementation(() => mockReactAIService),
 }));
 
-// Mock LocalAIService module
-const mockLocalAIService = {
-  isInitialized: jest.fn(() => false),
-  setTranslationFunction: jest.fn(),
-  initialize: jest
-    .fn()
-    .mockRejectedValue(
-      new ModelInitializationError('local', 'Not implemented yet')
-    ),
-  processMessage: jest.fn().mockResolvedValue({
-    message: 'Local response',
-    actions: [],
-    suggestions: [],
-    context: {},
-    reasoning: 'Local reasoning',
-  }),
-  getModelInfo: jest.fn(() => ({
-    name: 'gemma-3-270m-it',
-    type: 'local',
-    status: 'not_initialized',
-    capabilities: ['text_generation', 'offline_operation'],
-    version: '270M',
-    contextSize: 2048,
-  })),
-  getStatus: jest.fn(() => ({
-    type: 'local',
-    isReady: false,
-    isLoading: false,
-    error: 'Not implemented yet',
-  })),
-  clearConversation: jest.fn(),
-  analyzePatterns: jest.fn(),
-  cleanup: jest.fn(),
-};
-
-jest.mock('../LocalAIService', () => ({
-  LocalAIService: jest.fn().mockImplementation(() => mockLocalAIService),
-}));
-
 describe('ModelManager', () => {
   let modelManager: ModelManager;
 
@@ -97,7 +55,7 @@ describe('ModelManager', () => {
     it('should return available models', () => {
       const availableModels = modelManager.getAvailableModels();
       expect(availableModels).toContain('gemini');
-      expect(availableModels).toContain('local');
+      expect(availableModels).toEqual(['gemini']);
     });
   });
 
@@ -112,10 +70,11 @@ describe('ModelManager', () => {
       expect(modelManager.isReady()).toBe(true);
     });
 
-    it('should throw error when switching to local model fails', async () => {
-      await expect(modelManager.switchModel('local')).rejects.toThrow(
-        ModelInitializationError
-      );
+    it('should handle invalid model type gracefully', async () => {
+      // Since we only support 'gemini', test with invalid type
+      await expect(
+        modelManager.switchModel('invalid' as ModelType)
+      ).rejects.toThrow();
     });
 
     it('should handle concurrent model switching', async () => {
@@ -177,6 +136,7 @@ describe('ModelManager', () => {
           toolPermissions: true,
           responseStyle: 'balanced' as const,
           suggestionFrequency: 'moderate' as const,
+          showInteractionLogs: false,
         },
         taskSettings: {
           defaultPriority: 1,
@@ -186,6 +146,12 @@ describe('ModelManager', () => {
           showCompletedTasks: true,
           compactView: false,
         },
+        soundSettings: {
+          hapticFeedback: true,
+          completionSound: true,
+          soundVolume: 50,
+        },
+        dateFormat: 'DD/MM/YYYY' as const,
         theme: 'auto' as const,
         language: 'en',
       },
@@ -232,21 +198,24 @@ describe('ModelManager', () => {
   });
 
   describe('error handling and recovery', () => {
-    it('should attempt fallback to Gemini when local model fails', async () => {
-      // First switch to local model (which will fail)
-      await expect(modelManager.switchModel('local')).rejects.toThrow();
+    it('should maintain Gemini service when invalid model switch fails', async () => {
+      // Try to switch to invalid model (which will fail)
+      await expect(
+        modelManager.switchModel('invalid' as ModelType)
+      ).rejects.toThrow();
 
       // Ensure we're still on Gemini
       expect(modelManager.getCurrentModelType()).toBe('gemini');
     });
 
     it('should handle service initialization failures gracefully', async () => {
-      mockLocalAIService.initialize.mockRejectedValueOnce(
+      // Mock Gemini service initialization failure
+      mockReactAIService.initialize.mockRejectedValueOnce(
         new Error('Initialization failed')
       );
 
-      await expect(modelManager.switchModel('local')).rejects.toThrow();
-      expect(modelManager.getCurrentModelType()).toBe('gemini'); // Should fallback
+      await expect(modelManager.switchModel('gemini')).rejects.toThrow();
+      expect(modelManager.getCurrentModelType()).toBe('gemini'); // Should maintain current
     });
 
     it('should handle concurrent model switching', async () => {
@@ -310,7 +279,6 @@ describe('ModelManager', () => {
   describe('model availability', () => {
     it('should check if specific model types are available', () => {
       expect(modelManager.isModelAvailable('gemini')).toBe(true);
-      expect(modelManager.isModelAvailable('local')).toBe(true);
     });
 
     it('should return false for unknown model types', () => {
@@ -318,39 +286,17 @@ describe('ModelManager', () => {
     });
   });
 
-  describe('automatic fallback behavior', () => {
+  describe('Gemini service error handling', () => {
     beforeEach(() => {
       // Reset mocks
       jest.clearAllMocks();
     });
 
-    it('should attempt fallback when local model processing fails', async () => {
-      // Setup local service as current but make it fail
-      mockLocalAIService.isInitialized.mockReturnValue(true);
-      mockLocalAIService.processMessage.mockRejectedValueOnce(
+    it('should handle Gemini service failures gracefully', async () => {
+      // Make Gemini service fail
+      mockReactAIService.processMessage.mockRejectedValueOnce(
         new Error('Generation failed')
       );
-      (
-        modelManager as unknown as {
-          currentService: unknown;
-          modelType: string;
-        }
-      ).currentService = mockLocalAIService;
-      (
-        modelManager as unknown as {
-          currentService: unknown;
-          modelType: string;
-        }
-      ).modelType = 'local';
-
-      // Mock successful switch to Gemini
-      mockReactAIService.processMessage.mockResolvedValueOnce({
-        message: 'Fallback response from Gemini',
-        actions: [],
-        suggestions: [],
-        context: {},
-        reasoning: 'Fallback reasoning',
-      });
 
       const testContext = {
         focusMode: false,
@@ -382,6 +328,7 @@ describe('ModelManager', () => {
             toolPermissions: true,
             responseStyle: 'balanced' as const,
             suggestionFrequency: 'moderate' as const,
+            showInteractionLogs: false,
           },
           taskSettings: {
             defaultPriority: 1,
@@ -391,20 +338,26 @@ describe('ModelManager', () => {
             showCompletedTasks: true,
             compactView: false,
           },
+          soundSettings: {
+            hapticFeedback: true,
+            completionSound: true,
+            soundVolume: 50,
+          },
+          dateFormat: 'DD/MM/YYYY' as const,
           theme: 'auto' as const,
           language: 'en',
         },
       };
-      const response = await modelManager.processMessage(
-        'test message',
-        testContext
-      );
 
-      expect(response.message).toContain('Switched to cloud model');
-      expect(mockReactAIService.processMessage).toHaveBeenCalled();
+      // Should throw an error when Gemini fails
+      await expect(
+        modelManager.processMessage('test message', testContext)
+      ).rejects.toThrow('Generation failed');
     });
 
-    it('should not attempt fallback for Gemini service failures', async () => {
+    it('should handle Gemini service processing failures', async () => {
+      // Clear any previous mocks and set up fresh failure
+      mockReactAIService.processMessage.mockReset();
       mockReactAIService.processMessage.mockRejectedValueOnce(
         new Error('Gemini failed')
       );
@@ -439,6 +392,7 @@ describe('ModelManager', () => {
             toolPermissions: true,
             responseStyle: 'balanced' as const,
             suggestionFrequency: 'moderate' as const,
+            showInteractionLogs: false,
           },
           taskSettings: {
             defaultPriority: 1,
@@ -448,35 +402,23 @@ describe('ModelManager', () => {
             showCompletedTasks: true,
             compactView: false,
           },
+          soundSettings: {
+            hapticFeedback: true,
+            completionSound: true,
+            soundVolume: 50,
+          },
+          dateFormat: 'DD/MM/YYYY' as const,
           theme: 'auto' as const,
           language: 'en',
         },
       };
       await expect(
         modelManager.processMessage('test message', testContext)
-      ).rejects.toThrow();
+      ).rejects.toThrow('Gemini failed');
     });
 
-    it('should handle fallback failure gracefully', async () => {
-      // Setup local service failure
-      mockLocalAIService.isInitialized.mockReturnValue(true);
-      mockLocalAIService.processMessage.mockRejectedValueOnce(
-        new Error('Local failed')
-      );
-      (
-        modelManager as unknown as {
-          currentService: unknown;
-          modelType: string;
-        }
-      ).currentService = mockLocalAIService;
-      (
-        modelManager as unknown as {
-          currentService: unknown;
-          modelType: string;
-        }
-      ).modelType = 'local';
-
-      // Make Gemini fallback also fail
+    it('should handle service initialization failure gracefully', async () => {
+      // Make Gemini service not initialized
       mockReactAIService.isInitialized.mockReturnValueOnce(false);
 
       const testContext = {
@@ -509,6 +451,7 @@ describe('ModelManager', () => {
             toolPermissions: true,
             responseStyle: 'balanced' as const,
             suggestionFrequency: 'moderate' as const,
+            showInteractionLogs: false,
           },
           taskSettings: {
             defaultPriority: 1,
@@ -518,15 +461,19 @@ describe('ModelManager', () => {
             showCompletedTasks: true,
             compactView: false,
           },
+          soundSettings: {
+            hapticFeedback: true,
+            completionSound: true,
+            soundVolume: 50,
+          },
+          dateFormat: 'DD/MM/YYYY' as const,
           theme: 'auto' as const,
           language: 'en',
         },
       };
       await expect(
         modelManager.processMessage('test message', testContext)
-      ).rejects.toThrow(
-        'Both local and cloud AI services are currently unavailable'
-      );
+      ).rejects.toThrow('AI service not initialized');
     });
   });
 

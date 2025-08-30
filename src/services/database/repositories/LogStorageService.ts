@@ -10,7 +10,7 @@ import {
   LogFilter,
   LogStorageStats,
 } from '../../../types/aiLogging';
-import { getDatabaseErrorMessage } from '../index';
+import { getDatabaseErrorMessage } from '../utils';
 import { TranslationKey } from '../../../i18n';
 import { PrivacyFilter } from '../../ai/PrivacyFilter';
 

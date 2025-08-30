@@ -365,6 +365,22 @@ export interface UserPreferences {
       autoCleanup: boolean;
       exportFormat: 'json' | 'csv';
     };
+    // Personality and emotional intelligence settings
+    personalitySettings?: {
+      warmth: number; // 1-10 scale
+      enthusiasm: number; // 1-10 scale
+      supportiveness: number; // 1-10 scale
+      humor: number; // 1-10 scale
+    };
+    interactionStyle?: 'casual' | 'professional' | 'friendly';
+    emojiUsage?: 'minimal' | 'moderate' | 'frequent';
+    emotionalFeatures?: {
+      dailyMoodTracking: boolean;
+      stressDetection: boolean;
+      encouragementFrequency: 'low' | 'medium' | 'high';
+      celebrationStyle: 'subtle' | 'enthusiastic';
+    };
+    onboardingCompleted?: boolean;
   };
   taskSettings: {
     defaultPriority: Priority;
@@ -470,3 +486,12 @@ export interface SessionStatistics {
 
 // Re-export AI logging types
 export * from './aiLogging';
+
+// Re-export task matching types
+export * from './taskMatching';
+
+// Re-export AI confirmation types
+export * from './aiConfirmation';
+
+// Re-export emotional intelligence types
+export * from './emotionalIntelligence';

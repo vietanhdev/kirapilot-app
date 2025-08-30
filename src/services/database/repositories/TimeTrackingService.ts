@@ -1,7 +1,7 @@
 // Time tracking service that interfaces with Tauri commands (SeaORM backend)
 import { invoke } from '@tauri-apps/api/core';
 import { TimerSession, CompletedSession, TimerBreak } from '../../../types';
-import { getDatabaseErrorMessage } from '../index';
+import { getDatabaseErrorMessage } from '../utils';
 import { TranslationKey } from '../../../i18n';
 
 export class TimeTrackingService {

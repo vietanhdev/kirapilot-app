@@ -11,6 +11,7 @@ import {
   AlertCircle,
   Settings,
   Play,
+  Info,
 } from 'lucide-react';
 import { useAI } from '../../contexts/AIContext';
 import { useTimerContext } from '../../contexts/TimerContext';
@@ -23,6 +24,10 @@ import {
   CollapsibleConversation,
   LoggingStatusIndicator,
   LoggingNotifications,
+  InteractionDetailsModal,
+  ContextualActionButtons,
+  FeedbackRatingButtons,
+  FeedbackCollectionModal,
 } from './';
 import { useAutoScroll } from '../../hooks/useAutoScroll';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -35,6 +40,17 @@ interface ChatUIProps {
 
 export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
   const [message, setMessage] = useState('');
+  const [selectedConversationId, setSelectedConversationId] = useState<
+    string | null
+  >(null);
+  const [interactionDetails, setInteractionDetails] = useState<
+    import('../../types/aiLogging').EnhancedInteractionLogEntry | null
+  >(null);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [isLoadingDetails, setIsLoadingDetails] = useState(false);
+  const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
+  const [selectedFeedbackConversation, setSelectedFeedbackConversation] =
+    useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const { scrollRef, isAutoScrollPaused, resumeAutoScroll } = useAutoScroll();
   const { t } = useTranslation();
@@ -48,6 +64,8 @@ export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
     sendMessage,
     dismissSuggestion,
     applySuggestion,
+    getInteractionDetails,
+    submitFeedback,
   } = useAI();
 
   const { activeTask, activeTaskId, hasActiveTimer } = useTimerContext();
@@ -174,6 +192,74 @@ export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
   const handleOpenSettings = () => {
     navigateTo('settings', { tab: 'ai' });
     onClose(); // Close the chat UI when navigating to settings
+  };
+
+  const handleShowDetails = async (conversationId: string) => {
+    setIsLoadingDetails(true);
+    setSelectedConversationId(conversationId);
+
+    try {
+      const details = await getInteractionDetails(conversationId);
+      setInteractionDetails(details);
+      setIsDetailsModalOpen(true);
+    } catch (error) {
+      console.error('Failed to load interaction details:', error);
+      // Could show a toast notification here
+    } finally {
+      setIsLoadingDetails(false);
+    }
+  };
+
+  const handleCloseDetailsModal = () => {
+    setIsDetailsModalOpen(false);
+    setInteractionDetails(null);
+    setSelectedConversationId(null);
+  };
+
+  const handleFeedbackSubmit = async (
+    conversationId: string,
+    rating: number,
+    comment?: string
+  ) => {
+    try {
+      const feedback = {
+        rating,
+        comment,
+        categories: [], // Quick feedback doesn't include detailed categories
+        timestamp: new Date(),
+      };
+
+      await submitFeedback(conversationId, feedback);
+    } catch (error) {
+      console.error('Failed to submit feedback:', error);
+    }
+  };
+
+  const handleDetailedFeedback = (conversationId: string) => {
+    setSelectedFeedbackConversation(conversationId);
+    setFeedbackModalOpen(true);
+  };
+
+  const handleDetailedFeedbackSubmit = async (
+    feedback: import('../../types/aiLogging').UserFeedback
+  ) => {
+    if (!selectedFeedbackConversation) {
+      return;
+    }
+
+    try {
+      await submitFeedback(selectedFeedbackConversation, feedback);
+      setFeedbackModalOpen(false);
+      setSelectedFeedbackConversation(null);
+    } catch (error) {
+      console.error('Failed to submit detailed feedback:', error);
+      throw error;
+    }
+  };
+
+  const handleCloseFeedbackModal = () => {
+    setFeedbackModalOpen(false);
+    setSelectedFeedbackConversation(null);
   };
 
   const formatTimestamp = (date: Date) => {
@@ -309,6 +395,76 @@ export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
               </div>
             )}
 
+            {/* Greeting message when no conversations exist */}
+            {isInitialized && conversations.length === 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className='text-center space-y-4'
+              >
+                <div className='flex justify-center'>
+                  <Avatar
+                    icon={<Bot className='w-6 h-6 text-white' />}
+                    className='bg-gradient-to-r from-primary-500 to-primary-600'
+                    size='lg'
+                  />
+                </div>
+
+                <div className='space-y-2'>
+                  <h3 className='text-lg font-semibold text-foreground'>
+                    {t('ai.greeting.title')}
+                  </h3>
+                  <p className='text-foreground-600 max-w-md mx-auto'>
+                    {t('ai.greeting.description')}
+                  </p>
+                </div>
+
+                <div className='space-y-3 max-w-sm mx-auto'>
+                  <p className='text-sm font-medium text-foreground-700'>
+                    {t('ai.greeting.suggestions')}
+                  </p>
+                  <div className='space-y-2'>
+                    <Button
+                      variant='flat'
+                      color='primary'
+                      size='sm'
+                      className='w-full justify-start'
+                      onPress={() =>
+                        setMessage(t('ai.greeting.suggestion.createTask'))
+                      }
+                    >
+                      <Lightbulb className='w-4 h-4 mr-2' />
+                      {t('ai.greeting.suggestion.createTask')}
+                    </Button>
+                    <Button
+                      variant='flat'
+                      color='primary'
+                      size='sm'
+                      className='w-full justify-start'
+                      onPress={() =>
+                        setMessage(t('ai.greeting.suggestion.startTimer'))
+                      }
+                    >
+                      <Play className='w-4 h-4 mr-2' />
+                      {t('ai.greeting.suggestion.startTimer')}
+                    </Button>
+                    <Button
+                      variant='flat'
+                      color='primary'
+                      size='sm'
+                      className='w-full justify-start'
+                      onPress={() =>
+                        setMessage(t('ai.greeting.suggestion.productivity'))
+                      }
+                    >
+                      <Bot className='w-4 h-4 mr-2' />
+                      {t('ai.greeting.suggestion.productivity')}
+                    </Button>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
             <AnimatePresence>
               {/* Show recent conversations directly */}
               {conversations.length > 0 && conversations.length <= 10 && (
@@ -398,12 +554,77 @@ export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
                                 </div>
                               )}
 
-                            {/* Main response with markdown */}
-                            <div className='bg-content2 px-3 py-2 rounded-lg text-sm border border-divider'>
-                              <MarkdownRenderer
-                                content={conversation.response}
-                              />
+                            {/* Main response with markdown and details button */}
+                            <div className='relative'>
+                              <div className='bg-content2 px-3 py-2 rounded-lg text-sm border border-divider'>
+                                <MarkdownRenderer
+                                  content={conversation.response}
+                                />
+                              </div>
+
+                              {/* Details button */}
+                              <div className='absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity'>
+                                <Button
+                                  isIconOnly
+                                  size='sm'
+                                  variant='flat'
+                                  color='primary'
+                                  className='h-6 w-6 min-w-6'
+                                  onPress={() =>
+                                    handleShowDetails(conversation.id)
+                                  }
+                                  isLoading={
+                                    isLoadingDetails &&
+                                    selectedConversationId === conversation.id
+                                  }
+                                  title='View interaction details'
+                                  data-tour='interaction-details'
+                                >
+                                  <Info className='w-3 h-3' />
+                                </Button>
+                              </div>
                             </div>
+
+                            {/* Contextual Action Buttons */}
+                            <ContextualActionButtons
+                              context={{
+                                currentTask: activeTask,
+                                mentionedTasks: [], // Could be extracted from conversation context
+                                suggestedActions:
+                                  conversation.actions?.map(a => a.type) || [],
+                              }}
+                              compact={true}
+                              className='mt-2'
+                              data-tour='action-buttons'
+                              onActionPerformed={(action, data) => {
+                                console.log('Action performed:', action, data);
+                                // Could trigger additional UI updates or notifications
+                              }}
+                            />
+
+                            {/* Feedback Rating Buttons - HIDDEN */}
+                            {false && !conversation.userFeedback && (
+                              <div
+                                className='mt-2 flex items-center justify-between'
+                                data-tour='feedback-buttons'
+                              >
+                                <FeedbackRatingButtons
+                                  conversationId={conversation.id}
+                                  onFeedbackSubmit={handleFeedbackSubmit}
+                                  compact={true}
+                                />
+                                <Button
+                                  size='sm'
+                                  variant='light'
+                                  onPress={() =>
+                                    handleDetailedFeedback(conversation.id)
+                                  }
+                                  className='text-xs text-foreground-500 hover:text-foreground-700'
+                                >
+                                  {t('ai.feedback.rateDetailed')}
+                                </Button>
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -571,12 +792,77 @@ export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
                                   </div>
                                 )}
 
-                              {/* Main response with markdown */}
-                              <div className='bg-content2 px-3 py-2 rounded-lg text-sm border border-divider'>
-                                <MarkdownRenderer
-                                  content={conversation.response}
-                                />
+                              {/* Main response with markdown and details button */}
+                              <div className='relative'>
+                                <div className='bg-content2 px-3 py-2 rounded-lg text-sm border border-divider'>
+                                  <MarkdownRenderer
+                                    content={conversation.response}
+                                  />
+                                </div>
+
+                                {/* Details button */}
+                                <div className='absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity'>
+                                  <Button
+                                    isIconOnly
+                                    size='sm'
+                                    variant='flat'
+                                    color='primary'
+                                    className='h-6 w-6 min-w-6'
+                                    onPress={() =>
+                                      handleShowDetails(conversation.id)
+                                    }
+                                    isLoading={
+                                      isLoadingDetails &&
+                                      selectedConversationId === conversation.id
+                                    }
+                                    title='View interaction details'
+                                  >
+                                    <Info className='w-3 h-3' />
+                                  </Button>
+                                </div>
                               </div>
+
+                              {/* Contextual Action Buttons */}
+                              <ContextualActionButtons
+                                context={{
+                                  currentTask: activeTask,
+                                  mentionedTasks: [], // Could be extracted from conversation context
+                                  suggestedActions:
+                                    conversation.actions?.map(a => a.type) ||
+                                    [],
+                                }}
+                                compact={true}
+                                className='mt-2'
+                                onActionPerformed={(action, data) => {
+                                  console.log(
+                                    'Action performed:',
+                                    action,
+                                    data
+                                  );
+                                  // Could trigger additional UI updates or notifications
+                                }}
+                              />
+
+                              {/* Feedback Rating Buttons - HIDDEN */}
+                              {false && !conversation.userFeedback && (
+                                <div className='mt-2 flex items-center justify-between'>
+                                  <FeedbackRatingButtons
+                                    conversationId={conversation.id}
+                                    onFeedbackSubmit={handleFeedbackSubmit}
+                                    compact={true}
+                                  />
+                                  <Button
+                                    size='sm'
+                                    variant='light'
+                                    onPress={() =>
+                                      handleDetailedFeedback(conversation.id)
+                                    }
+                                    className='text-xs text-foreground-500 hover:text-foreground-700'
+                                  >
+                                    {t('ai.feedback.rateDetailed')}
+                                  </Button>
+                                </div>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -669,6 +955,7 @@ export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
                 autoCorrect='off'
                 autoCapitalize='off'
                 spellCheck='false'
+                data-tour='chat-input'
               />
               <Button
                 isIconOnly
@@ -688,6 +975,27 @@ export function ChatUI({ isOpen, onClose, className = '' }: ChatUIProps) {
           </div>
         </CardBody>
       </Card>
+
+      {/* Interaction Details Modal */}
+      <InteractionDetailsModal
+        interaction={interactionDetails}
+        isOpen={isDetailsModalOpen}
+        onClose={handleCloseDetailsModal}
+      />
+
+      {/* Feedback Collection Modal - HIDDEN */}
+      {false && selectedFeedbackConversation && (
+        <FeedbackCollectionModal
+          isOpen={feedbackModalOpen}
+          onClose={handleCloseFeedbackModal}
+          conversationId={selectedFeedbackConversation || ''}
+          aiResponse={
+            conversations.find(c => c.id === selectedFeedbackConversation)
+              ?.response || ''
+          }
+          onSubmit={handleDetailedFeedbackSubmit}
+        />
+      )}
 
       {/* Logging notifications */}
       <LoggingNotifications position='bottom-right' />

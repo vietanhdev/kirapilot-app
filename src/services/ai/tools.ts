@@ -1,10 +1,12 @@
 import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
-import { Priority, TaskStatus, UpdateTaskRequest } from '../../types';
+import { Priority, TaskStatus, UpdateTaskRequest, Task } from '../../types';
 import {
   getTaskRepository,
   getTimeTrackingRepository,
 } from '../database/repositories';
+import { IntelligentTaskMatcher } from './IntelligentTaskMatcher';
+import { UserIntent, TaskMatchContext } from '../../types/taskMatching';
 
 // Tool response interfaces for better type safety
 interface TaskResponse {
@@ -12,13 +14,6 @@ interface TaskResponse {
   title: string;
   priority: Priority;
   status: TaskStatus;
-}
-
-interface SessionResponse {
-  id: string;
-  taskId: string;
-  startTime: Date;
-  isActive: boolean;
 }
 
 interface StoppedSessionResponse {
@@ -56,18 +51,157 @@ interface TimeDataResponse {
   sessions: TimeDataSession[];
 }
 
-interface ProductivityInsights {
-  mostProductiveTime: { start: string; end: string; dayOfWeek: number };
-  leastProductiveTime: { start: string; end: string; dayOfWeek: number };
-  averageTaskDuration: number;
-  completionRate: number;
-  focusEfficiency: number;
+// Helper class for user-friendly tool operations
+class UserFriendlyToolHelper {
+  private taskMatcher = new IntelligentTaskMatcher();
+
+  /**
+   * Find a task using natural language with user-friendly error handling
+   */
+  async findTask(
+    query: string,
+    intent?: UserIntent,
+    context?: TaskMatchContext
+  ): Promise<{
+    success: boolean;
+    task?: Task;
+    message: string;
+    reasoning?: string;
+    alternatives?: Array<{ task: Task; confidence: number; reason: string }>;
+    needsResolution?: boolean;
+  }> {
+    try {
+      const searchContext: TaskMatchContext = {
+        ...context,
+        userIntent: intent,
+      };
+
+      const matches = await this.taskMatcher.searchTasks(query, searchContext);
+
+      if (matches.length === 0) {
+        return {
+          success: false,
+          message: `I couldn't find any tasks matching "${query}". Would you like me to create a new task with this title?`,
+          reasoning: 'No tasks found matching the search criteria',
+        };
+      }
+
+      // If we have a single high-confidence match
+      if (matches.length === 1 && matches[0].confidence >= 80) {
+        const match = matches[0];
+        return {
+          success: true,
+          task: match.task,
+          message: `Found task: "${match.task.title}"`,
+          reasoning: `${match.matchReason} (${match.confidence}% confidence)`,
+        };
+      }
+
+      // If we have multiple matches or low confidence
+      if (matches.length > 1 || matches[0].confidence < 80) {
+        return {
+          success: true,
+          task: matches[0].task, // Return the best match
+          message: `I found ${matches.length} possible matches for "${query}". Using the best match: "${matches[0].task.title}"`,
+          reasoning: `Best match: ${matches[0].matchReason} (${matches[0].confidence}% confidence)`,
+          alternatives: matches.slice(1, 4).map(m => ({
+            task: m.task,
+            confidence: m.confidence,
+            reason: m.matchReason,
+          })),
+          needsResolution: matches[0].confidence < 70,
+        };
+      }
+
+      // Single match with good confidence
+      const match = matches[0];
+      return {
+        success: true,
+        task: match.task,
+        message: `Found task: "${match.task.title}"`,
+        reasoning: `${match.matchReason} (${match.confidence}% confidence)`,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: `Error searching for tasks: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        reasoning: 'Task search failed due to system error',
+      };
+    }
+  }
+
+  /**
+   * Get user-friendly priority label
+   */
+  getPriorityLabel(priority: number): string {
+    switch (priority) {
+      case 3:
+        return 'Urgent 🔴';
+      case 2:
+        return 'High 🟠';
+      case 1:
+        return 'Medium 🟡';
+      case 0:
+        return 'Low 🟢';
+      default:
+        return 'Unknown';
+    }
+  }
+
+  /**
+   * Get user-friendly status label
+   */
+  getStatusLabel(status: TaskStatus): string {
+    switch (status) {
+      case TaskStatus.PENDING: {
+        return 'Pending ⏳';
+      }
+      case TaskStatus.IN_PROGRESS: {
+        return 'In Progress 🔄';
+      }
+      case TaskStatus.COMPLETED: {
+        return 'Completed ✅';
+      }
+      case TaskStatus.CANCELLED: {
+        return 'Cancelled ❌';
+      }
+      default: {
+        return String(status).replace('_', ' ');
+      }
+    }
+  }
+
+  /**
+   * Format task details in a user-friendly way
+   */
+  formatTaskDetails(task: Task): string {
+    const details = [
+      `📋 **${task.title}**`,
+      task.description ? `📝 ${task.description}` : '',
+      `📊 Status: ${this.getStatusLabel(task.status)}`,
+      `⭐ Priority: ${this.getPriorityLabel(task.priority)}`,
+      task.timeEstimate > 0
+        ? `⏱️ Estimated time: ${task.timeEstimate} minutes`
+        : '',
+      task.actualTime > 0
+        ? `⏰ Time spent: ${Math.round(task.actualTime / 60)} minutes`
+        : '',
+      task.tags.length > 0 ? `🏷️ Tags: ${task.tags.join(', ')}` : '',
+      task.dueDate
+        ? `📅 Due: ${new Date(task.dueDate).toLocaleDateString()}`
+        : '',
+      task.scheduledDate
+        ? `📆 Scheduled: ${new Date(task.scheduledDate).toLocaleDateString()}`
+        : '',
+    ]
+      .filter(Boolean)
+      .join('\n');
+
+    return details;
+  }
 }
 
-interface ProductivityAnalysis {
-  insights: ProductivityInsights;
-  recommendations: string[];
-}
+const toolHelper = new UserFriendlyToolHelper();
 
 /**
  * Create a new task in the system
@@ -156,10 +290,10 @@ const createTaskTool = tool(
 );
 
 /**
- * Update an existing task
+ * Update an existing task using natural language to find it
  */
 interface UpdateTaskInput {
-  taskId: string;
+  taskReference: string;
   updates: {
     title?: string;
     description?: string;
@@ -171,8 +305,25 @@ interface UpdateTaskInput {
 
 const updateTaskTool = tool(
   async (input: UpdateTaskInput) => {
-    const { taskId, updates } = input;
+    const { taskReference, updates } = input;
     try {
+      // Find the task using natural language
+      const findResult = await toolHelper.findTask(
+        taskReference,
+        UserIntent.EDIT_TASK
+      );
+
+      if (!findResult.success || !findResult.task) {
+        const errorResponse = {
+          success: false,
+          error: findResult.message,
+          reasoning: findResult.reasoning,
+          suggestion:
+            'Try being more specific about which task you want to update, or check if the task exists.',
+        };
+        return JSON.stringify(errorResponse);
+      }
+
       const taskRepo = getTaskRepository();
       const processedUpdates: UpdateTaskRequest = {
         title: updates.title,
@@ -183,8 +334,33 @@ const updateTaskTool = tool(
           ? new Date(updates.scheduledDate)
           : undefined,
       };
-      const task = await taskRepo.update(taskId, processedUpdates);
-      const response: { success: true; task: TaskResponse } = {
+
+      const task = await taskRepo.update(findResult.task.id, processedUpdates);
+
+      // Create user-friendly response
+      const changedFields = Object.keys(updates).filter(
+        key => updates[key as keyof typeof updates] !== undefined
+      );
+      const changeDescription = changedFields
+        .map(field => {
+          switch (field) {
+            case 'title':
+              return `title to "${updates.title}"`;
+            case 'description':
+              return `description`;
+            case 'priority':
+              return `priority to ${toolHelper.getPriorityLabel(updates.priority!)}`;
+            case 'status':
+              return `status to ${toolHelper.getStatusLabel(updates.status as TaskStatus)}`;
+            case 'scheduledDate':
+              return `scheduled date to ${new Date(updates.scheduledDate!).toLocaleDateString()}`;
+            default:
+              return field;
+          }
+        })
+        .join(', ');
+
+      const response = {
         success: true,
         task: {
           id: task.id,
@@ -192,26 +368,40 @@ const updateTaskTool = tool(
           status: task.status,
           priority: task.priority,
         },
+        message: `✅ Updated task "${task.title}" - changed ${changeDescription}`,
+        reasoning: findResult.reasoning,
+        taskDetails: toolHelper.formatTaskDetails(task),
       };
       return JSON.stringify(response);
     } catch (error) {
-      const errorResponse: { success: false; error: string } = {
+      const errorResponse = {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to update task',
+        suggestion: 'Please try again or check if the task exists.',
       };
       return JSON.stringify(errorResponse);
     }
   },
   {
     name: 'update_task',
-    description: 'Update an existing task with new information',
+    description:
+      'Update an existing task by finding it with natural language description instead of requiring exact task ID. You can change title, description, priority, status, or scheduled date.',
     schema: z.object({
-      taskId: z.string().describe('ID of the task to update'),
+      taskReference: z
+        .string()
+        .describe(
+          'Natural language description of the task to update (e.g., "the email task", "project planning", "buy groceries")'
+        ),
       updates: z
         .object({
           title: z.string().optional().describe('New task title'),
           description: z.string().optional().describe('New task description'),
-          priority: z.number().optional().describe('New priority level'),
+          priority: z
+            .number()
+            .min(0)
+            .max(3)
+            .optional()
+            .describe('New priority level: 0=Low, 1=Medium, 2=High, 3=Urgent'),
           status: z
             .enum(['pending', 'in_progress', 'completed', 'cancelled'])
             .optional()
@@ -219,7 +409,9 @@ const updateTaskTool = tool(
           scheduledDate: z
             .string()
             .optional()
-            .describe('When the task is scheduled to be worked on'),
+            .describe(
+              'When the task is scheduled to be worked on (YYYY-MM-DD format)'
+            ),
         })
         .describe('Object containing the updates to apply'),
     }),
@@ -227,40 +419,140 @@ const updateTaskTool = tool(
 );
 
 /**
- * Get tasks based on filters
+ * Get tasks with smart filtering and user-friendly descriptions
  */
 interface GetTasksInput {
+  query?: string;
   filters?: {
     status?: string[];
-    priority?: number[];
+    priority?: string[];
     tags?: string[];
-    search?: string;
+    dueToday?: boolean;
+    scheduledToday?: boolean;
+    overdue?: boolean;
   };
+  limit?: number;
 }
 
 const getTasksTool = tool(
   async (input: GetTasksInput) => {
-    const { filters } = input;
+    const { query, filters, limit = 20 } = input;
     try {
       const taskRepo = getTaskRepository();
-      const processedFilters = filters
-        ? {
-            ...filters,
-            status: filters.status?.map((s: string) => s as TaskStatus),
-            priority: filters.priority,
-            tags: filters.tags,
-            search: filters.search,
-          }
-        : undefined;
 
-      const tasks = await taskRepo.findAll(processedFilters, undefined);
-      const response: {
-        success: true;
-        tasks: TaskListResponse[];
-        count: number;
-      } = {
+      // Convert user-friendly priority names to numbers
+      const priorityNumbers = filters?.priority?.map(p => {
+        switch (p.toLowerCase()) {
+          case 'urgent': {
+            return 3;
+          }
+          case 'high': {
+            return 2;
+          }
+          case 'medium': {
+            return 1;
+          }
+          case 'low': {
+            return 0;
+          }
+          default: {
+            return parseInt(p) || 1;
+          }
+        }
+      });
+
+      // Build smart filters
+      const processedFilters: {
+        status?: TaskStatus[];
+        priority?: number[];
+        tags?: string[];
+        search?: string;
+      } = {};
+
+      if (filters?.status) {
+        processedFilters.status = filters.status.map(
+          (s: string) => s as TaskStatus
+        );
+      }
+
+      if (priorityNumbers) {
+        processedFilters.priority = priorityNumbers;
+      }
+
+      if (filters?.tags) {
+        processedFilters.tags = filters.tags;
+      }
+
+      if (query) {
+        processedFilters.search = query;
+      }
+
+      let tasks = await taskRepo.findAll(processedFilters, undefined);
+
+      // Apply contextual filters
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
+      if (filters?.dueToday) {
+        tasks = tasks.filter(task => {
+          if (!task.dueDate) {
+            return false;
+          }
+          const dueDate = new Date(task.dueDate);
+          dueDate.setHours(0, 0, 0, 0);
+          return dueDate.getTime() === today.getTime();
+        });
+      }
+
+      if (filters?.scheduledToday) {
+        tasks = tasks.filter(task => {
+          if (!task.scheduledDate) {
+            return false;
+          }
+          const scheduledDate = new Date(task.scheduledDate);
+          scheduledDate.setHours(0, 0, 0, 0);
+          return scheduledDate.getTime() === today.getTime();
+        });
+      }
+
+      if (filters?.overdue) {
+        tasks = tasks.filter(task => {
+          if (!task.dueDate || task.status === TaskStatus.COMPLETED) {
+            return false;
+          }
+          return new Date(task.dueDate) < today;
+        });
+      }
+
+      // Limit results
+      const limitedTasks = tasks.slice(0, limit);
+
+      // Create user-friendly summary
+      let summary = `Found ${tasks.length} tasks`;
+      if (query) {
+        summary += ` matching "${query}"`;
+      }
+      if (filters?.status) {
+        summary += ` with status: ${filters.status.join(', ')}`;
+      }
+      if (filters?.priority) {
+        summary += ` with priority: ${filters.priority.join(', ')}`;
+      }
+      if (filters?.dueToday) {
+        summary += ` due today`;
+      }
+      if (filters?.scheduledToday) {
+        summary += ` scheduled for today`;
+      }
+      if (filters?.overdue) {
+        summary += ` that are overdue`;
+      }
+
+      const response = {
         success: true,
-        tasks: tasks.map(
+        tasks: limitedTasks.map(
           (task): TaskListResponse => ({
             id: task.id,
             title: task.title,
@@ -275,12 +567,16 @@ const getTasksTool = tool(
           })
         ),
         count: tasks.length,
+        showing: limitedTasks.length,
+        message: summary,
+        reasoning: `Retrieved tasks based on your criteria${limit < tasks.length ? ` (showing first ${limit})` : ''}`,
       };
       return JSON.stringify(response);
     } catch (error) {
-      const errorResponse: { success: false; error: string } = {
+      const errorResponse = {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to get tasks',
+        suggestion: 'Please try again with different search criteria.',
       };
       return JSON.stringify(errorResponse);
     }
@@ -288,49 +584,81 @@ const getTasksTool = tool(
   {
     name: 'get_tasks',
     description:
-      'Retrieve tasks from the system, optionally filtered by status, priority, tags, or search terms',
+      "Retrieve and search tasks with smart filtering. Can find tasks by text search, status, priority, due dates, and more. Provides contextual results based on what you're looking for.",
     schema: z.object({
+      query: z
+        .string()
+        .optional()
+        .describe(
+          'Search text to find in task titles and descriptions (e.g., "email", "project", "meeting")'
+        ),
       filters: z
         .object({
           status: z
-            .array(z.string())
+            .array(z.enum(['pending', 'in_progress', 'completed', 'cancelled']))
             .optional()
-            .describe(
-              'Filter by task status: pending, in_progress, completed, cancelled'
-            ),
+            .describe('Filter by task status'),
           priority: z
-            .array(z.number())
+            .array(z.enum(['low', 'medium', 'high', 'urgent']))
             .optional()
-            .describe('Filter by priority levels: 0-3'),
+            .describe('Filter by priority level using friendly names'),
           tags: z
             .array(z.string())
             .optional()
             .describe('Filter by specific tags'),
-          search: z
-            .string()
+          dueToday: z
+            .boolean()
             .optional()
-            .describe('Search in task titles and descriptions'),
+            .describe('Show only tasks due today'),
+          scheduledToday: z
+            .boolean()
+            .optional()
+            .describe('Show only tasks scheduled for today'),
+          overdue: z.boolean().optional().describe('Show only overdue tasks'),
         })
         .optional()
-        .describe('Filters to apply when retrieving tasks'),
+        .describe('Optional filters to narrow down results'),
+      limit: z
+        .number()
+        .optional()
+        .default(20)
+        .describe('Maximum number of tasks to return (default: 20)'),
     }),
   }
 );
 
 /**
- * Start a timer for a task
+ * Start a timer for a task using natural language to find it
  */
 interface StartTimerInput {
-  taskId: string;
+  taskReference: string;
 }
 
 const startTimerTool = tool(
   async (input: StartTimerInput) => {
-    const { taskId } = input;
+    const { taskReference } = input;
     try {
+      // Find the task using natural language
+      const findResult = await toolHelper.findTask(
+        taskReference,
+        UserIntent.START_TIMER
+      );
+
+      if (!findResult.success || !findResult.task) {
+        const errorResponse = {
+          success: false,
+          error: findResult.message,
+          reasoning: findResult.reasoning,
+          suggestion:
+            'Try being more specific about which task you want to time, or check if the task exists.',
+        };
+        return JSON.stringify(errorResponse);
+      }
+
       const timeRepo = getTimeTrackingRepository();
-      const session = await timeRepo.startSession(taskId);
-      const response: { success: true; session: SessionResponse } = {
+      const session = await timeRepo.startSession(findResult.task.id);
+
+      const response = {
         success: true,
         session: {
           id: session.id,
@@ -338,12 +666,16 @@ const startTimerTool = tool(
           startTime: session.startTime,
           isActive: session.isActive,
         },
+        message: `⏱️ Started timer for task: "${findResult.task.title}"`,
+        reasoning: findResult.reasoning,
+        taskDetails: toolHelper.formatTaskDetails(findResult.task),
       };
       return JSON.stringify(response);
     } catch (error) {
-      const errorResponse: { success: false; error: string } = {
+      const errorResponse = {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to start timer',
+        suggestion: 'Please try again or check if the task exists.',
       };
       return JSON.stringify(errorResponse);
     }
@@ -351,9 +683,172 @@ const startTimerTool = tool(
   {
     name: 'start_timer',
     description:
-      'Start a timer session for tracking time spent on a specific task',
+      'Start a timer session for tracking time spent on a task. Find the task using natural language description instead of requiring exact task ID.',
     schema: z.object({
-      taskId: z.string().describe('ID of the task to start timing'),
+      taskReference: z
+        .string()
+        .describe(
+          'Natural language description of the task to start timing (e.g., "the email task", "project planning", "buy groceries")'
+        ),
+    }),
+  }
+);
+
+/**
+ * Complete a task using natural language to find it
+ */
+interface CompleteTaskInput {
+  taskReference: string;
+  notes?: string;
+}
+
+const completeTaskTool = tool(
+  async (input: CompleteTaskInput) => {
+    const { taskReference, notes } = input;
+    try {
+      // Find the task using natural language
+      const findResult = await toolHelper.findTask(
+        taskReference,
+        UserIntent.COMPLETE_TASK
+      );
+
+      if (!findResult.success || !findResult.task) {
+        const errorResponse = {
+          success: false,
+          error: findResult.message,
+          reasoning: findResult.reasoning,
+          suggestion:
+            'Try being more specific about which task you want to complete, or check if the task exists.',
+        };
+        return JSON.stringify(errorResponse);
+      }
+
+      const taskRepo = getTaskRepository();
+      const updates: UpdateTaskRequest = {
+        status: TaskStatus.COMPLETED,
+      };
+
+      // Add notes to description if provided
+      if (notes) {
+        const currentDescription = findResult.task.description || '';
+        updates.description =
+          currentDescription +
+          (currentDescription ? '\n\n' : '') +
+          `Completion notes: ${notes}`;
+      }
+
+      const task = await taskRepo.update(findResult.task.id, updates);
+
+      const response = {
+        success: true,
+        task: {
+          id: task.id,
+          title: task.title,
+          status: task.status,
+          priority: task.priority,
+        },
+        message: `🎉 Completed task: "${task.title}"${notes ? ` with notes: "${notes}"` : ''}`,
+        reasoning: findResult.reasoning,
+        celebration: '🎊 Great job! Another task completed!',
+      };
+      return JSON.stringify(response);
+    } catch (error) {
+      const errorResponse = {
+        success: false,
+        error:
+          error instanceof Error ? error.message : 'Failed to complete task',
+        suggestion: 'Please try again or check if the task exists.',
+      };
+      return JSON.stringify(errorResponse);
+    }
+  },
+  {
+    name: 'complete_task',
+    description:
+      'Mark a task as completed by finding it with natural language description. Optionally add completion notes.',
+    schema: z.object({
+      taskReference: z
+        .string()
+        .describe(
+          'Natural language description of the task to complete (e.g., "the email task", "project planning", "buy groceries")'
+        ),
+      notes: z
+        .string()
+        .optional()
+        .describe('Optional notes about the task completion'),
+    }),
+  }
+);
+
+/**
+ * Get task details using natural language to find it
+ */
+interface GetTaskDetailsInput {
+  taskReference: string;
+}
+
+const getTaskDetailsTool = tool(
+  async (input: GetTaskDetailsInput) => {
+    const { taskReference } = input;
+    try {
+      // Find the task using natural language
+      const findResult = await toolHelper.findTask(
+        taskReference,
+        UserIntent.VIEW_DETAILS
+      );
+
+      if (!findResult.success || !findResult.task) {
+        const errorResponse = {
+          success: false,
+          error: findResult.message,
+          reasoning: findResult.reasoning,
+          suggestion:
+            'Try being more specific about which task you want to view, or check if the task exists.',
+        };
+        return JSON.stringify(errorResponse);
+      }
+
+      const task = findResult.task;
+      const response = {
+        success: true,
+        task: {
+          id: task.id,
+          title: task.title,
+          status: task.status,
+          priority: task.priority,
+          description: task.description,
+          tags: task.tags,
+          timeEstimate: task.timeEstimate,
+          actualTime: task.actualTime,
+          dueDate: task.dueDate,
+          scheduledDate: task.scheduledDate,
+        },
+        message: `📋 Task details for: "${task.title}"`,
+        reasoning: findResult.reasoning,
+        taskDetails: toolHelper.formatTaskDetails(task),
+        alternatives: findResult.alternatives,
+      };
+      return JSON.stringify(response);
+    } catch (error) {
+      const errorResponse = {
+        success: false,
+        error:
+          error instanceof Error ? error.message : 'Failed to get task details',
+        suggestion: 'Please try again or check if the task exists.',
+      };
+      return JSON.stringify(errorResponse);
+    }
+  },
+  {
+    name: 'get_task_details',
+    description:
+      'Get detailed information about a task by finding it with natural language description instead of requiring exact task ID.',
+    schema: z.object({
+      taskReference: z
+        .string()
+        .describe(
+          'Natural language description of the task to view (e.g., "the email task", "project planning", "buy groceries")'
+        ),
     }),
   }
 );
@@ -485,39 +980,149 @@ const getTimeDataTool = tool(
 );
 
 /**
- * Analyze productivity patterns
+ * Analyze productivity patterns with personalized insights
  */
+interface AnalyzeProductivityInput {
+  timeframe?: string;
+  focusArea?: string;
+}
+
 const analyzeProductivityTool = tool(
-  async () => {
+  async (input: AnalyzeProductivityInput) => {
+    const { timeframe = 'week', focusArea } = input;
     try {
-      // Generate mock productivity analysis
-      const analysis: ProductivityAnalysis = {
-        insights: {
-          mostProductiveTime: { start: '09:00', end: '11:00', dayOfWeek: 1 },
-          leastProductiveTime: { start: '14:00', end: '16:00', dayOfWeek: 5 },
-          averageTaskDuration: 45,
-          completionRate: 0.75,
-          focusEfficiency: 0.82,
+      // Get actual task and time data for analysis
+      const taskRepo = getTaskRepository();
+      const timeRepo = getTimeTrackingRepository();
+
+      // Calculate date range based on timeframe
+      const endDate = new Date();
+      const startDate = new Date();
+      switch (timeframe) {
+        case 'day': {
+          startDate.setDate(startDate.getDate() - 1);
+          break;
+        }
+        case 'week': {
+          startDate.setDate(startDate.getDate() - 7);
+          break;
+        }
+        case 'month': {
+          startDate.setMonth(startDate.getMonth() - 1);
+          break;
+        }
+        default: {
+          startDate.setDate(startDate.getDate() - 7);
+        }
+      }
+
+      // Get tasks and sessions for analysis
+      const allTasks = await taskRepo.findAll();
+      const sessions = await timeRepo.getByDateRange(startDate, endDate);
+
+      // Calculate completion rate
+      const completedTasks = allTasks.filter(
+        t => t.status === TaskStatus.COMPLETED
+      );
+      const completionRate =
+        allTasks.length > 0 ? completedTasks.length / allTasks.length : 0;
+
+      // Calculate average task duration from sessions
+      const totalTime = sessions.reduce(
+        (sum: number, session: { endTime?: Date; startTime: Date }) => {
+          if (session.endTime) {
+            return (
+              sum +
+              (new Date(session.endTime).getTime() -
+                new Date(session.startTime).getTime())
+            );
+          }
+          return sum;
         },
-        recommendations: [
-          'Schedule challenging tasks during your most productive hours (9-11 AM)',
-          'Take breaks during low-energy periods to maintain focus',
-          'Consider time-boxing tasks to improve completion rates',
-        ],
+        0
+      );
+      const averageSessionMinutes =
+        sessions.length > 0
+          ? Math.round(totalTime / (sessions.length * 60000))
+          : 0;
+
+      // Generate insights based on focus area
+      let focusInsights: string[] = [];
+      let recommendations: string[] = [];
+
+      if (focusArea === 'time_management') {
+        focusInsights = [
+          `⏰ You've completed ${completedTasks.length} tasks in the last ${timeframe}`,
+          `📊 Your average work session is ${averageSessionMinutes} minutes`,
+          `✅ Task completion rate: ${Math.round(completionRate * 100)}%`,
+        ];
+        recommendations = [
+          'Try the Pomodoro technique with 25-minute focused sessions',
+          'Schedule your most important tasks during your peak energy hours',
+          'Break large tasks into smaller, manageable chunks',
+        ];
+      } else if (focusArea === 'task_completion') {
+        focusInsights = [
+          `🎯 You completed ${completedTasks.length} out of ${allTasks.length} tasks`,
+          `📈 Completion rate: ${Math.round(completionRate * 100)}%`,
+          `⚡ Most productive with ${averageSessionMinutes}-minute sessions`,
+        ];
+        recommendations = [
+          completionRate < 0.7
+            ? 'Consider setting more realistic task estimates'
+            : 'Great job on task completion!',
+          'Review and prioritize your task list regularly',
+          'Celebrate small wins to maintain motivation',
+        ];
+      } else {
+        // General analysis
+        focusInsights = [
+          `📋 ${allTasks.length} total tasks, ${completedTasks.length} completed`,
+          `⏱️ ${sessions.length} work sessions tracked`,
+          `📊 ${Math.round(completionRate * 100)}% completion rate`,
+          `⚡ Average session: ${averageSessionMinutes} minutes`,
+        ];
+        recommendations = [
+          completionRate > 0.8
+            ? '🎉 Excellent productivity! Keep up the great work!'
+            : '💪 Room for improvement - try breaking tasks into smaller pieces',
+          averageSessionMinutes > 60
+            ? '🧠 Consider shorter, more focused work sessions'
+            : '⚡ Your session length looks good for maintaining focus',
+          '📅 Schedule regular reviews to adjust your approach',
+        ];
+      }
+
+      const analysis = {
+        timeframe,
+        focusArea: focusArea || 'general',
+        insights: focusInsights,
+        recommendations,
+        stats: {
+          totalTasks: allTasks.length,
+          completedTasks: completedTasks.length,
+          completionRate: Math.round(completionRate * 100),
+          totalSessions: sessions.length,
+          averageSessionMinutes,
+        },
       };
 
-      const response: { success: true; analysis: ProductivityAnalysis } = {
+      const response = {
         success: true,
         analysis,
+        message: `📊 Productivity analysis for the last ${timeframe}${focusArea ? ` (focusing on ${focusArea.replace('_', ' ')})` : ''}`,
+        reasoning: `Analyzed ${allTasks.length} tasks and ${sessions.length} work sessions to provide personalized insights`,
       };
       return JSON.stringify(response);
     } catch (error) {
-      const errorResponse: { success: false; error: string } = {
+      const errorResponse = {
         success: false,
         error:
           error instanceof Error
             ? error.message
             : 'Failed to analyze productivity',
+        suggestion:
+          'Please try again or check if you have any tasks and time tracking data.',
       };
       return JSON.stringify(errorResponse);
     }
@@ -525,22 +1130,157 @@ const analyzeProductivityTool = tool(
   {
     name: 'analyze_productivity',
     description:
-      'Analyze productivity patterns and provide insights and recommendations',
-    schema: z.object({}),
+      'Analyze your productivity patterns and get personalized insights and recommendations based on your actual task and time tracking data.',
+    schema: z.object({
+      timeframe: z
+        .enum(['day', 'week', 'month'])
+        .optional()
+        .default('week')
+        .describe('Time period to analyze (default: week)'),
+      focusArea: z
+        .enum(['time_management', 'task_completion', 'general'])
+        .optional()
+        .describe('Specific area to focus the analysis on'),
+    }),
+  }
+);
+
+/**
+ * Get help and explanations about available AI tools and features
+ */
+interface GetHelpInput {
+  topic?: string;
+}
+
+const getHelpTool = tool(
+  async (input: GetHelpInput) => {
+    const { topic } = input;
+
+    const helpTopics = {
+      tasks: {
+        title: '📋 Task Management Help',
+        content: [
+          '**Creating Tasks**: Just say "create a task called [name]" or "add [task name] to my list"',
+          '**Finding Tasks**: Use natural language like "show me the email task" or "find project planning"',
+          '**Updating Tasks**: Say "update the [task name]" and specify what to change',
+          '**Completing Tasks**: Simply say "complete [task name]" or "mark [task] as done"',
+          '**Task Details**: Ask "show me details for [task name]" to see full information',
+        ],
+      },
+      timer: {
+        title: '⏱️ Time Tracking Help',
+        content: [
+          '**Starting Timer**: Say "start timer for [task name]" - I\'ll find the task automatically',
+          '**Stopping Timer**: Use "stop timer" or "stop the current session"',
+          '**Adding Notes**: When stopping, you can add notes about what you accomplished',
+          '**Time Reports**: Ask for "time data" or "productivity analysis" to see your patterns',
+        ],
+      },
+      search: {
+        title: '🔍 Finding Things Help',
+        content: [
+          '**Smart Search**: I can find tasks even with partial names or descriptions',
+          '**Filters**: Ask for "urgent tasks", "tasks due today", or "completed tasks"',
+          '**Tags**: Search by tags like "show me work tasks" or "personal tasks"',
+          '**Status**: Find tasks by status: "pending tasks", "in progress tasks"',
+        ],
+      },
+      productivity: {
+        title: '📊 Productivity Features Help',
+        content: [
+          '**Analysis**: Ask for "productivity analysis" to see your patterns',
+          '**Insights**: Get personalized recommendations based on your work habits',
+          '**Time Tracking**: See how long tasks actually take vs. estimates',
+          "**Completion Rates**: Track how well you're completing your planned tasks",
+        ],
+      },
+      general: {
+        title: '🤖 AI Assistant Help',
+        content: [
+          '**Natural Language**: Talk to me naturally - no need for exact commands',
+          "**Context Aware**: I remember what we're working on and can make smart suggestions",
+          "**Helpful Errors**: If I can't find something, I'll suggest alternatives",
+          "**Explanations**: I always explain what I'm doing and why",
+          "**Confirmation**: For important actions, I'll ask for confirmation first",
+        ],
+      },
+    };
+
+    if (topic && helpTopics[topic as keyof typeof helpTopics]) {
+      const helpInfo = helpTopics[topic as keyof typeof helpTopics];
+      const response = {
+        success: true,
+        message: helpInfo.title,
+        content: helpInfo.content.join('\n\n'),
+        reasoning: `Provided help information for ${topic}`,
+      };
+      return JSON.stringify(response);
+    }
+
+    // General help
+    const allTopics = Object.keys(helpTopics);
+    const response = {
+      success: true,
+      message: '🤖 KiraPilot AI Assistant Help',
+      content: [
+        '**Available Help Topics:**',
+        '• `tasks` - Task management and operations',
+        '• `timer` - Time tracking and sessions',
+        '• `search` - Finding and filtering tasks',
+        '• `productivity` - Analytics and insights',
+        '• `general` - AI assistant features',
+        '',
+        '**Quick Tips:**',
+        '• Use natural language - no need for exact commands',
+        '• I can find tasks by partial names or descriptions',
+        '• Ask for help on specific topics: "help with tasks"',
+        "• I always explain what I'm doing and provide reasoning",
+        '',
+        '**Examples:**',
+        '• "Create a task to review the quarterly report"',
+        '• "Start timer for the email task"',
+        '• "Show me urgent tasks due today"',
+        '• "Complete the project planning task"',
+        '• "How productive was I this week?"',
+      ].join('\n'),
+      availableTopics: allTopics,
+      reasoning:
+        'Provided general help and overview of AI assistant capabilities',
+    };
+    return JSON.stringify(response);
+  },
+  {
+    name: 'get_help',
+    description:
+      'Get help and explanations about AI assistant features, task management, time tracking, and how to use natural language commands effectively.',
+    schema: z.object({
+      topic: z
+        .enum(['tasks', 'timer', 'search', 'productivity', 'general'])
+        .optional()
+        .describe('Specific help topic to get information about'),
+    }),
   }
 );
 
 /**
  * Export all KiraPilot tools for the ReAct agent
+ * These tools are designed to be user-friendly with natural language task matching,
+ * contextual parameter inference, and helpful explanations.
  */
 export function getKiraPilotTools() {
   return [
     createTaskTool,
     updateTaskTool,
+    completeTaskTool,
+    getTaskDetailsTool,
     getTasksTool,
     startTimerTool,
     stopTimerTool,
     getTimeDataTool,
     analyzeProductivityTool,
+    getHelpTool,
   ];
 }
+
+// Export the helper for use in other parts of the application
+export { UserFriendlyToolHelper, toolHelper };

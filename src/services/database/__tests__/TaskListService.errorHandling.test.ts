@@ -81,9 +81,7 @@ describe('TaskListService Error Handling', () => {
 
       const error = await service.createTaskList(request).catch(e => e);
 
-      expect(error.message).toContain(
-        'Error: taskListService.error.createFailed'
-      );
+      expect(error.message).toContain('taskListService.error.createFailed');
       expect(error.taskListError).toBeDefined();
       expect(error.taskListError.type).toBe('DUPLICATE_ERROR');
     });
@@ -94,9 +92,7 @@ describe('TaskListService Error Handling', () => {
 
       const error = await service.createTaskList(request).catch(e => e);
 
-      expect(error.message).toContain(
-        'Error: taskListService.error.createFailed'
-      );
+      expect(error.message).toContain('taskListService.error.createFailed');
       expect(error.taskListError).toBeDefined();
       expect(error.taskListError.type).toBe('DATABASE_ERROR');
     });
@@ -155,9 +151,7 @@ describe('TaskListService Error Handling', () => {
 
       const error = await service.updateTaskList('123', request).catch(e => e);
 
-      expect(error.message).toContain(
-        'Error: taskListService.error.updateFailed'
-      );
+      expect(error.message).toContain('taskListService.error.updateFailed');
       expect(error.taskListError).toBeDefined();
       expect(error.taskListError.type).toBe('BUSINESS_RULE_ERROR');
     });
@@ -193,9 +187,7 @@ describe('TaskListService Error Handling', () => {
 
       const error = await service.deleteTaskList('123').catch(e => e);
 
-      expect(error.message).toContain(
-        'Error: taskListService.error.deleteFailed'
-      );
+      expect(error.message).toContain('taskListService.error.deleteFailed');
       expect(error.taskListError).toBeDefined();
       expect(error.taskListError.type).toBe('RECORD_NOT_FOUND');
     });
@@ -207,9 +199,7 @@ describe('TaskListService Error Handling', () => {
 
       const error = await service.deleteTaskList('123').catch(e => e);
 
-      expect(error.message).toContain(
-        'Error: taskListService.error.deleteFailed'
-      );
+      expect(error.message).toContain('taskListService.error.deleteFailed');
       expect(error.taskListError).toBeDefined();
       expect(error.taskListError.type).toBe('BUSINESS_RULE_ERROR');
     });
@@ -262,9 +252,7 @@ describe('TaskListService Error Handling', () => {
         .moveTaskToList('task123', 'list123')
         .catch(e => e);
 
-      expect(error.message).toContain(
-        'Error: taskListService.error.moveTaskFailed'
-      );
+      expect(error.message).toContain('taskListService.error.moveTaskFailed');
       expect(error.taskListError).toBeDefined();
       expect(error.taskListError.type).toBe('RECORD_NOT_FOUND');
     });
@@ -296,9 +284,7 @@ describe('TaskListService Error Handling', () => {
 
       const error = await service.getAllTaskLists().catch(e => e);
 
-      expect(error.message).toContain(
-        'Error: taskListService.error.getAllFailed'
-      );
+      expect(error.message).toContain('taskListService.error.getAllFailed');
       expect(error.taskListError).toBeDefined();
       expect(error.taskListError.type).toBe('NETWORK_ERROR');
     });
@@ -352,9 +338,7 @@ describe('TaskListService Error Handling', () => {
 
       const error = await service.createTaskList(request).catch(e => e);
 
-      expect(error.message).toContain(
-        'Error: taskListService.error.createFailed'
-      );
+      expect(error.message).toContain('taskListService.error.createFailed');
       expect(error.taskListError).toBeDefined();
       expect(error.taskListError.type).toBe('TRANSACTION_ERROR');
     });
@@ -367,9 +351,7 @@ describe('TaskListService Error Handling', () => {
 
       const error = await service.createTaskList(request).catch(e => e);
 
-      expect(error.message).toContain(
-        'Error: taskListService.error.createFailed'
-      );
+      expect(error.message).toContain('taskListService.error.createFailed');
       expect(error.taskListError).toBeDefined();
       expect(error.taskListError.type).toBe('CONSISTENCY_ERROR');
     });

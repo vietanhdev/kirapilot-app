@@ -4,12 +4,7 @@ export {
   getReactAIService,
   initializeReactAIService,
 } from './ReactAIService';
-export {
-  LocalAIService,
-  getLocalAIService,
-  initializeLocalAIService,
-} from './LocalAIService';
-export type { LocalModelConfig, GenerationOptions } from './LocalAIService';
+
 export { getKiraPilotTools } from './tools';
 export {
   ToolExecutionEngine,
@@ -69,3 +64,47 @@ export type {
   ExportResult,
   ExportProgress,
 } from './ExportService';
+
+// Enhanced interaction logging
+export {
+  DetailedInteractionLogger,
+  getDetailedInteractionLogger,
+  initializeDetailedInteractionLogger,
+} from './DetailedInteractionLogger';
+export type {
+  EnhancedRequestContext,
+  EnhancedResponseMetadata,
+  ProcessingStep,
+} from './DetailedInteractionLogger';
+
+// Performance monitoring
+export {
+  PerformanceMonitor,
+  getPerformanceMonitor,
+  initializePerformanceMonitor,
+} from './PerformanceMonitor';
+export type {
+  PerformanceMetric,
+  PerformanceThreshold,
+  PerformanceReport,
+  PerformanceAlert,
+} from './PerformanceMonitor';
+
+// Intelligent task matching
+export { IntelligentTaskMatcher } from './IntelligentTaskMatcher';
+
+// Confirmation service
+export { ConfirmationService } from './ConfirmationService';
+
+// Emotional intelligence service
+export { EmotionalIntelligenceService } from './EmotionalIntelligenceService';
+export { PersonalityService } from './PersonalityService';
+export { ResponseTemplates } from './ResponseTemplates';
+
+// Productivity insights service
+export { ProductivityInsightsService } from './ProductivityInsightsService';
+export type {
+  WorkingStyle,
+  ProductivityInsight,
+  PersonalizedRecommendation,
+} from './ProductivityInsightsService';

@@ -271,6 +271,15 @@ export const de = {
   'ai.welcome.title': 'Willkommen bei Kira KI!',
   'ai.welcome.description':
     'Richten Sie Ihren API-Schlüssel ein, um zu beginnen.',
+  'ai.greeting.title': 'Hallo! Ich bin Kira, Ihr KI-Assistent.',
+  'ai.greeting.description':
+    'Ich bin hier, um Ihnen bei der Verwaltung von Aufgaben, der Zeiterfassung und der Steigerung Ihrer Produktivität zu helfen. Womit kann ich Ihnen heute helfen?',
+  'ai.greeting.suggestions':
+    'Hier sind einige Dinge, die Sie mich fragen können:',
+  'ai.greeting.suggestion.createTask': 'Eine neue Aufgabe erstellen',
+  'ai.greeting.suggestion.startTimer':
+    'Einen Timer für meine aktuelle Aufgabe starten',
+  'ai.greeting.suggestion.productivity': 'Meine Produktivitätseinblicke zeigen',
   'ai.button.openSettings': 'Einstellungen öffnen',
   'ai.button.resumeAutoScroll': 'Automatisches Scrollen fortsetzen',
   'ai.suggestions.title': 'Vorschläge',

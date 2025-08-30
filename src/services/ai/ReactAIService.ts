@@ -35,6 +35,14 @@ import {
   LoggingInterceptor,
   getLoggingInterceptor,
 } from './LoggingInterceptor';
+import { PersonalityService } from './PersonalityService';
+import { ResponseTemplates } from './ResponseTemplates';
+import { EmotionalIntelligenceService } from './EmotionalIntelligenceService';
+import {
+  getPerformanceMonitor,
+  PerformanceMonitor,
+} from './PerformanceMonitor';
+import type { UserPreferences, EmotionalTone } from '../../types';
 
 // Internal types for AI service
 interface ToolCall {
@@ -269,12 +277,17 @@ export class ReactAIService implements AIServiceInterface {
   private resultFormatter: ToolResultFormatter;
   private translationFunction: TranslationFunction | null = null;
   private loggingInterceptor: LoggingInterceptor | null = null;
+  private personalityService: PersonalityService | null = null;
+  private emotionalIntelligenceService: EmotionalIntelligenceService | null =
+    null;
+  private performanceMonitor: PerformanceMonitor;
 
   constructor(apiKey?: string, translationFunction?: TranslationFunction) {
     this.apiKey = apiKey || this.getEnvironmentApiKey() || null;
     this.translationFunction = translationFunction || null;
     this.toolExecutionEngine = getToolExecutionEngine();
     this.resultFormatter = getToolResultFormatter();
+    this.performanceMonitor = getPerformanceMonitor();
 
     // Initialize logging interceptor if available
     try {
@@ -288,6 +301,9 @@ export class ReactAIService implements AIServiceInterface {
     if (this.translationFunction) {
       this.toolExecutionEngine.setTranslationFunction(this.translationFunction);
     }
+
+    // Initialize personality services
+    this.initializePersonalityServices();
   }
 
   private getEnvironmentApiKey(): string | null {
@@ -327,6 +343,14 @@ export class ReactAIService implements AIServiceInterface {
   ): Promise<AIResponse> {
     const startTime = Date.now();
     let requestId: string | null = null;
+    const operationId = `ai-request-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+    // Start performance monitoring
+    this.performanceMonitor.startOperation(operationId, {
+      type: 'ai_request',
+      messageLength: message.length,
+      contextSize: JSON.stringify(context).length,
+    });
 
     try {
       if (!this.apiKey) {
@@ -456,8 +480,15 @@ export class ReactAIService implements AIServiceInterface {
       // Generate suggestions
       const suggestions = await this.generateSuggestions(context);
 
+      // Apply personality and emotional intelligence to the response
+      const enhancedMessage = await this.applyPersonalityToResponse(
+        responseMessage || "I've processed your request.",
+        message,
+        context
+      );
+
       const response: AIResponse = {
-        message: responseMessage || "I've processed your request.",
+        message: enhancedMessage,
         actions,
         suggestions,
         context,
@@ -480,9 +511,25 @@ export class ReactAIService implements AIServiceInterface {
         }
       }
 
+      // End performance monitoring - success
+      this.performanceMonitor.endOperation(operationId, {
+        success: true,
+        additionalMetrics: {
+          response_length: response.message.length,
+          actions_count: response.actions?.length || 0,
+          suggestions_count: response.suggestions?.length || 0,
+        },
+      });
+
       return response;
     } catch (error) {
       console.error('ReAct AI Service Error:', error);
+
+      // End performance monitoring - error
+      this.performanceMonitor.endOperation(operationId, {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
 
       // Intercept error for logging
       if (this.loggingInterceptor && requestId) {
@@ -737,6 +784,520 @@ export class ReactAIService implements AIServiceInterface {
         focusEfficiency: 0.82,
       },
     };
+  }
+
+  /**
+   * Initialize personality services with current user preferences
+   */
+  private initializePersonalityServices(): void {
+    try {
+      // Get user preferences from localStorage
+      const preferences = this.getUserPreferences();
+
+      // Initialize personality service
+      this.personalityService = new PersonalityService(preferences.aiSettings);
+
+      // Initialize emotional intelligence service
+      const emotionalConfig = {
+        enabled: true,
+        dailyMoodTracking:
+          preferences.aiSettings.emotionalFeatures?.dailyMoodTracking || false,
+        stressDetection:
+          preferences.aiSettings.emotionalFeatures?.stressDetection !== false,
+        encouragementFrequency:
+          preferences.aiSettings.emotionalFeatures?.encouragementFrequency ||
+          'medium',
+        celebrationStyle:
+          preferences.aiSettings.emotionalFeatures?.celebrationStyle ||
+          'enthusiastic',
+        personalitySettings: preferences.aiSettings.personalitySettings || {
+          warmth: 6,
+          enthusiasm: 5,
+          supportiveness: 7,
+          humor: 4,
+        },
+        interactionStyle: preferences.aiSettings.interactionStyle || 'friendly',
+        emojiUsage: preferences.aiSettings.emojiUsage || 'moderate',
+      };
+
+      this.emotionalIntelligenceService = new EmotionalIntelligenceService(
+        emotionalConfig
+      );
+    } catch (error) {
+      console.warn('Failed to initialize personality services:', error);
+      // Continue without personality features
+    }
+  }
+
+  /**
+   * Get user preferences from localStorage
+   */
+  private getUserPreferences(): UserPreferences {
+    try {
+      const stored = localStorage.getItem('kirapilot-preferences');
+      if (stored) {
+        const prefs = JSON.parse(stored);
+        return prefs as UserPreferences;
+      }
+    } catch (error) {
+      console.warn('Failed to load user preferences:', error);
+    }
+
+    // Return default preferences
+    return {
+      workingHours: { start: '09:00', end: '17:00' },
+      breakPreferences: {
+        shortBreakDuration: 5,
+        longBreakDuration: 15,
+        breakInterval: 25,
+      },
+      focusPreferences: {
+        defaultDuration: 25,
+        distractionLevel: DistractionLevel.MODERATE,
+        backgroundAudio: { enabled: false, volume: 50, type: 'nature' },
+      },
+      notifications: {
+        breakReminders: true,
+        taskDeadlines: true,
+        dailySummary: true,
+        weeklyReview: true,
+      },
+      aiSettings: {
+        conversationHistory: true,
+        autoSuggestions: true,
+        toolPermissions: true,
+        responseStyle: 'balanced',
+        suggestionFrequency: 'moderate',
+        showInteractionLogs: false,
+        personalitySettings: {
+          warmth: 6,
+          enthusiasm: 5,
+          supportiveness: 7,
+          humor: 4,
+        },
+        interactionStyle: 'friendly',
+        emojiUsage: 'moderate',
+        emotionalFeatures: {
+          dailyMoodTracking: false,
+          stressDetection: true,
+          encouragementFrequency: 'medium',
+          celebrationStyle: 'enthusiastic',
+        },
+      },
+      taskSettings: {
+        defaultPriority: Priority.MEDIUM,
+        autoScheduling: false,
+        smartDependencies: false,
+        weekStartDay: 1,
+        showCompletedTasks: false,
+        compactView: false,
+      },
+      soundSettings: {
+        hapticFeedback: true,
+        completionSound: true,
+        soundVolume: 70,
+      },
+      theme: 'auto',
+      language: 'en',
+      dateFormat: 'DD/MM/YYYY',
+    } as UserPreferences;
+  }
+
+  /**
+   * Apply personality and emotional intelligence to AI response
+   */
+  private async applyPersonalityToResponse(
+    originalResponse: string,
+    userMessage: string,
+    context: AppContext
+  ): Promise<string> {
+    if (!this.personalityService || !this.emotionalIntelligenceService) {
+      return originalResponse;
+    }
+
+    try {
+      // Detect user mood from message and context
+      const moodDetection =
+        this.emotionalIntelligenceService.detectMoodFromInteraction(
+          userMessage,
+          context,
+          [] // Recent activity would come from context in a real implementation
+        );
+
+      // Generate emotional context
+      const emotionalContext =
+        this.emotionalIntelligenceService.generateEmotionalContext(
+          moodDetection.detectedMood,
+          [], // Recent activity
+          context
+        );
+
+      // Calculate appropriate emotional tone
+      const tone = this.personalityService.calculateEmotionalTone(
+        moodDetection.detectedMood,
+        emotionalContext
+      );
+
+      // Check if we need to provide additional support
+      const stressTriggers = this.personalityService.detectStressTriggers(
+        userMessage,
+        [], // Recent activity
+        moodDetection.detectedMood
+      );
+
+      // Generate supportive response if needed
+      if (
+        stressTriggers.triggers.length > 0 ||
+        moodDetection.detectedMood.stress > 6
+      ) {
+        const supportResponse =
+          this.personalityService.generateSupportiveResponse(
+            emotionalContext,
+            userMessage,
+            tone
+          );
+
+        // Combine original response with supportive elements
+        let enhancedResponse = originalResponse;
+
+        // Add supportive message if it provides value
+        if (
+          supportResponse.message &&
+          !originalResponse.toLowerCase().includes('stress') &&
+          !originalResponse.toLowerCase().includes('overwhelm')
+        ) {
+          enhancedResponse = `${supportResponse.message}\n\n${originalResponse}`;
+        }
+
+        // Add suggested actions if relevant
+        if (supportResponse.suggestedActions.length > 0) {
+          enhancedResponse +=
+            '\n\n💡 Here are some suggestions that might help:';
+          supportResponse.suggestedActions.slice(0, 3).forEach(action => {
+            enhancedResponse += `\n• ${action}`;
+          });
+        }
+
+        return enhancedResponse;
+      }
+
+      // For positive interactions, add celebration or encouragement
+      if (emotionalContext.recentAchievements.length > 0) {
+        const celebrationTemplates = ResponseTemplates.getCelebrationTemplates(
+          'task_completion',
+          tone
+        );
+        const celebration =
+          ResponseTemplates.getRandomTemplate(celebrationTemplates);
+
+        return `${celebration}\n\n${originalResponse}`;
+      }
+
+      // Add contextual greetings for conversation starters
+      if (this.isConversationStarter(userMessage)) {
+        const timeOfDay = this.getTimeOfDay();
+        const greetingTemplates = ResponseTemplates.getGreetingTemplates(
+          timeOfDay,
+          tone
+        );
+        const greeting = ResponseTemplates.getRandomTemplate(greetingTemplates);
+
+        return `${greeting}\n\n${originalResponse}`;
+      }
+
+      // Add casual conversation elements for friendly interactions
+      if (tone.warmth > 6 && tone.formality < 5) {
+        const casualTemplates =
+          ResponseTemplates.getCasualConversationTemplates('small_talk', tone);
+
+        // Occasionally add casual conversation starter (20% chance)
+        if (Math.random() > 0.8 && originalResponse.length < 100) {
+          const casual = ResponseTemplates.getRandomTemplate(casualTemplates);
+          return `${casual}\n\n${originalResponse}`;
+        }
+      }
+
+      // Apply general personality tone adjustments
+      return this.adjustResponseTone(originalResponse, tone);
+    } catch (error) {
+      console.warn('Failed to apply personality to response:', error);
+      return originalResponse;
+    }
+  }
+
+  /**
+   * Adjust response tone based on personality settings
+   */
+  private adjustResponseTone(response: string, tone: EmotionalTone): string {
+    let adjusted = response;
+
+    // Apply comprehensive tone adjustments using ResponseTemplates
+    const templates = [adjusted];
+    const adjustedTemplates = ResponseTemplates.adjustTemplatesForTone(
+      templates,
+      tone
+    );
+    adjusted = adjustedTemplates[0];
+
+    // Add conversational elements based on tone
+    if (tone.warmth > 6 && tone.formality < 5) {
+      // Add conversational connectors
+      const connectors = [
+        'By the way, ',
+        'Also, ',
+        'Oh, and ',
+        'Just so you know, ',
+        'I should mention, ',
+      ];
+
+      // Occasionally add conversational elements (20% chance)
+      if (
+        Math.random() > 0.8 &&
+        !adjusted.toLowerCase().startsWith('by the way') &&
+        !adjusted.toLowerCase().startsWith('also') &&
+        !adjusted.toLowerCase().startsWith('oh')
+      ) {
+        const connector =
+          connectors[Math.floor(Math.random() * connectors.length)];
+        adjusted =
+          connector + adjusted.toLowerCase().charAt(0) + adjusted.slice(1);
+      }
+    }
+
+    // Add personality-driven response variations
+    if (tone.enthusiasm > 7) {
+      // High enthusiasm: add energy and excitement
+      adjusted = adjusted.replace(/\bGood\b/g, 'Fantastic');
+      adjusted = adjusted.replace(/\bOkay\b/g, 'Perfect');
+      adjusted = adjusted.replace(/\bYes\b/g, 'Absolutely');
+
+      // Add energetic endings occasionally
+      if (
+        Math.random() > 0.7 &&
+        !adjusted.endsWith('!') &&
+        !adjusted.endsWith('!!')
+      ) {
+        const energeticEndings = [
+          " Let's do this!",
+          " I'm excited to see what you accomplish!",
+          " You've got this!",
+          ' This is going to be great!',
+        ];
+        const ending =
+          energeticEndings[Math.floor(Math.random() * energeticEndings.length)];
+        adjusted += ending;
+      }
+    } else if (tone.enthusiasm < 4) {
+      // Low enthusiasm: more measured and calm
+      adjusted = adjusted.replace(/!/g, '.');
+      adjusted = adjusted.replace(/\bFantastic\b/g, 'Good');
+      adjusted = adjusted.replace(/\bAmazing\b/g, 'Fine');
+      adjusted = adjusted.replace(/\bAbsolutely\b/g, 'Yes');
+    }
+
+    // Adjust warmth and personal connection
+    if (tone.warmth > 7) {
+      // High warmth: add personal touches and caring language
+      const personalTouches = [
+        'I genuinely want to help you succeed with this.',
+        "I'm here to support you through this.",
+        'I care about your progress and well-being.',
+        'Your success matters to me.',
+      ];
+
+      // Occasionally add personal touches (15% chance)
+      if (Math.random() > 0.85 && adjusted.length < 200) {
+        const touch =
+          personalTouches[Math.floor(Math.random() * personalTouches.length)];
+        adjusted += ` ${touch}`;
+      }
+    }
+
+    // Adjust supportiveness with encouraging language
+    if (tone.supportiveness > 7) {
+      // Replace potentially discouraging words with supportive alternatives
+      const supportiveReplacements = {
+        difficult: 'challenging',
+        hard: 'tough (but manageable)',
+        impossible: 'challenging',
+        "can't": "haven't yet",
+        failed: 'learned',
+        wrong: 'different from expected',
+      };
+
+      Object.entries(supportiveReplacements).forEach(([word, replacement]) => {
+        const regex = new RegExp(`\\b${word}\\b`, 'gi');
+        adjusted = adjusted.replace(regex, replacement);
+      });
+
+      // Add encouraging endings occasionally
+      if (Math.random() > 0.8 && adjusted.length < 150) {
+        const encouragements = [
+          " You're making progress!",
+          ' Keep going!',
+          " You're doing well!",
+          ' I believe in you!',
+        ];
+        const encouragement =
+          encouragements[Math.floor(Math.random() * encouragements.length)];
+        adjusted += encouragement;
+      }
+    }
+
+    // Add appropriate emoji based on settings and context
+    const preferences = this.getUserPreferences();
+    const emojiUsage = preferences.aiSettings.emojiUsage || 'moderate';
+
+    if (emojiUsage !== 'minimal' && !this.hasEmoji(adjusted)) {
+      const emoji = this.selectContextualEmoji(adjusted, tone, emojiUsage);
+      if (emoji) {
+        adjusted += ` ${emoji}`;
+      }
+    }
+
+    return adjusted.trim();
+  }
+
+  /**
+   * Check if text contains emoji
+   */
+  private hasEmoji(text: string): boolean {
+    return /[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/u.test(
+      text
+    );
+  }
+
+  /**
+   * Select contextual emoji based on response content and tone
+   */
+  private selectContextualEmoji(
+    response: string,
+    tone: EmotionalTone,
+    usage: 'minimal' | 'moderate' | 'frequent'
+  ): string {
+    const lowerResponse = response.toLowerCase();
+
+    // Don't add emoji if usage is minimal or response is very long
+    if (usage === 'minimal' || response.length > 200) {
+      return '';
+    }
+
+    // Determine emoji based on content and tone
+    if (
+      lowerResponse.includes('congratulations') ||
+      lowerResponse.includes('achievement') ||
+      lowerResponse.includes('completed')
+    ) {
+      return tone.enthusiasm > 6 ? '🎉' : '👏';
+    }
+
+    if (
+      lowerResponse.includes('stress') ||
+      lowerResponse.includes('overwhelm') ||
+      lowerResponse.includes('difficult')
+    ) {
+      return tone.supportiveness > 6 ? '🤗' : '💙';
+    }
+
+    if (
+      lowerResponse.includes('great') ||
+      lowerResponse.includes('fantastic') ||
+      lowerResponse.includes('amazing')
+    ) {
+      return tone.enthusiasm > 7 ? '✨' : '😊';
+    }
+
+    if (lowerResponse.includes('help') || lowerResponse.includes('support')) {
+      return tone.warmth > 6 ? '💪' : '👍';
+    }
+
+    // Default emoji based on tone and usage frequency
+    if (usage === 'frequent') {
+      if (tone.enthusiasm > 6) {
+        return '✨';
+      }
+      if (tone.warmth > 6) {
+        return '😊';
+      }
+      if (tone.supportiveness > 6) {
+        return '💙';
+      }
+    }
+
+    return ''; // No emoji for moderate usage with neutral content
+  }
+
+  /**
+   * Check if user message is a conversation starter
+   */
+  private isConversationStarter(message: string): boolean {
+    const lowerMessage = message.toLowerCase().trim();
+    const conversationStarters = [
+      'hello',
+      'hi',
+      'hey',
+      'good morning',
+      'good afternoon',
+      'good evening',
+      'how are you',
+      "what's up",
+      "how's it going",
+      'greetings',
+    ];
+
+    return conversationStarters.some(
+      starter => lowerMessage.startsWith(starter) || lowerMessage === starter
+    );
+  }
+
+  /**
+   * Get current time of day for contextual responses
+   */
+  private getTimeOfDay(): 'morning' | 'afternoon' | 'evening' {
+    const hour = new Date().getHours();
+
+    if (hour < 12) {
+      return 'morning';
+    } else if (hour < 17) {
+      return 'afternoon';
+    } else {
+      return 'evening';
+    }
+  }
+
+  /**
+   * Update personality services when preferences change
+   */
+  updatePersonalityPreferences(
+    preferences: UserPreferences['aiSettings']
+  ): void {
+    if (this.personalityService) {
+      this.personalityService.updatePreferences(preferences);
+    }
+
+    if (this.emotionalIntelligenceService) {
+      const emotionalConfig = {
+        enabled: true,
+        dailyMoodTracking:
+          preferences.emotionalFeatures?.dailyMoodTracking || false,
+        stressDetection:
+          preferences.emotionalFeatures?.stressDetection !== false,
+        encouragementFrequency:
+          preferences.emotionalFeatures?.encouragementFrequency || 'medium',
+        celebrationStyle:
+          preferences.emotionalFeatures?.celebrationStyle || 'enthusiastic',
+        personalitySettings: preferences.personalitySettings || {
+          warmth: 6,
+          enthusiasm: 5,
+          supportiveness: 7,
+          humor: 4,
+        },
+        interactionStyle: preferences.interactionStyle || 'friendly',
+        emojiUsage: preferences.emojiUsage || 'moderate',
+      };
+
+      this.emotionalIntelligenceService.updateConfig(emotionalConfig);
+    }
   }
 }
 

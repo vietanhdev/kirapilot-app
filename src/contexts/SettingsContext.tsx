@@ -57,6 +57,7 @@ const defaultPreferences: UserPreferences = {
     showInteractionLogs: false,
     modelType: 'gemini',
     geminiApiKey: undefined,
+    onboardingCompleted: false,
     localModelConfig: {
       threads: 4,
       contextSize: 4096,

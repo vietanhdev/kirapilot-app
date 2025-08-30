@@ -273,6 +273,16 @@ export const es = {
   'ai.status.confidence': 'confianza',
   'ai.welcome.title': '¡Bienvenido a Kira IA!',
   'ai.welcome.description': 'Configura tu clave API para comenzar.',
+  'ai.greeting.title': '¡Hola! Soy Kira, tu asistente de IA.',
+  'ai.greeting.description':
+    'Estoy aquí para ayudarte a gestionar tareas, hacer seguimiento del tiempo y aumentar tu productividad. ¿En qué puedo ayudarte hoy?',
+  'ai.greeting.suggestions':
+    'Aquí tienes algunas cosas que puedes preguntarme:',
+  'ai.greeting.suggestion.createTask': 'Crear una nueva tarea',
+  'ai.greeting.suggestion.startTimer':
+    'Iniciar un temporizador para mi tarea actual',
+  'ai.greeting.suggestion.productivity':
+    'Mostrar mis estadísticas de productividad',
   'ai.button.openSettings': 'Abrir Configuración',
   'ai.button.resumeAutoScroll': 'Reanudar desplazamiento automático',
   'ai.suggestions.title': 'Sugerencias',
