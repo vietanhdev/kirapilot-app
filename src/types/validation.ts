@@ -561,3 +561,31 @@ export function validateLoggingConfig(data: unknown) {
 export function validateFullLoggingConfig(data: unknown) {
   return FullLoggingConfigSchema.safeParse(data);
 }
+
+// Message validation schema
+export const MessageContentSchema = z
+  .string()
+  .min(1, 'Message cannot be empty')
+  .max(10000, 'Message is too long (maximum 10,000 characters)')
+  .refine(
+    content => {
+      const trimmed = content.trim();
+      return trimmed.length > 0;
+    },
+    {
+      message: 'Message cannot be empty or only whitespace',
+    }
+  )
+  .refine(
+    content => {
+      // Check for null characters or other problematic characters
+      return !content.includes('\0');
+    },
+    {
+      message: 'Message contains invalid characters',
+    }
+  );
+
+export function validateMessageContent(data: unknown) {
+  return MessageContentSchema.safeParse(data);
+}

@@ -18,6 +18,34 @@ import { LoggingConfigService } from '../services/database/repositories/LoggingC
 import { EnhancedLogStorageService } from '../services/database/repositories/EnhancedLogStorageService';
 import { initializeLoggingInterceptor } from '../services/ai/LoggingInterceptor';
 import { useTranslation } from '../hooks/useTranslation';
+
+// Helper function to get environment variables in a Jest-compatible way
+const getEnvVar = (key: string): string | undefined => {
+  // In test environment, return undefined
+  if (typeof process !== 'undefined' && process.env.NODE_ENV === 'test') {
+    return undefined;
+  }
+
+  // Check if we're in a browser environment with Vite
+  if (typeof window !== 'undefined') {
+    // Try to access import.meta.env through globalThis
+    try {
+      const importMeta =
+        (globalThis as { importMeta?: { env?: Record<string, string> } })
+          .importMeta ||
+        (window as { importMeta?: { env?: Record<string, string> } })
+          .importMeta;
+      return importMeta?.env?.[key];
+    } catch {
+      // Fallback for older browsers or different setups
+      return (window as { __VITE_ENV?: Record<string, string> }).__VITE_ENV?.[
+        key
+      ];
+    }
+  }
+
+  return undefined;
+};
 import { useLoggingStatus } from './LoggingStatusContext';
 import { useDatabaseContext } from '../services/database/DatabaseProvider';
 import {
@@ -306,7 +334,7 @@ export function AIProvider({ children }: AIProviderProps) {
       // Check if API key is available in environment, settings, or legacy localStorage
       const preferences = getAIPreferences();
       const apiKey =
-        import.meta.env.VITE_GOOGLE_API_KEY ||
+        getEnvVar('VITE_GOOGLE_API_KEY') ||
         preferences.geminiApiKey ||
         localStorage.getItem('kira_api_key') || // Legacy fallback
         localStorage.getItem('kirapilot-gemini-api-key'); // Legacy fallback
@@ -557,7 +585,7 @@ export function AIProvider({ children }: AIProviderProps) {
       if (!modelConfig) {
         const preferences = getAIPreferences();
         const apiKey =
-          import.meta.env.VITE_GOOGLE_API_KEY ||
+          getEnvVar('VITE_GOOGLE_API_KEY') ||
           preferences.geminiApiKey ||
           localStorage.getItem('kira_api_key') ||
           localStorage.getItem('kirapilot-gemini-api-key');
@@ -676,7 +704,7 @@ export function AIProvider({ children }: AIProviderProps) {
       if (!serviceConfig) {
         const preferences = getAIPreferences();
         const apiKey =
-          import.meta.env.VITE_GOOGLE_API_KEY ||
+          getEnvVar('VITE_GOOGLE_API_KEY') ||
           preferences.geminiApiKey ||
           localStorage.getItem('kira_api_key') ||
           localStorage.getItem('kirapilot-gemini-api-key');

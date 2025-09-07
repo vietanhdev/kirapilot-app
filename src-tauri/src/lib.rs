@@ -9,8 +9,9 @@ use database::repositories::{
     ai_repository::{AiStats, AiLogStorageStats, CreateAiInteractionRequest, UpdateAiInteractionRequest, CreateAiInteractionLogRequest, UpdateAiInteractionLogRequest, CreateToolExecutionLogRequest},
     task_list_repository::{CreateTaskListRequest, TaskListStats, UpdateTaskListRequest},
     task_repository::{CreateTaskRequest, TaskStats, UpdateTaskRequest},
+    thread_repository::{CreateThreadRequest, CreateThreadMessageRequest, UpdateThreadRequest, ThreadStatistics},
     time_tracking_repository::{CreateTimeSessionRequest, TimeStats, UpdateTimeSessionRequest},
-    AiRepository, TaskListRepository, TaskRepository, TimeTrackingRepository,
+    AiRepository, TaskListRepository, TaskRepository, ThreadRepository, TimeTrackingRepository,
 };
 use database::{
     check_database_health, get_database, get_migration_status, initialize_database,
@@ -282,6 +283,191 @@ async fn search_tasks(query: String) -> Result<Vec<serde_json::Value>, String> {
             .map(|t| serde_json::to_value(t).unwrap_or_default())
             .collect()),
         Err(e) => Err(format!("Failed to search tasks: {}", e)),
+    }
+}
+
+// ============================================================================
+// Thread Management Commands
+// ============================================================================
+
+#[tauri::command]
+async fn create_thread(request: CreateThreadRequest) -> Result<serde_json::Value, String> {
+    let db = get_database()
+        .await
+        .map_err(|e| format!("Database error: {}", e))?;
+    let repo = ThreadRepository::new(db);
+
+    match repo.create_thread(request).await {
+        Ok(thread) => Ok(serde_json::to_value(thread).unwrap_or_default()),
+        Err(e) => Err(format!("Failed to create thread: {}", e)),
+    }
+}
+
+#[tauri::command]
+async fn get_thread(id: String) -> Result<Option<serde_json::Value>, String> {
+    let db = get_database()
+        .await
+        .map_err(|e| format!("Database error: {}", e))?;
+    let repo = ThreadRepository::new(db);
+
+    match repo.find_by_id(&id).await {
+        Ok(thread) => Ok(thread.map(|t| serde_json::to_value(t).unwrap_or_default())),
+        Err(e) => Err(format!("Failed to get thread: {}", e)),
+    }
+}
+
+#[tauri::command]
+async fn get_all_threads() -> Result<Vec<serde_json::Value>, String> {
+    let db = get_database()
+        .await
+        .map_err(|e| format!("Database error: {}", e))?;
+    let repo = ThreadRepository::new(db);
+
+    match repo.find_all().await {
+        Ok(threads) => Ok(threads
+            .into_iter()
+            .map(|t| serde_json::to_value(t).unwrap_or_default())
+            .collect()),
+        Err(e) => Err(format!("Failed to get threads: {}", e)),
+    }
+}
+
+#[tauri::command]
+async fn get_threads_by_task(task_id: String) -> Result<Vec<serde_json::Value>, String> {
+    let db = get_database()
+        .await
+        .map_err(|e| format!("Database error: {}", e))?;
+    let repo = ThreadRepository::new(db);
+
+    match repo.find_by_task_id(&task_id).await {
+        Ok(threads) => Ok(threads
+            .into_iter()
+            .map(|t| serde_json::to_value(t).unwrap_or_default())
+            .collect()),
+        Err(e) => Err(format!("Failed to get threads by task: {}", e)),
+    }
+}
+
+#[tauri::command]
+async fn get_threads_by_date(date: String) -> Result<Vec<serde_json::Value>, String> {
+    let db = get_database()
+        .await
+        .map_err(|e| format!("Database error: {}", e))?;
+    let repo = ThreadRepository::new(db);
+
+    match repo.find_by_date(&date).await {
+        Ok(threads) => Ok(threads
+            .into_iter()
+            .map(|t| serde_json::to_value(t).unwrap_or_default())
+            .collect()),
+        Err(e) => Err(format!("Failed to get threads by date: {}", e)),
+    }
+}
+
+#[tauri::command]
+async fn update_thread(id: String, request: UpdateThreadRequest) -> Result<serde_json::Value, String> {
+    let db = get_database()
+        .await
+        .map_err(|e| format!("Database error: {}", e))?;
+    let repo = ThreadRepository::new(db);
+
+    match repo.update_thread(&id, request).await {
+        Ok(thread) => Ok(serde_json::to_value(thread).unwrap_or_default()),
+        Err(e) => Err(format!("Failed to update thread: {}", e)),
+    }
+}
+
+#[tauri::command]
+async fn delete_thread(id: String) -> Result<String, String> {
+    let db = get_database()
+        .await
+        .map_err(|e| format!("Database error: {}", e))?;
+    let repo = ThreadRepository::new(db);
+
+    match repo.delete_thread(&id).await {
+        Ok(_) => Ok("Thread deleted successfully".to_string()),
+        Err(e) => Err(format!("Failed to delete thread: {}", e)),
+    }
+}
+
+#[tauri::command]
+async fn create_thread_message(request: CreateThreadMessageRequest) -> Result<serde_json::Value, String> {
+    let db = get_database()
+        .await
+        .map_err(|e| format!("Database error: {}", e))?;
+    let repo = ThreadRepository::new(db);
+
+    match repo.create_message(request).await {
+        Ok(message) => Ok(serde_json::to_value(message).unwrap_or_default()),
+        Err(e) => Err(format!("Failed to create thread message: {}", e)),
+    }
+}
+
+#[tauri::command]
+async fn get_thread_messages(threadId: String) -> Result<Vec<serde_json::Value>, String> {
+    let db = get_database()
+        .await
+        .map_err(|e| format!("Database error: {}", e))?;
+    let repo = ThreadRepository::new(db);
+
+    match repo.find_messages(&threadId).await {
+        Ok(messages) => Ok(messages
+            .into_iter()
+            .map(|m| serde_json::to_value(m).unwrap_or_default())
+            .collect()),
+        Err(e) => Err(format!("Failed to get thread messages: {}", e)),
+    }
+}
+
+#[tauri::command]
+async fn get_thread_message(id: String) -> Result<Option<serde_json::Value>, String> {
+    let db = get_database()
+        .await
+        .map_err(|e| format!("Database error: {}", e))?;
+    let repo = ThreadRepository::new(db);
+
+    match repo.find_message_by_id(&id).await {
+        Ok(message) => Ok(message.map(|m| serde_json::to_value(m).unwrap_or_default())),
+        Err(e) => Err(format!("Failed to get thread message: {}", e)),
+    }
+}
+
+#[tauri::command]
+async fn update_thread_message(id: String, user_feedback: Option<serde_json::Value>) -> Result<serde_json::Value, String> {
+    let db = get_database()
+        .await
+        .map_err(|e| format!("Database error: {}", e))?;
+    let repo = ThreadRepository::new(db);
+
+    match repo.update_message(&id, user_feedback).await {
+        Ok(message) => Ok(serde_json::to_value(message).unwrap_or_default()),
+        Err(e) => Err(format!("Failed to update thread message: {}", e)),
+    }
+}
+
+#[tauri::command]
+async fn delete_thread_message(id: String) -> Result<String, String> {
+    let db = get_database()
+        .await
+        .map_err(|e| format!("Database error: {}", e))?;
+    let repo = ThreadRepository::new(db);
+
+    match repo.delete_message(&id).await {
+        Ok(_) => Ok("Thread message deleted successfully".to_string()),
+        Err(e) => Err(format!("Failed to delete thread message: {}", e)),
+    }
+}
+
+#[tauri::command]
+async fn get_thread_statistics() -> Result<ThreadStatistics, String> {
+    let db = get_database()
+        .await
+        .map_err(|e| format!("Database error: {}", e))?;
+    let repo = ThreadRepository::new(db);
+
+    match repo.get_statistics().await {
+        Ok(stats) => Ok(stats),
+        Err(e) => Err(format!("Failed to get thread statistics: {}", e)),
     }
 }
 
@@ -2327,6 +2513,20 @@ pub fn run() {
             get_task_dependents,
             get_task_stats,
             search_tasks,
+            // Thread Management Commands
+            create_thread,
+            get_thread,
+            get_all_threads,
+            get_threads_by_task,
+            get_threads_by_date,
+            update_thread,
+            delete_thread,
+            create_thread_message,
+            get_thread_messages,
+            get_thread_message,
+            update_thread_message,
+            delete_thread_message,
+            get_thread_statistics,
             // Task List Management Commands
             get_all_task_lists,
             create_task_list,

@@ -130,7 +130,7 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       <nav className='flex items-center gap-2 sm:gap-3 flex-shrink-0'>
-        {/* Week/Day Toggle */}
+        {/* Week/Day/Kira View Toggle */}
         <div className='flex rounded-lg border border-divider overflow-hidden bg-content2 shadow-sm'>
           <button
             onClick={() => onViewChange('week')}
@@ -142,6 +142,7 @@ export const Header: React.FC<HeaderProps> = ({
           >
             {t('nav.week')}
           </button>
+          <div className='w-px bg-divider' />
           <button
             onClick={() => onViewChange('day')}
             className={`px-3 sm:px-4 py-2 text-sm font-medium transition-all duration-200 ${
@@ -151,6 +152,17 @@ export const Header: React.FC<HeaderProps> = ({
             }`}
           >
             {t('nav.day')}
+          </button>
+          <div className='w-px bg-divider' />
+          <button
+            onClick={() => onViewChange('kira')}
+            className={`px-3 sm:px-4 py-2 text-sm font-medium transition-all duration-200 ${
+              currentView === 'kira'
+                ? 'bg-primary-500 text-white shadow-sm'
+                : 'text-foreground-700 hover:text-foreground hover:bg-content3'
+            }`}
+          >
+            Kira
           </button>
         </div>
 

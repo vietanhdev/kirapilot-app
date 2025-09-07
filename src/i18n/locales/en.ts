@@ -6,13 +6,17 @@ export const en = {
   'common.done': 'Done',
   'common.saving': 'Saving...',
   'common.saved': 'Saved',
+  'common.creating': 'Creating...',
+  'common.loading': 'Loading...',
+  'common.sending': 'Sending...',
+  'common.deleting': 'Deleting...',
+  'common.updating': 'Updating...',
   'common.unsavedChanges': 'Unsaved changes',
   'common.saveAndExit': 'Save and exit',
   'common.edit': 'Edit',
   'common.add': 'Add',
   'common.remove': 'Remove',
   'common.confirm': 'Confirm',
-  'common.loading': 'Loading...',
   'common.error': 'Error',
   'common.success': 'Success',
   'common.warning': 'Warning',
@@ -21,6 +25,7 @@ export const en = {
   'common.hide': 'Hide',
   'common.showLess': 'Show Less',
   'common.showMoreActions': 'Show more actions',
+  'common.viewDetails': 'View details',
   'common.clearDatabase': 'Clear Database (Dev Only)',
   'common.clearDatabaseConfirm':
     'Are you sure you want to clear all database data? This action cannot be undone.',
@@ -582,6 +587,110 @@ export const en = {
   'ai.actions.copied': 'Copied!',
   'ai.actions.regenerate': 'Regenerate response',
 
+  // Kira Chat View
+  'kira.sidebar.title': 'Conversations',
+  'kira.sidebar.newThread': 'New Thread',
+  'kira.sidebar.noThreads': 'No conversations yet',
+  'kira.sidebar.threadCount': '{count} conversations',
+  'kira.sidebar.empty.title': 'Start a Conversation',
+  'kira.sidebar.empty.description':
+    'Create your first thread to begin chatting with Kira AI.',
+  'kira.sidebar.empty.createFirst': 'Create First Thread',
+  'kira.thread.general': 'General',
+  'kira.thread.assigned': 'Assigned',
+  'kira.thread.untitled': 'Untitled Thread',
+  'kira.thread.assign': 'Assign Thread',
+  'kira.thread.delete': 'Delete Thread',
+  'kira.thread.actions': 'Thread actions',
+  'kira.thread.messageCount': '{count} messages',
+  'kira.thread.lastUpdated': 'Last updated',
+  'kira.thread.createdOn': 'Created on',
+  'kira.thread.noActivity': 'No recent activity',
+  'kira.thread.deleteModal.title': 'Delete Thread',
+  'kira.thread.deleteModal.message':
+    'Are you sure you want to delete "{title}"?',
+  'kira.thread.deleteModal.warning':
+    'This action cannot be undone and will delete all messages in this thread.',
+
+  // Thread Assignment
+  'kira.assignment.modal.title': 'Assign Thread',
+  'kira.assignment.modal.subtitle': 'Assign "{title}" to provide context',
+  'kira.assignment.modal.assign': 'Assign Thread',
+  'kira.assignment.modal.update': 'Update Assignment',
+  'kira.assignment.type.title': 'Assignment Type',
+  'kira.assignment.general.title': 'General Conversation',
+  'kira.assignment.general.badge': 'Default',
+  'kira.assignment.general.description':
+    'A general conversation without specific context',
+  'kira.assignment.task.title': 'Task-Specific',
+  'kira.assignment.task.badge': 'Focused',
+  'kira.assignment.task.description':
+    'Get help with a specific task and its details',
+  'kira.assignment.task.selectTitle': 'Select Task',
+  'kira.assignment.task.selectPlaceholder': 'Choose a task...',
+  'kira.assignment.task.noTasks': 'No active tasks available',
+  'kira.assignment.task.createFirst':
+    'Create a task first to assign this thread',
+  'kira.assignment.day.title': 'Day Planning',
+  'kira.assignment.day.badge': 'Scheduled',
+  'kira.assignment.day.description':
+    'Focus on tasks and schedule for a specific day',
+  'kira.assignment.day.selectTitle': 'Select Date',
+  'kira.assignment.day.selectLabel': 'Choose date',
+  'kira.assignment.day.contextInfo':
+    'AI will have access to tasks scheduled for this day',
+  'kira.assignment.current.title': 'Current Assignment',
+
+  // Kira Chat Area
+  'kira.chat.noThreadSelected': 'No Thread Selected',
+  'kira.chat.selectThreadToStart':
+    'Select a thread from the sidebar to start chatting with Kira AI.',
+  'kira.chat.assignedToTask': 'Assigned to task',
+  'kira.chat.assignedToDay': 'Assigned to day',
+  'kira.chat.generalThread': 'General conversation',
+  'kira.chat.sendMessage': 'Send message',
+  'kira.chat.messagePlaceholder': 'Type your message...',
+  'kira.chat.messageInputLabel': 'Message input field',
+  'kira.chat.sendButtonHint': 'Click to send message or press Enter',
+  'kira.chat.characterCount': '{{current}} of {{max}} characters used',
+  'kira.chat.sending': 'Sending...',
+  'kira.chat.enterToSend': 'Press Enter to send, Shift+Enter for new line',
+  'kira.chat.noMessages': 'Start the conversation by sending a message below.',
+  'kira.chat.validation.messageEmpty': 'Message cannot be empty',
+  'kira.chat.validation.messageTooLong':
+    'Message is too long (maximum 10,000 characters)',
+
+  // Keyboard shortcuts
+  'kira.shortcuts.newThread': 'Ctrl/Cmd+N to create new thread',
+  'kira.shortcuts.navigation': 'Arrow keys to navigate threads',
+  'kira.shortcuts.delete': 'Delete key to remove thread',
+  'kira.shortcuts.sidebar':
+    'Use arrow keys to navigate, Delete to remove, Ctrl/Cmd+N for new thread',
+  'kira.chat.validation.messageInvalid': 'Message contains invalid characters',
+
+  // Kira Error Messages
+  'kira.errors.threadCreate': 'Failed to create thread',
+  'kira.errors.threadLoad': 'Failed to load threads',
+  'kira.errors.threadDelete': 'Failed to delete thread',
+  'kira.errors.threadAssign': 'Failed to assign thread',
+  'kira.errors.messageLoad': 'Failed to load messages',
+  'kira.errors.messageSend': 'Failed to send message',
+  'kira.errors.messageFeedback': 'Failed to submit feedback',
+  'kira.errors.messageRegenerate': 'Failed to regenerate response',
+  'kira.errors.noThreadSelected': 'No thread selected',
+  'kira.errors.databaseConnection': 'Database connection error',
+  'kira.errors.aiServiceUnavailable': 'AI service temporarily unavailable',
+  'kira.errors.networkError': 'Network connection error',
+  'kira.errors.retryFailed': 'Retry operation failed',
+
+  // Kira Success Messages
+  'kira.success.threadCreated': 'Thread created successfully',
+  'kira.success.threadDeleted': 'Thread deleted successfully',
+  'kira.success.threadAssigned': 'Thread assigned successfully',
+  'kira.success.messageSent': 'Message sent successfully',
+  'kira.success.feedbackSubmitted': 'Feedback submitted successfully',
+  'kira.success.responseRegenerated': 'Response regenerated successfully',
+
   // Task Modal
   'task.modal.title.create': 'Create New Task',
   'task.modal.title.edit': 'Edit Task',
@@ -761,6 +870,7 @@ export const en = {
   'ai.feedback.notHelpful': 'Not helpful',
   'ai.feedback.rateDetailed': 'Rate in detail',
   'ai.feedback.thankYou': 'Thank you!',
+  'ai.feedback.submitted': 'Feedback submitted',
 
   // Feedback Modal
   'ai.feedback.modal.title': 'Rate AI Response',

@@ -15,6 +15,8 @@ pub mod m20240101_000011_add_task_list_id_to_tasks;
 pub mod m20240101_000012_fix_task_lists_unique_index;
 pub mod m20240101_000013_add_order_num_to_tasks;
 pub mod m20240101_000014_create_ai_logging_tables;
+pub mod m20240101_000015_add_max_log_count;
+pub mod m20240101_000016_create_threads_table;
 
 pub mod initialization;
 
@@ -47,6 +49,8 @@ impl MigratorTrait for Migrator {
             Box::new(m20240101_000012_fix_task_lists_unique_index::Migration),
             Box::new(m20240101_000013_add_order_num_to_tasks::Migration),
             Box::new(m20240101_000014_create_ai_logging_tables::Migration),
+            Box::new(m20240101_000015_add_max_log_count::Migration),
+            Box::new(m20240101_000016_create_threads_table::Migration),
         ]
     }
 }

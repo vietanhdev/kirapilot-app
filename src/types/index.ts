@@ -495,3 +495,6 @@ export * from './aiConfirmation';
 
 // Re-export emotional intelligence types
 export * from './emotionalIntelligence';
+
+// Re-export thread types
+export * from './thread';

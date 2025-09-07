@@ -85,4 +85,5 @@ export {
   getTaskListRepository,
   getLogStorageRepository,
   getEmotionalIntelligenceRepository,
+  getThreadRepository,
 } from './repositories';

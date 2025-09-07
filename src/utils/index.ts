@@ -111,3 +111,6 @@ export function debounce<T extends (...args: unknown[]) => unknown>(
 
 // Export drag placeholder utilities
 export * from './dragPlaceholderUtils';
+
+// Export thread title utilities
+export * from './threadTitleUtils';

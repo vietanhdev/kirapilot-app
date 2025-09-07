@@ -152,6 +152,7 @@ describe('Header', () => {
 
     expect(screen.getByText('nav.week')).toBeInTheDocument();
     expect(screen.getByText('nav.day')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Kira' })).toBeInTheDocument();
     expect(screen.getByTitle('timer.sessionHistory')).toBeInTheDocument();
     expect(screen.getByTitle('nav.reports')).toBeInTheDocument();
     expect(screen.getByTitle('nav.settings')).toBeInTheDocument();
@@ -189,5 +190,22 @@ describe('Header', () => {
 
     // Timer display should not be visible
     expect(screen.queryByText(/\d{2}:\d{2}/)).not.toBeInTheDocument();
+  });
+
+  it('renders Kira chat button and handles navigation', () => {
+    renderHeader();
+
+    const kiraButton = screen.getByRole('button', { name: 'Kira' });
+    expect(kiraButton).toBeInTheDocument();
+
+    // Button should not be active when current view is not 'kira'
+    expect(kiraButton).not.toHaveClass('bg-primary-500');
+  });
+
+  it('highlights Kira button when in kira view', () => {
+    renderHeader('kira');
+
+    const kiraButton = screen.getByRole('button', { name: 'Kira' });
+    expect(kiraButton).toHaveClass('bg-primary-500', 'text-white', 'shadow-sm');
   });
 });

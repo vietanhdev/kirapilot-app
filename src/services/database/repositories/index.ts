@@ -6,6 +6,7 @@ import { PatternService } from './PatternService';
 import { TaskListService } from './TaskListService';
 import { LogStorageService } from './LogStorageService';
 import { EmotionalIntelligenceRepository } from './EmotionalIntelligenceRepository';
+import { ThreadService } from './ThreadService';
 
 // Singleton instances
 let taskService: TaskService | null = null;
@@ -16,6 +17,7 @@ let taskListService: TaskListService | null = null;
 let logStorageService: LogStorageService | null = null;
 let emotionalIntelligenceRepository: EmotionalIntelligenceRepository | null =
   null;
+let threadService: ThreadService | null = null;
 
 // Export services
 export { TaskService } from './TaskService';
@@ -25,6 +27,7 @@ export { PatternService } from './PatternService';
 export { TaskListService } from './TaskListService';
 export { LogStorageService } from './LogStorageService';
 export { EmotionalIntelligenceRepository } from './EmotionalIntelligenceRepository';
+export { ThreadService } from './ThreadService';
 
 /**
  * Get TaskService instance (replaces TaskRepository)
@@ -94,4 +97,14 @@ export function getEmotionalIntelligenceRepository(): EmotionalIntelligenceRepos
     emotionalIntelligenceRepository = new EmotionalIntelligenceRepository();
   }
   return emotionalIntelligenceRepository;
+}
+
+/**
+ * Get ThreadService instance
+ */
+export function getThreadRepository(): ThreadService {
+  if (!threadService) {
+    threadService = new ThreadService();
+  }
+  return threadService;
 }
