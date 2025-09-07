@@ -404,13 +404,13 @@ async fn create_thread_message(request: CreateThreadMessageRequest) -> Result<se
 }
 
 #[tauri::command]
-async fn get_thread_messages(threadId: String) -> Result<Vec<serde_json::Value>, String> {
+async fn get_thread_messages(thread_id: String) -> Result<Vec<serde_json::Value>, String> {
     let db = get_database()
         .await
         .map_err(|e| format!("Database error: {}", e))?;
     let repo = ThreadRepository::new(db);
 
-    match repo.find_messages(&threadId).await {
+    match repo.find_messages(&thread_id).await {
         Ok(messages) => Ok(messages
             .into_iter()
             .map(|m| serde_json::to_value(m).unwrap_or_default())

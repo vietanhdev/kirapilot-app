@@ -96,6 +96,7 @@ impl ThreadRepository {
     }
 
     /// Find threads by assignment type
+    #[allow(dead_code)]
     pub async fn find_by_assignment_type(&self, assignment_type: &str) -> Result<Vec<threads::Model>, DbErr> {
         threads::Entity::find()
             .filter(threads::Column::AssignmentType.eq(assignment_type))
