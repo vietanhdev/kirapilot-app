@@ -6,10 +6,15 @@ use backup::{BackupMetadata, BackupService};
 use database::migration::initialization::DatabaseIntegrityReport;
 use database::migration::{MigrationStatus, MigrationTestResult};
 use database::repositories::{
-    ai_repository::{AiStats, AiLogStorageStats, CreateAiInteractionRequest, UpdateAiInteractionRequest, CreateAiInteractionLogRequest, UpdateAiInteractionLogRequest, CreateToolExecutionLogRequest},
+    ai_repository::{
+        AiLogStorageStats, AiStats, CreateAiInteractionLogRequest, CreateAiInteractionRequest,
+        CreateToolExecutionLogRequest, UpdateAiInteractionLogRequest, UpdateAiInteractionRequest,
+    },
     task_list_repository::{CreateTaskListRequest, TaskListStats, UpdateTaskListRequest},
     task_repository::{CreateTaskRequest, TaskStats, UpdateTaskRequest},
-    thread_repository::{CreateThreadRequest, CreateThreadMessageRequest, UpdateThreadRequest, ThreadStatistics},
+    thread_repository::{
+        CreateThreadMessageRequest, CreateThreadRequest, ThreadStatistics, UpdateThreadRequest,
+    },
     time_tracking_repository::{CreateTimeSessionRequest, TimeStats, UpdateTimeSessionRequest},
     AiRepository, TaskListRepository, TaskRepository, ThreadRepository, TimeTrackingRepository,
 };
@@ -17,10 +22,12 @@ use database::{
     check_database_health, get_database, get_migration_status, initialize_database,
     run_post_migration_init, test_migration_compatibility, validate_db_integrity, DatabaseHealth,
 };
-use llama::service::{GenerationOptions, ModelStatus};
-use llama::retry::{RetryConfig, RetryMechanism};
-use llama::{LlamaService, ModelManager, ModelMetadata, StorageInfo, ResourceConfig, ResourceUsage};
 use llama::error::LlamaError;
+use llama::retry::{RetryConfig, RetryMechanism};
+use llama::service::{GenerationOptions, ModelStatus};
+use llama::{
+    LlamaService, ModelManager, ModelMetadata, ResourceConfig, ResourceUsage, StorageInfo,
+};
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
@@ -365,7 +372,10 @@ async fn get_threads_by_date(date: String) -> Result<Vec<serde_json::Value>, Str
 }
 
 #[tauri::command]
-async fn update_thread(id: String, request: UpdateThreadRequest) -> Result<serde_json::Value, String> {
+async fn update_thread(
+    id: String,
+    request: UpdateThreadRequest,
+) -> Result<serde_json::Value, String> {
     let db = get_database()
         .await
         .map_err(|e| format!("Database error: {}", e))?;
@@ -391,7 +401,9 @@ async fn delete_thread(id: String) -> Result<String, String> {
 }
 
 #[tauri::command]
-async fn create_thread_message(request: CreateThreadMessageRequest) -> Result<serde_json::Value, String> {
+async fn create_thread_message(
+    request: CreateThreadMessageRequest,
+) -> Result<serde_json::Value, String> {
     let db = get_database()
         .await
         .map_err(|e| format!("Database error: {}", e))?;
@@ -433,7 +445,10 @@ async fn get_thread_message(id: String) -> Result<Option<serde_json::Value>, Str
 }
 
 #[tauri::command]
-async fn update_thread_message(id: String, user_feedback: Option<serde_json::Value>) -> Result<serde_json::Value, String> {
+async fn update_thread_message(
+    id: String,
+    user_feedback: Option<serde_json::Value>,
+) -> Result<serde_json::Value, String> {
     let db = get_database()
         .await
         .map_err(|e| format!("Database error: {}", e))?;
@@ -918,13 +933,13 @@ async fn get_ai_interaction_log_stats() -> Result<AiLogStorageStats, String> {
 }
 
 #[tauri::command]
-async fn create_ai_interaction_log(request: serde_json::Value) -> Result<serde_json::Value, String> {
+async fn create_ai_interaction_log(
+    request: serde_json::Value,
+) -> Result<serde_json::Value, String> {
     let db = get_database()
         .await
         .map_err(|e| format!("Database error: {}", e))?;
     let repo = AiRepository::new(db);
-
-
 
     // The frontend sends { request: data }, so we need to get the "request" field
     // But if that fails, the data might be at the top level (Tauri parameter handling)
@@ -934,61 +949,75 @@ async fn create_ai_interaction_log(request: serde_json::Value) -> Result<serde_j
         // Data is at the top level
         &request
     };
-    
+
     // Convert to CreateAiInteractionLogRequest
     let log_request = CreateAiInteractionLogRequest {
-        session_id: request_data.get("session_id")
+        session_id: request_data
+            .get("session_id")
             .and_then(|v| v.as_str())
             .unwrap_or("")
             .to_string(),
-        model_type: request_data.get("model_type")
+        model_type: request_data
+            .get("model_type")
             .and_then(|v| v.as_str())
             .unwrap_or("gemini")
             .to_string(),
-        model_info: request_data.get("model_info")
+        model_info: request_data
+            .get("model_info")
             .cloned()
             .unwrap_or(serde_json::json!({})),
-        user_message: request_data.get("user_message")
+        user_message: request_data
+            .get("user_message")
             .and_then(|v| v.as_str())
             .unwrap_or("")
             .to_string(),
-        system_prompt: request_data.get("system_prompt")
+        system_prompt: request_data
+            .get("system_prompt")
             .and_then(|v| v.as_str())
             .map(|s| s.to_string()),
-        context: request_data.get("context")
+        context: request_data
+            .get("context")
             .and_then(|v| v.as_str())
             .unwrap_or("{}")
             .to_string(),
-        ai_response: request_data.get("ai_response")
+        ai_response: request_data
+            .get("ai_response")
             .and_then(|v| v.as_str())
             .unwrap_or("")
             .to_string(),
-        actions: request_data.get("actions")
+        actions: request_data
+            .get("actions")
             .and_then(|v| v.as_str())
             .unwrap_or("[]")
             .to_string(),
-        suggestions: request_data.get("suggestions")
+        suggestions: request_data
+            .get("suggestions")
             .and_then(|v| v.as_str())
             .unwrap_or("[]")
             .to_string(),
-        reasoning: request_data.get("reasoning")
+        reasoning: request_data
+            .get("reasoning")
             .and_then(|v| v.as_str())
             .map(|s| s.to_string()),
-        response_time: request_data.get("response_time")
+        response_time: request_data
+            .get("response_time")
             .and_then(|v| v.as_i64())
             .unwrap_or(0),
-        token_count: request_data.get("token_count")
-            .and_then(|v| v.as_i64()),
-        error: request_data.get("error")
+        token_count: request_data.get("token_count").and_then(|v| v.as_i64()),
+        error: request_data
+            .get("error")
             .and_then(|v| v.as_str())
             .map(|s| s.to_string()),
-        error_code: request_data.get("error_code")
+        error_code: request_data
+            .get("error_code")
             .and_then(|v| v.as_str())
             .map(|s| s.to_string()),
-        contains_sensitive_data: request_data.get("contains_sensitive_data")
+        contains_sensitive_data: request_data
+            .get("contains_sensitive_data")
             .and_then(|v| v.as_bool())
             .unwrap_or(false),
-        data_classification: request_data.get("data_classification")
+        data_classification: request_data
+            .get("data_classification")
             .and_then(|v| v.as_str())
             .unwrap_or("internal")
             .to_string(),
@@ -1001,7 +1030,9 @@ async fn create_ai_interaction_log(request: serde_json::Value) -> Result<serde_j
 }
 
 #[tauri::command]
-async fn get_ai_interaction_logs(_filters: serde_json::Value) -> Result<Vec<serde_json::Value>, String> {
+async fn get_ai_interaction_logs(
+    _filters: serde_json::Value,
+) -> Result<Vec<serde_json::Value>, String> {
     let db = get_database()
         .await
         .map_err(|e| format!("Database error: {}", e))?;
@@ -1011,73 +1042,130 @@ async fn get_ai_interaction_logs(_filters: serde_json::Value) -> Result<Vec<serd
     // AI logs have action_taken in format "{model_type}:{session_id}"
     match repo.get_recent_interactions(1000).await {
         Ok(interactions) => {
-            println!("🔍 Backend: Found {} total interactions", interactions.len());
-            
+            println!(
+                "🔍 Backend: Found {} total interactions",
+                interactions.len()
+            );
+
             // Debug: print all interactions to see what we have
             for (i, interaction) in interactions.iter().enumerate().take(5) {
-                println!("🔍 Backend: Interaction {}: id={}, action_taken={:?}, message={}, response={}", 
-                    i, interaction.id, interaction.action_taken, 
+                println!(
+                    "🔍 Backend: Interaction {}: id={}, action_taken={:?}, message={}, response={}",
+                    i,
+                    interaction.id,
+                    interaction.action_taken,
                     interaction.message.chars().take(50).collect::<String>(),
                     interaction.response.chars().take(50).collect::<String>()
                 );
             }
-            
+
             let ai_logs: Vec<serde_json::Value> = interactions
                 .into_iter()
                 .filter(|interaction| {
                     // Filter for AI logging interactions by checking action_taken pattern
-                    let is_ai_log = interaction.action_taken.as_ref()
-                        .map_or(false, |action| {
-                            action.contains(':') && 
-                            (action.starts_with("local:") || action.starts_with("gemini:"))
-                        });
-                    
+                    let is_ai_log = interaction.action_taken.as_ref().map_or(false, |action| {
+                        action.contains(':')
+                            && (action.starts_with("local:") || action.starts_with("gemini:"))
+                    });
+
                     if is_ai_log {
-                        println!("🔍 Backend: Found AI log: id={}, action={:?}", interaction.id, interaction.action_taken);
+                        println!(
+                            "🔍 Backend: Found AI log: id={}, action={:?}",
+                            interaction.id, interaction.action_taken
+                        );
                     }
-                    
+
                     is_ai_log
                 })
                 .map(|interaction| {
                     // Transform the data to match the expected AI log format
                     let mut log_data = serde_json::Map::new();
                     log_data.insert("id".to_string(), serde_json::Value::String(interaction.id));
-                    log_data.insert("timestamp".to_string(), serde_json::Value::String(interaction.created_at.to_rfc3339()));
-                    log_data.insert("user_message".to_string(), serde_json::Value::String(interaction.message));
-                    log_data.insert("ai_response".to_string(), serde_json::Value::String(interaction.response));
-                    
+                    log_data.insert(
+                        "timestamp".to_string(),
+                        serde_json::Value::String(interaction.created_at.to_rfc3339()),
+                    );
+                    log_data.insert(
+                        "user_message".to_string(),
+                        serde_json::Value::String(interaction.message),
+                    );
+                    log_data.insert(
+                        "ai_response".to_string(),
+                        serde_json::Value::String(interaction.response),
+                    );
+
                     // Extract session_id and model_type from action_taken
                     if let Some(action) = &interaction.action_taken {
                         let parts: Vec<&str> = action.split(':').collect();
                         if parts.len() >= 2 {
-                            log_data.insert("model_type".to_string(), serde_json::Value::String(parts[0].to_string()));
-                            log_data.insert("session_id".to_string(), serde_json::Value::String(parts[1].to_string()));
+                            log_data.insert(
+                                "model_type".to_string(),
+                                serde_json::Value::String(parts[0].to_string()),
+                            );
+                            log_data.insert(
+                                "session_id".to_string(),
+                                serde_json::Value::String(parts[1].to_string()),
+                            );
                         }
                     }
-                    
+
                     // Add other fields with defaults
-                    log_data.insert("model_info".to_string(), serde_json::Value::String("{}".to_string()));
+                    log_data.insert(
+                        "model_info".to_string(),
+                        serde_json::Value::String("{}".to_string()),
+                    );
                     log_data.insert("system_prompt".to_string(), serde_json::Value::Null);
-                    log_data.insert("context".to_string(), serde_json::Value::String("{}".to_string()));
-                    log_data.insert("actions".to_string(), serde_json::Value::String(interaction.tools_used.unwrap_or_else(|| "[]".to_string())));
-                    log_data.insert("suggestions".to_string(), serde_json::Value::String("[]".to_string()));
-                    log_data.insert("reasoning".to_string(), serde_json::Value::String(interaction.reasoning.unwrap_or_else(|| "".to_string())));
-                    log_data.insert("response_time".to_string(), serde_json::Value::Number(serde_json::Number::from(1000))); // Default 1000ms
+                    log_data.insert(
+                        "context".to_string(),
+                        serde_json::Value::String("{}".to_string()),
+                    );
+                    log_data.insert(
+                        "actions".to_string(),
+                        serde_json::Value::String(
+                            interaction.tools_used.unwrap_or_else(|| "[]".to_string()),
+                        ),
+                    );
+                    log_data.insert(
+                        "suggestions".to_string(),
+                        serde_json::Value::String("[]".to_string()),
+                    );
+                    log_data.insert(
+                        "reasoning".to_string(),
+                        serde_json::Value::String(
+                            interaction.reasoning.unwrap_or_else(|| "".to_string()),
+                        ),
+                    );
+                    log_data.insert(
+                        "response_time".to_string(),
+                        serde_json::Value::Number(serde_json::Number::from(1000)),
+                    ); // Default 1000ms
                     log_data.insert("token_count".to_string(), serde_json::Value::Null);
                     log_data.insert("error".to_string(), serde_json::Value::Null);
                     log_data.insert("error_code".to_string(), serde_json::Value::Null);
-                    log_data.insert("contains_sensitive_data".to_string(), serde_json::Value::Bool(false));
-                    log_data.insert("data_classification".to_string(), serde_json::Value::String("public".to_string()));
-                    log_data.insert("created_at".to_string(), serde_json::Value::String(interaction.created_at.to_rfc3339()));
-                    log_data.insert("updated_at".to_string(), serde_json::Value::String(interaction.created_at.to_rfc3339()));
-                    
+                    log_data.insert(
+                        "contains_sensitive_data".to_string(),
+                        serde_json::Value::Bool(false),
+                    );
+                    log_data.insert(
+                        "data_classification".to_string(),
+                        serde_json::Value::String("public".to_string()),
+                    );
+                    log_data.insert(
+                        "created_at".to_string(),
+                        serde_json::Value::String(interaction.created_at.to_rfc3339()),
+                    );
+                    log_data.insert(
+                        "updated_at".to_string(),
+                        serde_json::Value::String(interaction.created_at.to_rfc3339()),
+                    );
+
                     serde_json::Value::Object(log_data)
                 })
                 .collect();
-            
+
             println!("🔍 Backend: Filtered to {} AI logs", ai_logs.len());
             Ok(ai_logs)
-        },
+        }
         Err(e) => Err(format!("Failed to get AI interaction logs: {}", e)),
     }
 }
@@ -1111,43 +1199,51 @@ async fn delete_ai_interaction_log(id: String) -> Result<String, String> {
 }
 
 #[tauri::command]
-async fn update_ai_interaction_log(id: String, request: serde_json::Value) -> Result<serde_json::Value, String> {
+async fn update_ai_interaction_log(
+    id: String,
+    request: serde_json::Value,
+) -> Result<serde_json::Value, String> {
     let db = get_database()
         .await
         .map_err(|e| format!("Database error: {}", e))?;
     let repo = AiRepository::new(db);
 
     // Extract the request data
-    let request_data = request.get("request")
-        .ok_or("Missing request data")?;
-    
+    let request_data = request.get("request").ok_or("Missing request data")?;
+
     // Convert to UpdateAiInteractionLogRequest
     let update_request = UpdateAiInteractionLogRequest {
-        ai_response: request_data.get("ai_response")
+        ai_response: request_data
+            .get("ai_response")
             .and_then(|v| v.as_str())
             .map(|s| s.to_string()),
-        actions: request_data.get("actions")
+        actions: request_data
+            .get("actions")
             .and_then(|v| v.as_str())
             .map(|s| s.to_string()),
-        suggestions: request_data.get("suggestions")
+        suggestions: request_data
+            .get("suggestions")
             .and_then(|v| v.as_str())
             .map(|s| s.to_string()),
-        reasoning: request_data.get("reasoning")
+        reasoning: request_data
+            .get("reasoning")
             .and_then(|v| v.as_str())
             .map(|s| s.to_string()),
-        response_time: request_data.get("response_time")
-            .and_then(|v| v.as_i64()),
-        token_count: request_data.get("token_count")
-            .and_then(|v| v.as_i64()),
-        error: request_data.get("error")
+        response_time: request_data.get("response_time").and_then(|v| v.as_i64()),
+        token_count: request_data.get("token_count").and_then(|v| v.as_i64()),
+        error: request_data
+            .get("error")
             .and_then(|v| v.as_str())
             .map(|s| s.to_string()),
-        error_code: request_data.get("error_code")
+        error_code: request_data
+            .get("error_code")
             .and_then(|v| v.as_str())
             .map(|s| s.to_string()),
-        contains_sensitive_data: request_data.get("contains_sensitive_data")
+        contains_sensitive_data: request_data
+            .get("contains_sensitive_data")
             .and_then(|v| v.as_bool()),
-        data_classification: request_data.get("data_classification")
+        data_classification: request_data
+            .get("data_classification")
             .and_then(|v| v.as_str())
             .map(|s| s.to_string()),
     };
@@ -1159,41 +1255,49 @@ async fn update_ai_interaction_log(id: String, request: serde_json::Value) -> Re
 }
 
 #[tauri::command]
-async fn create_tool_execution_log(request: serde_json::Value) -> Result<serde_json::Value, String> {
+async fn create_tool_execution_log(
+    request: serde_json::Value,
+) -> Result<serde_json::Value, String> {
     let db = get_database()
         .await
         .map_err(|e| format!("Database error: {}", e))?;
     let repo = AiRepository::new(db);
 
     // Extract the request data
-    let request_data = request.get("request")
-        .ok_or("Missing request data")?;
-    
+    let request_data = request.get("request").ok_or("Missing request data")?;
+
     // Convert to CreateToolExecutionLogRequest
     let tool_request = CreateToolExecutionLogRequest {
-        interaction_log_id: request_data.get("interaction_log_id")
+        interaction_log_id: request_data
+            .get("interaction_log_id")
             .and_then(|v| v.as_str())
             .unwrap_or("")
             .to_string(),
-        tool_name: request_data.get("tool_name")
+        tool_name: request_data
+            .get("tool_name")
             .and_then(|v| v.as_str())
             .unwrap_or("")
             .to_string(),
-        arguments: request_data.get("arguments")
+        arguments: request_data
+            .get("arguments")
             .and_then(|v| v.as_str())
             .unwrap_or("{}")
             .to_string(),
-        result: request_data.get("result")
+        result: request_data
+            .get("result")
             .and_then(|v| v.as_str())
             .unwrap_or("{}")
             .to_string(),
-        execution_time: request_data.get("execution_time")
+        execution_time: request_data
+            .get("execution_time")
             .and_then(|v| v.as_i64())
             .unwrap_or(0),
-        success: request_data.get("success")
+        success: request_data
+            .get("success")
             .and_then(|v| v.as_bool())
             .unwrap_or(false),
-        error: request_data.get("error")
+        error: request_data
+            .get("error")
             .and_then(|v| v.as_str())
             .map(|s| s.to_string()),
     };
@@ -1205,7 +1309,9 @@ async fn create_tool_execution_log(request: serde_json::Value) -> Result<serde_j
 }
 
 #[tauri::command]
-async fn get_tool_execution_logs(interaction_log_id: String) -> Result<Vec<serde_json::Value>, String> {
+async fn get_tool_execution_logs(
+    interaction_log_id: String,
+) -> Result<Vec<serde_json::Value>, String> {
     let db = get_database()
         .await
         .map_err(|e| format!("Database error: {}", e))?;
@@ -1218,13 +1324,15 @@ async fn get_tool_execution_logs(interaction_log_id: String) -> Result<Vec<serde
             let tool_logs: Vec<serde_json::Value> = interactions
                 .into_iter()
                 .filter(|i| {
-                    i.action_taken.as_ref()
-                        .map_or(false, |action| action.starts_with("tool_execution:") && action.contains(&interaction_log_id))
+                    i.action_taken.as_ref().map_or(false, |action| {
+                        action.starts_with("tool_execution:")
+                            && action.contains(&interaction_log_id)
+                    })
                 })
                 .map(|i| serde_json::to_value(i).unwrap_or_default())
                 .collect();
             Ok(tool_logs)
-        },
+        }
         Err(e) => Err(format!("Failed to get tool execution logs: {}", e)),
     }
 }
@@ -1259,7 +1367,10 @@ async fn cleanup_old_ai_interaction_logs() -> Result<u64, String> {
 }
 
 #[tauri::command]
-async fn export_ai_interaction_logs(_filters: serde_json::Value, format: String) -> Result<String, String> {
+async fn export_ai_interaction_logs(
+    _filters: serde_json::Value,
+    format: String,
+) -> Result<String, String> {
     let db = get_database()
         .await
         .map_err(|e| format!("Database error: {}", e))?;
@@ -1278,8 +1389,15 @@ async fn export_ai_interaction_logs(_filters: serde_json::Value, format: String)
                         interaction.created_at.to_rfc3339(),
                         interaction.message.replace(',', ";").replace('\n', " "),
                         interaction.response.replace(',', ";").replace('\n', " "),
-                        interaction.action_taken.unwrap_or_default().replace(',', ";"),
-                        interaction.reasoning.unwrap_or_default().replace(',', ";").replace('\n', " ")
+                        interaction
+                            .action_taken
+                            .unwrap_or_default()
+                            .replace(',', ";"),
+                        interaction
+                            .reasoning
+                            .unwrap_or_default()
+                            .replace(',', ";")
+                            .replace('\n', " ")
                     ));
                 }
                 Ok(csv)
@@ -1290,7 +1408,7 @@ async fn export_ai_interaction_logs(_filters: serde_json::Value, format: String)
                     Err(e) => Err(format!("Failed to serialize interactions to JSON: {}", e)),
                 }
             }
-        },
+        }
         Err(e) => Err(format!("Failed to export AI interaction logs: {}", e)),
     }
 }
@@ -1373,7 +1491,7 @@ async fn update_logging_config(config: serde_json::Value) -> Result<serde_json::
         "auto_cleanup": config.get("auto_cleanup").and_then(|v| v.as_bool()).unwrap_or(true),
         "export_format": config.get("export_format").and_then(|v| v.as_str()).unwrap_or("json")
     });
-    
+
     Ok(updated_config)
 }
 
@@ -1393,7 +1511,7 @@ async fn get_logging_config() -> Result<serde_json::Value, String> {
         "auto_cleanup": true,
         "export_format": "json"
     });
-    
+
     Ok(default_config)
 }
 
@@ -1884,10 +2002,10 @@ async fn verify_model_integrity(model_path: String) -> Result<bool, String> {
 #[tauri::command]
 async fn get_error_diagnostics() -> Result<serde_json::Value, String> {
     log::debug!("Getting error diagnostics");
-    
+
     let service_mutex = get_llama_service();
     let service_guard = service_mutex.lock().await;
-    
+
     let mut diagnostics = serde_json::json!({
         "timestamp": chrono::Utc::now().to_rfc3339(),
         "service_available": service_guard.is_some(),
@@ -1896,22 +2014,24 @@ async fn get_error_diagnostics() -> Result<serde_json::Value, String> {
         "performance_metrics": {},
         "system_health": "unknown"
     });
-    
+
     if let Some(service) = service_guard.as_ref() {
         diagnostics["model_ready"] = serde_json::Value::Bool(service.is_ready());
-        
+
         // Get resource usage if available
         if let Some(usage) = service.get_resource_usage().await {
-            diagnostics["performance_metrics"] = serde_json::to_value(usage)
-                .unwrap_or_default();
+            diagnostics["performance_metrics"] = serde_json::to_value(usage).unwrap_or_default();
         }
-        
+
         // Get performance recommendations
         let recommendations = service.get_performance_recommendations().await;
         diagnostics["recommendations"] = serde_json::Value::Array(
-            recommendations.into_iter().map(serde_json::Value::String).collect()
+            recommendations
+                .into_iter()
+                .map(serde_json::Value::String)
+                .collect(),
         );
-        
+
         // Determine system health
         let status = service.get_status();
         let health = if status.is_loaded && status.is_available {
@@ -1923,18 +2043,18 @@ async fn get_error_diagnostics() -> Result<serde_json::Value, String> {
         };
         diagnostics["system_health"] = serde_json::Value::String(health.to_string());
     }
-    
+
     Ok(diagnostics)
 }
 
 #[tauri::command]
 async fn get_error_recovery_suggestions(error_message: String) -> Result<Vec<String>, String> {
     log::debug!("Getting recovery suggestions for error: {}", error_message);
-    
+
     // Analyze error message and provide contextual suggestions
     let error_lower = error_message.to_lowercase();
     let mut suggestions = Vec::new();
-    
+
     if error_lower.contains("network") || error_lower.contains("download") {
         suggestions.extend(vec![
             "Check your internet connection".to_string(),
@@ -1967,30 +2087,30 @@ async fn get_error_recovery_suggestions(error_message: String) -> Result<Vec<Str
             "Check system resources".to_string(),
         ]);
     }
-    
+
     Ok(suggestions)
 }
 
 #[tauri::command]
 async fn test_model_health() -> Result<serde_json::Value, String> {
     log::info!("Running model health test");
-    
+
     let mut health_report = serde_json::json!({
         "timestamp": chrono::Utc::now().to_rfc3339(),
         "overall_health": "unknown",
         "tests": {}
     });
-    
+
     let service_mutex = get_llama_service();
     let mut service_guard = service_mutex.lock().await;
-    
+
     // Test 1: Service availability
     let service_available = service_guard.is_some();
     health_report["tests"]["service_available"] = serde_json::json!({
         "passed": service_available,
         "message": if service_available { "Service is available" } else { "Service not initialized" }
     });
-    
+
     if let Some(service) = service_guard.as_mut() {
         // Test 2: Model readiness
         let model_ready = service.is_ready();
@@ -1998,7 +2118,7 @@ async fn test_model_health() -> Result<serde_json::Value, String> {
             "passed": model_ready,
             "message": if model_ready { "Model is loaded and ready" } else { "Model not loaded" }
         });
-        
+
         // Test 3: Basic generation (if model is ready)
         if model_ready {
             let test_prompt = "Hello";
@@ -2007,7 +2127,7 @@ async fn test_model_health() -> Result<serde_json::Value, String> {
                 temperature: Some(0.7),
                 ..Default::default()
             };
-            
+
             match service.generate(test_prompt, test_options).await {
                 Ok(response) => {
                     health_report["tests"]["generation_test"] = serde_json::json!({
@@ -2025,12 +2145,12 @@ async fn test_model_health() -> Result<serde_json::Value, String> {
                 }
             }
         }
-        
+
         // Test 4: Resource usage
         if let Some(usage) = service.get_resource_usage().await {
             let memory_ok = usage.memory_usage_mb < 2048; // Less than 2GB
             let cpu_ok = usage.cpu_usage_percent < 90.0;
-            
+
             health_report["tests"]["resource_usage"] = serde_json::json!({
                 "passed": memory_ok && cpu_ok,
                 "message": format!("Memory: {}MB, CPU: {}%", usage.memory_usage_mb, usage.cpu_usage_percent),
@@ -2039,39 +2159,40 @@ async fn test_model_health() -> Result<serde_json::Value, String> {
             });
         }
     }
-    
+
     // Determine overall health
     let tests = health_report["tests"].as_object().unwrap();
     let all_passed = tests.values().all(|test| {
-        test.get("passed").and_then(|p| p.as_bool()).unwrap_or(false)
+        test.get("passed")
+            .and_then(|p| p.as_bool())
+            .unwrap_or(false)
     });
-    
-    health_report["overall_health"] = serde_json::Value::String(
-        if all_passed { "healthy" } else { "unhealthy" }.to_string()
-    );
-    
+
+    health_report["overall_health"] =
+        serde_json::Value::String(if all_passed { "healthy" } else { "unhealthy" }.to_string());
+
     Ok(health_report)
 }
 
 #[tauri::command]
 async fn force_model_recovery() -> Result<String, String> {
     log::info!("Forcing model recovery");
-    
+
     let service_mutex = get_llama_service();
     let mut service_guard = service_mutex.lock().await;
-    
+
     // Clean up existing service
     if let Some(mut service) = service_guard.take() {
         log::info!("Cleaning up existing service");
         service.cleanup().await;
     }
-    
+
     // Create new service instance
     let new_service = LlamaService::new()
         .map_err(|e| format!("Failed to create new service during recovery: {}", e))?;
-    
+
     *service_guard = Some(new_service);
-    
+
     log::info!("Model recovery completed - new service instance created");
     Ok("Model recovery completed successfully. Please reinitialize the model.".to_string())
 }
@@ -2079,7 +2200,7 @@ async fn force_model_recovery() -> Result<String, String> {
 #[tauri::command]
 async fn get_fallback_status() -> Result<serde_json::Value, String> {
     log::debug!("Getting fallback status");
-    
+
     // This would typically check if Gemini API is available as fallback
     // For now, we'll return a basic status
     Ok(serde_json::json!({
@@ -2103,66 +2224,68 @@ async fn initialize_local_model() -> Result<String, String> {
     let retry_config = RetryConfig::for_model_loading();
     let retry_mechanism = RetryMechanism::new(retry_config);
 
-    retry_mechanism.execute(|| async {
-        let service_mutex = get_llama_service();
-        let mut service_guard = service_mutex.lock().await;
+    retry_mechanism
+        .execute(|| async {
+            let service_mutex = get_llama_service();
+            let mut service_guard = service_mutex.lock().await;
 
-        // Create a new service instance if not already created
-        if service_guard.is_none() {
-            let service = LlamaService::new()
-                .map_err(|e| {
+            // Create a new service instance if not already created
+            if service_guard.is_none() {
+                let service = LlamaService::new().map_err(|e| {
                     log::error!("Failed to create LlamaService: {}", e);
                     match e {
                         LlamaError::InitializationError(_) => e,
-                        _ => LlamaError::InitializationError(format!("Service creation failed: {}", e))
+                        _ => LlamaError::InitializationError(format!(
+                            "Service creation failed: {}",
+                            e
+                        )),
                     }
                 })?;
-            *service_guard = Some(service);
-        }
+                *service_guard = Some(service);
+            }
 
-        let service = service_guard.as_mut().unwrap();
+            let service = service_guard.as_mut().unwrap();
 
-        // Check if model is already loaded
-        if service.is_ready() {
-            log::info!("Local model already initialized");
-            return Ok("Local model already initialized".to_string());
-        }
+            // Check if model is already loaded
+            if service.is_ready() {
+                log::info!("Local model already initialized");
+                return Ok("Local model already initialized".to_string());
+            }
 
-        // Download the model if not already present with retry
-        let model_path = service
-            .download_model(
-                "unsloth/gemma-3-270m-it-GGUF",
-                "gemma-3-270m-it-Q4_K_M.gguf",
-            )
-            .await
-            .map_err(|e| {
-                log::error!("Model download failed: {}", e);
-                e
-            })?;
+            // Download the model if not already present with retry
+            let model_path = service
+                .download_model(
+                    "unsloth/gemma-3-270m-it-GGUF",
+                    "gemma-3-270m-it-Q4_K_M.gguf",
+                )
+                .await
+                .map_err(|e| {
+                    log::error!("Model download failed: {}", e);
+                    e
+                })?;
 
-        // Load the model with validation
-        service
-            .load_model(model_path)
-            .await
-            .map_err(|e| {
+            // Load the model with validation
+            service.load_model(model_path).await.map_err(|e| {
                 log::error!("Model loading failed: {}", e);
                 e
             })?;
 
-        // Verify model is actually ready
-        if !service.is_ready() {
-            return Err(LlamaError::InitializationError(
-                "Model loaded but not ready for inference".to_string()
-            ));
-        }
+            // Verify model is actually ready
+            if !service.is_ready() {
+                return Err(LlamaError::InitializationError(
+                    "Model loaded but not ready for inference".to_string(),
+                ));
+            }
 
-        log::info!("Local model initialized successfully");
-        Ok("Local model initialized successfully".to_string())
-    }).await.map_err(|e| {
-        let user_message = e.user_message();
-        let suggestions = e.recovery_suggestions().join("; ");
-        format!("{} Suggestions: {}", user_message, suggestions)
-    })
+            log::info!("Local model initialized successfully");
+            Ok("Local model initialized successfully".to_string())
+        })
+        .await
+        .map_err(|e| {
+            let user_message = e.user_message();
+            let suggestions = e.recovery_suggestions().join("; ");
+            format!("{} Suggestions: {}", user_message, suggestions)
+        })
 }
 
 #[tauri::command]
@@ -2231,7 +2354,10 @@ async fn generate_text(
     max_tokens: Option<i32>,
     temperature: Option<f32>,
 ) -> Result<String, String> {
-    log::debug!("Generating text for prompt length: {} with enhanced error handling", prompt.len());
+    log::debug!(
+        "Generating text for prompt length: {} with enhanced error handling",
+        prompt.len()
+    );
 
     // Enhanced input validation
     if prompt.is_empty() {
@@ -2373,9 +2499,11 @@ async fn update_resource_config(config: ResourceConfig) -> Result<String, String
     let mut service_guard = service_mutex.lock().await;
 
     if let Some(service) = service_guard.as_mut() {
-        service.update_resource_config(config).await
+        service
+            .update_resource_config(config)
+            .await
             .map_err(|e| format!("Failed to update resource config: {}", e))?;
-        
+
         log::info!("Resource configuration updated successfully");
         Ok("Resource configuration updated successfully".to_string())
     } else {
@@ -2409,7 +2537,10 @@ async fn get_performance_recommendations() -> Result<Vec<String>, String> {
 
     if let Some(service) = service_guard.as_ref() {
         let recommendations = service.get_performance_recommendations().await;
-        log::debug!("Performance recommendations retrieved: {} items", recommendations.len());
+        log::debug!(
+            "Performance recommendations retrieved: {} items",
+            recommendations.len()
+        );
         Ok(recommendations)
     } else {
         log::warn!("Local model service not initialized for performance recommendations");
@@ -2425,9 +2556,11 @@ async fn start_resource_monitoring() -> Result<String, String> {
     let service_guard = service_mutex.lock().await;
 
     if let Some(service) = service_guard.as_ref() {
-        service.start_resource_monitoring().await
+        service
+            .start_resource_monitoring()
+            .await
             .map_err(|e| format!("Failed to start resource monitoring: {}", e))?;
-        
+
         log::info!("Resource monitoring started successfully");
         Ok("Resource monitoring started successfully".to_string())
     } else {
@@ -2443,9 +2576,11 @@ async fn cleanup_resources() -> Result<String, String> {
     let service_guard = service_mutex.lock().await;
 
     if let Some(service) = service_guard.as_ref() {
-        service.cleanup_resources().await
+        service
+            .cleanup_resources()
+            .await
             .map_err(|e| format!("Failed to cleanup resources: {}", e))?;
-        
+
         log::info!("Resources cleaned up successfully");
         Ok("Resources cleaned up successfully".to_string())
     } else {
@@ -2461,9 +2596,11 @@ async fn configure_optimal_resources() -> Result<String, String> {
     let mut service_guard = service_mutex.lock().await;
 
     if let Some(service) = service_guard.as_mut() {
-        service.configure_optimal_resources().await
+        service
+            .configure_optimal_resources()
+            .await
             .map_err(|e| format!("Failed to configure optimal resources: {}", e))?;
-        
+
         log::info!("Optimal resources configured successfully");
         Ok("Optimal resources configured successfully".to_string())
     } else {
