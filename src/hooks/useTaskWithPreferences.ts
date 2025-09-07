@@ -37,6 +37,10 @@ export const useTaskWithPreferences = () => {
           ? getAutoScheduledDate(taskData.priority ?? defaultPriority)
           : undefined),
       tags: taskData.tags || [],
+      // Periodic task properties with defaults
+      periodicTemplateId: taskData.periodicTemplateId,
+      isPeriodicInstance: taskData.isPeriodicInstance || false,
+      generationDate: taskData.generationDate,
       createdAt: taskData.createdAt || now,
       updatedAt: taskData.updatedAt || now,
     };

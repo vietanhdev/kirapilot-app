@@ -27,11 +27,15 @@ import {
   Maximize2,
   Minimize2,
   Check,
-  // Calendar,
+  Repeat,
+  Link,
+  Calendar,
 } from 'lucide-react';
 import { TaskModal } from './TaskModal';
 import { ConfirmationDialog } from '../common';
 import { MinimalRichTextEditor } from '../common/MinimalRichTextEditor';
+import { PeriodicTaskService } from '../../services/database/repositories/PeriodicTaskService';
+import { PeriodicTaskTemplate } from '../../types';
 
 interface PlanningTaskCardProps {
   task: Task;
@@ -42,6 +46,7 @@ interface PlanningTaskCardProps {
   onTimerStop?: (task: Task) => void;
   onDelete?: (task: Task) => void;
   onViewTimeHistory?: (task: Task) => void;
+  onViewPeriodicTemplate?: (templateId: string) => void;
   activeTimerTaskId?: string | null;
   isTimerRunning?: boolean;
   elapsedTime?: number;
@@ -72,6 +77,7 @@ export function TaskCard({
   onTimerStop,
   onDelete,
   onViewTimeHistory,
+  onViewPeriodicTemplate,
   activeTimerTaskId,
   isTimerRunning = false,
   elapsedTime = 0,
@@ -99,9 +105,13 @@ export function TaskCard({
       showCheckmark: false,
     }
   );
+  const [periodicTemplate, setPeriodicTemplate] =
+    useState<PeriodicTaskTemplate | null>(null);
+  const [isLoadingTemplate, setIsLoadingTemplate] = useState(false);
 
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const editorContainerRef = useRef<HTMLDivElement>(null);
+  const periodicTaskService = new PeriodicTaskService();
 
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useSortable({
@@ -227,6 +237,27 @@ export function TaskCard({
     setNotesContent(task.description || '');
     setAutoSaveState(prev => ({ ...prev, hasUnsavedChanges: false }));
   }, [task.description]);
+
+  // Load periodic template information for periodic instances
+  useEffect(() => {
+    if (task.isPeriodicInstance && task.periodicTemplateId) {
+      setIsLoadingTemplate(true);
+      periodicTaskService
+        .findTemplateById(task.periodicTemplateId)
+        .then(template => {
+          setPeriodicTemplate(template);
+        })
+        .catch(error => {
+          console.error('Failed to load periodic template:', error);
+          setPeriodicTemplate(null);
+        })
+        .finally(() => {
+          setIsLoadingTemplate(false);
+        });
+    } else {
+      setPeriodicTemplate(null);
+    }
+  }, [task.isPeriodicInstance, task.periodicTemplateId]);
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -428,6 +459,13 @@ export function TaskCard({
     }
   };
 
+  const handleViewPeriodicTemplate = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onViewPeriodicTemplate && task.periodicTemplateId) {
+      onViewPeriodicTemplate(task.periodicTemplateId);
+    }
+  };
+
   const formatElapsedTime = (milliseconds: number): string => {
     const totalSeconds = Math.floor(milliseconds / 1000);
     const minutes = Math.floor(totalSeconds / 60);
@@ -538,6 +576,16 @@ export function TaskCard({
 
                   {/* Minimal indicators on the right - always visible */}
                   <div className='flex items-center space-x-1 shrink-0 ml-2'>
+                    {/* Periodic instance indicator */}
+                    {task.isPeriodicInstance && (
+                      <div
+                        className='flex items-center space-x-0.5'
+                        title={t('tasks.periodicInstance')}
+                      >
+                        <Repeat className='w-3 h-3 text-blue-500 dark:text-blue-400' />
+                      </div>
+                    )}
+
                     {/* Urgency indicator dots */}
                     {(() => {
                       const urgencyIndicator = getUrgencyIndicator();
@@ -757,6 +805,53 @@ export function TaskCard({
             </div>
           </div>
 
+          {/* Periodic Task Information - Show for periodic instances */}
+          {task.isPeriodicInstance && (
+            <div className='mt-1 flex items-center justify-between'>
+              <div className='flex items-center space-x-1.5'>
+                {/* Template relationship indicator */}
+                {periodicTemplate && (
+                  <div className='flex items-center space-x-1 text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-1.5 py-0.5 rounded'>
+                    <Repeat className='w-3 h-3' />
+                    <span>
+                      {t('tasks.fromTemplate')}: {periodicTemplate.title}
+                    </span>
+                    {onViewPeriodicTemplate && (
+                      <button
+                        onClick={handleViewPeriodicTemplate}
+                        onMouseDown={e => e.stopPropagation()}
+                        onPointerDown={e => e.stopPropagation()}
+                        className='ml-1 p-0.5 rounded hover:bg-blue-100 dark:hover:bg-blue-800/30 transition-colors'
+                        title={t('tasks.viewTemplate')}
+                      >
+                        <Link className='w-2.5 h-2.5' />
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {/* Generation date */}
+                {task.generationDate && (
+                  <div className='flex items-center space-x-1 text-xs text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/20 px-1.5 py-0.5 rounded'>
+                    <Calendar className='w-3 h-3' />
+                    <span>
+                      {t('tasks.generated')}:{' '}
+                      {new Date(task.generationDate).toLocaleDateString()}
+                    </span>
+                  </div>
+                )}
+
+                {/* Loading indicator for template */}
+                {isLoadingTemplate && (
+                  <div className='flex items-center space-x-1 text-xs text-slate-500 dark:text-slate-400'>
+                    <div className='w-2 h-2 border border-current border-t-transparent rounded-full animate-spin' />
+                    <span>{t('common.loading')}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Action Buttons - Always visible in gray, colored on hover */}
           <div className='mt-1.5'>
             <div
@@ -864,6 +959,31 @@ export function TaskCard({
                   >
                     <History className='w-3 h-3' />
                   </button>
+
+                  {/* Periodic Template Button - Only show for periodic instances */}
+                  {task.isPeriodicInstance &&
+                    onViewPeriodicTemplate &&
+                    task.periodicTemplateId && (
+                      <button
+                        onClick={handleViewPeriodicTemplate}
+                        onMouseDown={e => e.stopPropagation()}
+                        onPointerDown={e => e.stopPropagation()}
+                        className={`p-1.5 rounded transition-all duration-200 ${
+                          periodicTemplate
+                            ? 'bg-blue-50 dark:bg-blue-900/10 text-blue-600 dark:text-blue-400'
+                            : 'text-slate-400 dark:text-slate-500'
+                        } hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600 dark:hover:text-blue-400`}
+                        title={
+                          periodicTemplate
+                            ? t('tasks.viewTemplate', {
+                                title: periodicTemplate.title,
+                              })
+                            : t('tasks.viewTemplate')
+                        }
+                      >
+                        <Repeat className='w-3 h-3' />
+                      </button>
+                    )}
 
                   {/* Edit Button */}
                   {onEdit && (

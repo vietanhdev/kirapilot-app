@@ -246,6 +246,97 @@ export class TimeTrackingService {
   }
 
   /**
+   * Get sessions for all instances of a periodic template
+   */
+  async getByPeriodicTemplate(templateId: string): Promise<TimerSession[]> {
+    try {
+      const result = await invoke<Record<string, unknown>[]>(
+        'get_periodic_template_sessions',
+        { template_id: templateId }
+      );
+      return result.map(session => this.transformSessionFromBackend(session));
+    } catch (error) {
+      throw new Error(`Failed to get sessions by periodic template: ${error}`);
+    }
+  }
+
+  /**
+   * Get time summary for all instances of a periodic template
+   */
+  async getPeriodicTemplateSummary(
+    templateId: string,
+    startDate?: Date,
+    endDate?: Date
+  ): Promise<{
+    totalHours: number;
+    workingHours: number;
+    breakHours: number;
+    sessionsCount: number;
+    instancesWorkedOn: number;
+    averageFocusTime: number;
+    productivityScore: number;
+  }> {
+    try {
+      const sessions = await this.getByPeriodicTemplate(templateId);
+      const filteredSessions = sessions.filter(session => {
+        if (!session.endTime) {
+          return false;
+        }
+        if (startDate && session.startTime < startDate) {
+          return false;
+        }
+        if (endDate && session.startTime > endDate) {
+          return false;
+        }
+        return true;
+      });
+
+      if (filteredSessions.length === 0) {
+        return {
+          totalHours: 0,
+          workingHours: 0,
+          breakHours: 0,
+          sessionsCount: 0,
+          instancesWorkedOn: 0,
+          averageFocusTime: 0,
+          productivityScore: 0,
+        };
+      }
+
+      let totalTime = 0;
+      let totalBreakTime = 0;
+      const uniqueInstances = new Set<string>();
+
+      for (const session of filteredSessions) {
+        if (session.endTime) {
+          const duration =
+            session.endTime.getTime() - session.startTime.getTime();
+          totalTime += duration;
+          totalBreakTime += session.pausedTime;
+          uniqueInstances.add(session.taskId);
+        }
+      }
+
+      const workingTime = totalTime - totalBreakTime;
+      const averageFocusTime = workingTime / filteredSessions.length;
+      const productivityScore =
+        totalTime > 0 ? (workingTime / totalTime) * 100 : 0;
+
+      return {
+        totalHours: totalTime / (1000 * 60 * 60),
+        workingHours: workingTime / (1000 * 60 * 60),
+        breakHours: totalBreakTime / (1000 * 60 * 60),
+        sessionsCount: filteredSessions.length,
+        instancesWorkedOn: uniqueInstances.size,
+        averageFocusTime: averageFocusTime / (1000 * 60), // in minutes
+        productivityScore,
+      };
+    } catch (error) {
+      throw new Error(`Failed to get periodic template summary: ${error}`);
+    }
+  }
+
+  /**
    * Get sessions by date range
    */
   async getByDateRange(

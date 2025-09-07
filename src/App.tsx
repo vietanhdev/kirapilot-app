@@ -15,6 +15,8 @@ import { Reports } from './components/reports/Reports';
 import { Settings } from './components/settings/Settings';
 import { LogViewerContainer } from './components/ai/LogViewerContainer';
 import { KiraView } from './components/kira/KiraView';
+import { PeriodicTasksView } from './components/planning/PeriodicTasksView';
+
 import { Header } from './components/common/Header';
 import { AIFloatingButton } from './components/ai/AIFloatingButton';
 import { OnboardingManager } from './components/ai/OnboardingManager';
@@ -44,12 +46,17 @@ function AppContent() {
     if (currentView === 'settings') {
       return 'settings';
     }
-    if (currentView === 'week' || currentView === 'day') {
+    if (
+      currentView === 'week' ||
+      currentView === 'day' ||
+      currentView === 'recurring'
+    ) {
       return 'tasks';
     }
     if (currentView === 'logs' || currentView === 'kira') {
       return 'chat';
     }
+
     return 'general';
   };
 
@@ -77,7 +84,11 @@ function AppContent() {
               <Planner viewMode={currentView as 'week' | 'day'} />
             )}
 
-            {currentView === 'reports' && <Reports />}
+            {currentView === 'recurring' && <PeriodicTasksView />}
+
+            {currentView === 'reports' && (
+              <Reports initialTab={viewParams.tab as string} />
+            )}
 
             {currentView === 'logs' && (
               <div className='p-4 sm:p-6'>

@@ -9,7 +9,7 @@ use std::sync::Arc;
 
 use zip::{write::FileOptions, CompressionMethod, ZipArchive, ZipWriter};
 
-use crate::database::repositories::{AiRepository, TaskRepository, TimeTrackingRepository};
+use crate::database::repositories::{AiRepository, PeriodicTaskRepository, TaskRepository, TimeTrackingRepository};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct BackupValidationResult {
@@ -27,6 +27,7 @@ pub struct BackupData {
     pub time_sessions: Vec<serde_json::Value>,
     pub ai_interactions: Vec<serde_json::Value>,
     pub task_dependencies: Vec<serde_json::Value>,
+    pub periodic_task_templates: Vec<serde_json::Value>,
     pub settings: HashMap<String, serde_json::Value>,
 }
 
@@ -38,6 +39,7 @@ pub struct BackupMetadata {
     pub session_count: usize,
     pub ai_interaction_count: usize,
     pub dependency_count: usize,
+    pub periodic_template_count: usize,
 }
 
 pub struct BackupService {
@@ -70,6 +72,7 @@ impl BackupService {
             session_count: backup_data.time_sessions.len(),
             ai_interaction_count: backup_data.ai_interactions.len(),
             dependency_count: backup_data.task_dependencies.len(),
+            periodic_template_count: backup_data.periodic_task_templates.len(),
         };
 
         // Add metadata file
@@ -98,6 +101,10 @@ impl BackupService {
         zip.start_file("task_dependencies.json", options)?;
         let deps_json = serde_json::to_string_pretty(&backup_data.task_dependencies)?;
         zip.write_all(deps_json.as_bytes())?;
+
+        zip.start_file("periodic_task_templates.json", options)?;
+        let periodic_json = serde_json::to_string_pretty(&backup_data.periodic_task_templates)?;
+        zip.write_all(periodic_json.as_bytes())?;
 
         zip.start_file("settings.json", options)?;
         let settings_json = serde_json::to_string_pretty(&backup_data.settings)?;
@@ -244,6 +251,7 @@ impl BackupService {
         let task_repo = TaskRepository::new(self.db.clone());
         let time_repo = TimeTrackingRepository::new(self.db.clone());
         let ai_repo = AiRepository::new(self.db.clone());
+        let periodic_repo = PeriodicTaskRepository::new(self.db.clone());
 
         // Collect all tasks
         let tasks = task_repo
@@ -281,6 +289,15 @@ impl BackupService {
             .map(|dep| serde_json::to_value(dep).unwrap_or_default())
             .collect();
 
+        // Collect all periodic task templates
+        let periodic_task_templates = periodic_repo
+            .find_all()
+            .await
+            .context("Failed to fetch periodic task templates")?
+            .into_iter()
+            .map(|template| serde_json::to_value(template).unwrap_or_default())
+            .collect();
+
         // Collect settings (placeholder - would need to implement settings storage)
         let settings = HashMap::new();
 
@@ -291,6 +308,7 @@ impl BackupService {
             time_sessions,
             ai_interactions,
             task_dependencies,
+            periodic_task_templates,
             settings,
         })
     }
@@ -362,6 +380,35 @@ impl BackupService {
             }
         }
 
+        // Validate periodic task templates
+        for (i, template) in backup_data.periodic_task_templates.iter().enumerate() {
+            if !template.is_object() {
+                return Err(anyhow::anyhow!("Invalid periodic task template data at index {}", i));
+            }
+
+            let template_obj = template.as_object().unwrap();
+            let required_fields = ["id", "title", "recurrence_type", "recurrence_interval", "start_date", "next_generation_date"];
+            for field in &required_fields {
+                if !template_obj.contains_key(*field) {
+                    return Err(anyhow::anyhow!(
+                        "Periodic task template at index {} is missing required field: {}",
+                        i, field
+                    ));
+                }
+            }
+
+            // Validate recurrence_type is valid
+            if let Some(recurrence_type) = template_obj.get("recurrence_type").and_then(|v| v.as_str()) {
+                let valid_types = ["daily", "weekly", "biweekly", "every_three_weeks", "monthly", "custom"];
+                if !valid_types.contains(&recurrence_type) {
+                    return Err(anyhow::anyhow!(
+                        "Periodic task template at index {} has invalid recurrence_type: {}",
+                        i, recurrence_type
+                    ));
+                }
+            }
+        }
+
         Ok(())
     }
 
@@ -416,6 +463,36 @@ impl BackupService {
             }
         }
 
+        // Collect all periodic task template IDs and validate uniqueness
+        let mut template_ids = HashSet::new();
+        for template in &backup_data.periodic_task_templates {
+            if let Some(template_obj) = template.as_object() {
+                if let Some(id) = template_obj.get("id").and_then(|v| v.as_str()) {
+                    if !template_ids.insert(id.to_string()) {
+                        return Err(anyhow::anyhow!("Duplicate periodic task template ID found: {}", id));
+                    }
+                }
+            }
+        }
+
+        // Validate that periodic task instances reference valid templates
+        for task in &backup_data.tasks {
+            if let Some(task_obj) = task.as_object() {
+                if let Some(is_periodic) = task_obj.get("is_periodic_instance").and_then(|v| v.as_bool()) {
+                    if is_periodic {
+                        if let Some(template_id) = task_obj.get("periodic_template_id").and_then(|v| v.as_str()) {
+                            if !template_ids.contains(template_id) {
+                                return Err(anyhow::anyhow!(
+                                    "Periodic task instance references non-existent template: {}",
+                                    template_id
+                                ));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         Ok(())
     }
 
@@ -423,6 +500,7 @@ impl BackupService {
         let task_repo = TaskRepository::new(self.db.clone());
         let time_repo = TimeTrackingRepository::new(self.db.clone());
         let ai_repo = AiRepository::new(self.db.clone());
+        let periodic_repo = PeriodicTaskRepository::new(self.db.clone());
 
         // Clear in correct order to respect foreign key constraints
         time_repo
@@ -445,6 +523,12 @@ impl BackupService {
             .await
             .context("Failed to clear existing tasks")?;
 
+        // Clear periodic task templates (should be done after tasks to respect foreign keys)
+        periodic_repo
+            .delete_all_templates()
+            .await
+            .context("Failed to clear existing periodic task templates")?;
+
         Ok(())
     }
 
@@ -452,8 +536,19 @@ impl BackupService {
         let task_repo = TaskRepository::new(self.db.clone());
         let time_repo = TimeTrackingRepository::new(self.db.clone());
         let ai_repo = AiRepository::new(self.db.clone());
+        let periodic_repo = PeriodicTaskRepository::new(self.db.clone());
 
-        // Import tasks first
+        // Import periodic task templates first (before tasks that might reference them)
+        for template_value in backup_data.periodic_task_templates {
+            if let Ok(template) = serde_json::from_value(template_value) {
+                periodic_repo
+                    .import_template(template)
+                    .await
+                    .context("Failed to import periodic task template")?;
+            }
+        }
+
+        // Import tasks
         for task_value in backup_data.tasks {
             if let Ok(task) = serde_json::from_value(task_value) {
                 task_repo

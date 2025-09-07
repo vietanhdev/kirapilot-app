@@ -33,6 +33,7 @@ export const en = {
   // Navigation
   'nav.week': 'Week',
   'nav.day': 'Day',
+  'nav.recurring': 'Recurring Tasks',
   'nav.reports': 'Reports',
   'nav.logs': 'Logs',
   'nav.settings': 'Settings',
@@ -395,6 +396,12 @@ export const en = {
   'priority.high': 'High',
   'priority.urgent': 'Urgent',
 
+  // Status levels
+  'status.pending': 'Pending',
+  'status.inProgress': 'In Progress',
+  'status.completed': 'Completed',
+  'status.cancelled': 'Cancelled',
+
   // Response styles
   'responseStyle.concise': 'Concise',
   'responseStyle.balanced': 'Balanced',
@@ -462,8 +469,13 @@ export const en = {
   'task.schedule': 'Schedule',
   'task.scheduleTask': 'Schedule Task',
   'task.scheduleTaskForLater': 'Schedule this task for later',
+  'task.periodicInstance': 'Recurring',
   'tasks.expandEditor': 'Expand editor',
   'tasks.collapseEditor': 'Collapse editor',
+  'tasks.periodicInstance': 'Recurring task',
+  'tasks.fromTemplate': 'From template',
+  'tasks.viewTemplate': 'View template',
+  'tasks.generated': 'Generated',
 
   // Task Sorting
   'tasks.sort.title': 'Title',
@@ -668,6 +680,61 @@ export const en = {
     'Use arrow keys to navigate, Delete to remove, Ctrl/Cmd+N for new thread',
   'kira.chat.validation.messageInvalid': 'Message contains invalid characters',
 
+  // Recurrence Patterns
+  'recurrence.pattern': 'Recurrence Pattern',
+  'recurrence.selectPattern': 'Select recurrence pattern',
+  'recurrence.daily': 'Daily',
+  'recurrence.daily.description': 'Repeats every day',
+  'recurrence.weekly': 'Weekly',
+  'recurrence.weekly.description': 'Repeats every week',
+  'recurrence.biweekly': 'Biweekly',
+  'recurrence.biweekly.description': 'Repeats every 2 weeks',
+  'recurrence.everyThreeWeeks': 'Every 3 weeks',
+  'recurrence.everyThreeWeeks.description': 'Repeats every 3 weeks',
+  'recurrence.monthly': 'Monthly',
+  'recurrence.monthly.description': 'Repeats every month',
+  'recurrence.custom': 'Custom',
+  'recurrence.custom.description': 'Custom interval',
+  'recurrence.interval': 'Interval',
+  'recurrence.unit': 'Unit',
+  'recurrence.selectUnit': 'Select unit',
+  'recurrence.unit.days': 'Days',
+  'recurrence.unit.day': 'Day',
+  'recurrence.unit.weeks': 'Weeks',
+  'recurrence.unit.week': 'Week',
+  'recurrence.unit.months': 'Months',
+  'recurrence.unit.month': 'Month',
+  'recurrence.summary': 'Summary',
+  'recurrence.every': 'Every',
+  'recurrence.nextDates': 'Next dates',
+
+  // Periodic Tasks
+  'periodicTasks.title': 'Recurring Tasks',
+  'periodicTasks.description':
+    'Manage templates for automatically recurring tasks',
+  'periodicTasks.createTemplate': 'Create Template',
+  'periodicTask.modal.title.create': 'Create Periodic Task Template',
+  'periodicTask.modal.title.edit': 'Edit Periodic Task Template',
+  'periodicTask.modal.label.title': 'Task Title',
+  'periodicTask.modal.placeholder.title': 'Enter task title...',
+  'periodicTask.modal.label.description': 'Description',
+  'periodicTask.modal.placeholder.description': 'Describe the task...',
+  'periodicTask.modal.label.taskList': 'Task List',
+  'periodicTask.modal.placeholder.taskList': 'Select a task list',
+  'periodicTask.modal.label.priority': 'Priority',
+  'periodicTask.modal.placeholder.priority': 'Select priority',
+  'periodicTask.modal.label.timeEstimate': 'Time Estimate (minutes)',
+  'periodicTask.modal.placeholder.timeEstimate': 'Enter time estimate...',
+  'periodicTask.modal.label.startDate': 'Start Date',
+  'periodicTask.modal.placeholder.tag': 'Add a tag...',
+  'periodicTask.modal.label.status': 'Template Status',
+  'periodicTask.modal.status.active.description':
+    'Template will generate new task instances',
+  'periodicTask.modal.status.paused.description':
+    'Template is paused and will not generate instances',
+  'periodicTask.modal.button.createTemplate': 'Create Template',
+  'periodicTask.modal.button.saveChanges': 'Save Changes',
+
   // Kira Error Messages
   'kira.errors.threadCreate': 'Failed to create thread',
   'kira.errors.threadLoad': 'Failed to load threads',
@@ -713,6 +780,17 @@ export const en = {
   'task.modal.placeholder.taskList': 'Select task list',
   'task.modal.button.saveChanges': 'Save Changes',
   'task.modal.button.createTask': 'Create Task',
+
+  // Task Filters
+  'filters.searchPlaceholder': 'Search tasks...',
+  'filters.status': 'Status',
+  'filters.priority': 'Priority',
+  'filters.clear': 'Clear',
+  'filters.active': 'active',
+  'filters.periodic.label': 'Task Type',
+  'filters.periodic.all': 'All Tasks',
+  'filters.periodic.instancesOnly': 'Recurring Only',
+  'filters.periodic.regularOnly': 'Regular Only',
 
   // Time Presets
   'timePreset.fifteenMin': '15 min',

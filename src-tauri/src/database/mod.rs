@@ -7,6 +7,7 @@ pub mod entities;
 pub mod error;
 pub mod migration;
 pub mod repositories;
+pub mod services;
 
 #[cfg(test)]
 mod tests;

@@ -1,10 +1,19 @@
 import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
-import { Priority, TaskStatus, UpdateTaskRequest, Task } from '../../types';
+import {
+  Priority,
+  TaskStatus,
+  UpdateTaskRequest,
+  Task,
+  RecurrenceType,
+  CreatePeriodicTaskRequest,
+  UpdatePeriodicTaskRequest,
+} from '../../types';
 import {
   getTaskRepository,
   getTimeTrackingRepository,
 } from '../database/repositories';
+import { PeriodicTaskService } from '../database/repositories/PeriodicTaskService';
 import { IntelligentTaskMatcher } from './IntelligentTaskMatcher';
 import { UserIntent, TaskMatchContext } from '../../types/taskMatching';
 
@@ -1146,6 +1155,825 @@ const analyzeProductivityTool = tool(
 );
 
 /**
+ * Create a periodic task template for recurring tasks
+ */
+interface CreatePeriodicTaskInput {
+  title: string;
+  description?: string;
+  priority?: number;
+  timeEstimate?: number;
+  tags?: string[];
+  recurrenceType: string;
+  recurrenceInterval?: number;
+  recurrenceUnit?: string;
+  startDate: string;
+}
+
+const createPeriodicTaskTool = tool(
+  async (input: CreatePeriodicTaskInput) => {
+    const {
+      title,
+      description,
+      priority,
+      timeEstimate,
+      tags,
+      recurrenceType,
+      recurrenceInterval,
+      recurrenceUnit,
+      startDate,
+    } = input;
+    try {
+      const periodicService = new PeriodicTaskService();
+
+      // Validate and convert recurrence type
+      const validRecurrenceTypes = Object.values(RecurrenceType);
+      if (!validRecurrenceTypes.includes(recurrenceType as RecurrenceType)) {
+        throw new Error(
+          `Invalid recurrence type. Must be one of: ${validRecurrenceTypes.join(', ')}`
+        );
+      }
+
+      const request: CreatePeriodicTaskRequest = {
+        title,
+        description,
+        priority: priority ?? Priority.MEDIUM,
+        timeEstimate: timeEstimate ?? 60,
+        tags: tags ?? [],
+        recurrenceType: recurrenceType as RecurrenceType,
+        recurrenceInterval: recurrenceInterval ?? 1,
+        recurrenceUnit: recurrenceUnit as
+          | 'days'
+          | 'weeks'
+          | 'months'
+          | undefined,
+        startDate: new Date(startDate),
+      };
+
+      const template = await periodicService.createTemplate(request);
+
+      // Calculate user-friendly recurrence description
+      let recurrenceDescription = '';
+      switch (template.recurrenceType) {
+        case RecurrenceType.DAILY:
+          recurrenceDescription =
+            template.recurrenceInterval === 1
+              ? 'daily'
+              : `every ${template.recurrenceInterval} days`;
+          break;
+        case RecurrenceType.WEEKLY:
+          recurrenceDescription =
+            template.recurrenceInterval === 1
+              ? 'weekly'
+              : `every ${template.recurrenceInterval} weeks`;
+          break;
+        case RecurrenceType.BIWEEKLY:
+          recurrenceDescription = 'every 2 weeks';
+          break;
+        case RecurrenceType.EVERY_THREE_WEEKS:
+          recurrenceDescription = 'every 3 weeks';
+          break;
+        case RecurrenceType.MONTHLY:
+          recurrenceDescription =
+            template.recurrenceInterval === 1
+              ? 'monthly'
+              : `every ${template.recurrenceInterval} months`;
+          break;
+        case RecurrenceType.CUSTOM:
+          recurrenceDescription = `every ${template.recurrenceInterval} ${template.recurrenceUnit}`;
+          break;
+      }
+
+      const response = {
+        success: true,
+        template: {
+          id: template.id,
+          title: template.title,
+          recurrenceType: template.recurrenceType,
+          recurrenceDescription,
+          nextGenerationDate: template.nextGenerationDate,
+          isActive: template.isActive,
+        },
+        message: `🔄 Created periodic task template: "${template.title}" (${recurrenceDescription})`,
+        reasoning: `Set up recurring task that will generate new instances ${recurrenceDescription}`,
+        nextInstance: `Next task will be generated on ${template.nextGenerationDate.toLocaleDateString()}`,
+      };
+      return JSON.stringify(response);
+    } catch (error) {
+      const errorResponse = {
+        success: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to create periodic task',
+        suggestion:
+          'Check the recurrence pattern and start date. Valid recurrence types are: daily, weekly, biweekly, every_three_weeks, monthly, custom',
+      };
+      return JSON.stringify(errorResponse);
+    }
+  },
+  {
+    name: 'create_periodic_task',
+    description:
+      'Create a recurring task template that automatically generates new task instances based on a schedule. Perfect for habits, routines, and regular responsibilities.',
+    schema: z.object({
+      title: z.string().describe('Title for the recurring task'),
+      description: z
+        .string()
+        .optional()
+        .describe('Detailed description of the recurring task'),
+      priority: z
+        .number()
+        .min(0)
+        .max(3)
+        .optional()
+        .describe('Task priority: 0=Low, 1=Medium, 2=High, 3=Urgent'),
+      timeEstimate: z
+        .number()
+        .optional()
+        .describe('Estimated time to complete each instance in minutes'),
+      tags: z
+        .array(z.string())
+        .optional()
+        .describe('Array of tags for categorization'),
+      recurrenceType: z
+        .enum([
+          'daily',
+          'weekly',
+          'biweekly',
+          'every_three_weeks',
+          'monthly',
+          'custom',
+        ])
+        .describe('How often the task should repeat'),
+      recurrenceInterval: z
+        .number()
+        .optional()
+        .describe(
+          'For custom recurrence: how many units between repetitions (e.g., 2 for every 2 weeks)'
+        ),
+      recurrenceUnit: z
+        .enum(['days', 'weeks', 'months'])
+        .optional()
+        .describe(
+          'For custom recurrence: the unit of time (days, weeks, or months)'
+        ),
+      startDate: z
+        .string()
+        .describe(
+          'When to start generating instances (ISO date format: YYYY-MM-DD)'
+        ),
+    }),
+  }
+);
+
+/**
+ * Get periodic task templates and their status
+ */
+interface GetPeriodicTasksInput {
+  activeOnly?: boolean;
+  includeInstances?: boolean;
+}
+
+const getPeriodicTasksTool = tool(
+  async (input: GetPeriodicTasksInput) => {
+    const { activeOnly = false, includeInstances = false } = input;
+    try {
+      const periodicService = new PeriodicTaskService();
+
+      const templates = activeOnly
+        ? await periodicService.findActiveTemplates()
+        : await periodicService.findAllTemplates();
+
+      const templatesWithDetails = await Promise.all(
+        templates.map(async template => {
+          let instanceCount = 0;
+          let recentInstances: Task[] = [];
+
+          if (includeInstances) {
+            const instancesResponse =
+              await periodicService.getTemplateInstances(template.id);
+            instanceCount = instancesResponse.totalCount;
+            recentInstances = instancesResponse.instances.slice(0, 3); // Show last 3 instances
+          } else {
+            instanceCount = await periodicService.countTemplateInstances(
+              template.id
+            );
+          }
+
+          // Calculate user-friendly recurrence description
+          let recurrenceDescription = '';
+          switch (template.recurrenceType) {
+            case RecurrenceType.DAILY:
+              recurrenceDescription =
+                template.recurrenceInterval === 1
+                  ? 'daily'
+                  : `every ${template.recurrenceInterval} days`;
+              break;
+            case RecurrenceType.WEEKLY:
+              recurrenceDescription =
+                template.recurrenceInterval === 1
+                  ? 'weekly'
+                  : `every ${template.recurrenceInterval} weeks`;
+              break;
+            case RecurrenceType.BIWEEKLY:
+              recurrenceDescription = 'every 2 weeks';
+              break;
+            case RecurrenceType.EVERY_THREE_WEEKS:
+              recurrenceDescription = 'every 3 weeks';
+              break;
+            case RecurrenceType.MONTHLY:
+              recurrenceDescription =
+                template.recurrenceInterval === 1
+                  ? 'monthly'
+                  : `every ${template.recurrenceInterval} months`;
+              break;
+            case RecurrenceType.CUSTOM:
+              recurrenceDescription = `every ${template.recurrenceInterval} ${template.recurrenceUnit}`;
+              break;
+          }
+
+          return {
+            id: template.id,
+            title: template.title,
+            description: template.description,
+            priority: toolHelper.getPriorityLabel(template.priority),
+            recurrenceType: template.recurrenceType,
+            recurrenceDescription,
+            nextGenerationDate: template.nextGenerationDate,
+            isActive: template.isActive,
+            instanceCount,
+            recentInstances: includeInstances
+              ? recentInstances.map(instance => ({
+                  id: instance.id,
+                  title: instance.title,
+                  status: instance.status,
+                  generationDate: instance.generationDate,
+                  completedAt: instance.completedAt,
+                }))
+              : undefined,
+          };
+        })
+      );
+
+      const activeCount = templatesWithDetails.filter(t => t.isActive).length;
+      const totalInstances = templatesWithDetails.reduce(
+        (sum, t) => sum + t.instanceCount,
+        0
+      );
+
+      const response = {
+        success: true,
+        templates: templatesWithDetails,
+        summary: {
+          totalTemplates: templatesWithDetails.length,
+          activeTemplates: activeCount,
+          totalInstances,
+        },
+        message: `🔄 Found ${templatesWithDetails.length} periodic task templates (${activeCount} active)`,
+        reasoning: `Retrieved ${activeOnly ? 'active' : 'all'} periodic task templates${includeInstances ? ' with instance details' : ''}`,
+      };
+      return JSON.stringify(response);
+    } catch (error) {
+      const errorResponse = {
+        success: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to get periodic tasks',
+        suggestion:
+          'Please try again or check if you have any periodic tasks set up.',
+      };
+      return JSON.stringify(errorResponse);
+    }
+  },
+  {
+    name: 'get_periodic_tasks',
+    description:
+      'Get all periodic task templates and their status. Shows recurring task patterns, next generation dates, and instance counts.',
+    schema: z.object({
+      activeOnly: z
+        .boolean()
+        .optional()
+        .default(false)
+        .describe('Show only active templates (default: false, shows all)'),
+      includeInstances: z
+        .boolean()
+        .optional()
+        .default(false)
+        .describe(
+          'Include recent task instances for each template (default: false)'
+        ),
+    }),
+  }
+);
+
+/**
+ * Update a periodic task template
+ */
+interface UpdatePeriodicTaskInput {
+  templateReference: string;
+  updates: {
+    title?: string;
+    description?: string;
+    priority?: number;
+    recurrenceType?: string;
+    recurrenceInterval?: number;
+    recurrenceUnit?: string;
+    isActive?: boolean;
+  };
+}
+
+const updatePeriodicTaskTool = tool(
+  async (input: UpdatePeriodicTaskInput) => {
+    const { templateReference, updates } = input;
+    try {
+      const periodicService = new PeriodicTaskService();
+
+      // Find template by title or ID
+      const templates = await periodicService.findAllTemplates();
+      const template = templates.find(
+        t =>
+          t.id === templateReference ||
+          t.title.toLowerCase().includes(templateReference.toLowerCase())
+      );
+
+      if (!template) {
+        const errorResponse = {
+          success: false,
+          error: `Could not find periodic task template matching "${templateReference}"`,
+          suggestion:
+            'Try being more specific about which periodic task you want to update, or use the exact template title.',
+          availableTemplates: templates.map(t => ({
+            id: t.id,
+            title: t.title,
+          })),
+        };
+        return JSON.stringify(errorResponse);
+      }
+
+      // Validate recurrence type if provided
+      if (updates.recurrenceType) {
+        const validRecurrenceTypes = Object.values(RecurrenceType);
+        if (
+          !validRecurrenceTypes.includes(
+            updates.recurrenceType as RecurrenceType
+          )
+        ) {
+          throw new Error(
+            `Invalid recurrence type. Must be one of: ${validRecurrenceTypes.join(', ')}`
+          );
+        }
+      }
+
+      const updateRequest: UpdatePeriodicTaskRequest = {
+        title: updates.title,
+        description: updates.description,
+        priority: updates.priority,
+        recurrenceType: updates.recurrenceType as RecurrenceType | undefined,
+        recurrenceInterval: updates.recurrenceInterval,
+        recurrenceUnit: updates.recurrenceUnit as
+          | 'days'
+          | 'weeks'
+          | 'months'
+          | undefined,
+        isActive: updates.isActive,
+      };
+
+      const updatedTemplate = await periodicService.updateTemplate(
+        template.id,
+        updateRequest
+      );
+
+      // Create user-friendly response
+      const changedFields = Object.keys(updates).filter(
+        key => updates[key as keyof typeof updates] !== undefined
+      );
+      const changeDescription = changedFields
+        .map(field => {
+          switch (field) {
+            case 'title':
+              return `title to "${updates.title}"`;
+            case 'description':
+              return 'description';
+            case 'priority':
+              return `priority to ${toolHelper.getPriorityLabel(updates.priority!)}`;
+            case 'recurrenceType':
+              return `recurrence to ${updates.recurrenceType}`;
+            case 'isActive':
+              return updates.isActive ? 'activated' : 'paused';
+            default:
+              return field;
+          }
+        })
+        .join(', ');
+
+      const response = {
+        success: true,
+        template: {
+          id: updatedTemplate.id,
+          title: updatedTemplate.title,
+          recurrenceType: updatedTemplate.recurrenceType,
+          isActive: updatedTemplate.isActive,
+          nextGenerationDate: updatedTemplate.nextGenerationDate,
+        },
+        message: `✅ Updated periodic task template "${updatedTemplate.title}" - changed ${changeDescription}`,
+        reasoning: `Successfully modified the recurring task template`,
+      };
+      return JSON.stringify(response);
+    } catch (error) {
+      const errorResponse = {
+        success: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to update periodic task',
+        suggestion:
+          'Please check the template reference and update parameters.',
+      };
+      return JSON.stringify(errorResponse);
+    }
+  },
+  {
+    name: 'update_periodic_task',
+    description:
+      'Update an existing periodic task template. You can change the title, description, priority, recurrence pattern, or pause/resume the template.',
+    schema: z.object({
+      templateReference: z
+        .string()
+        .describe(
+          'Natural language description or exact title of the periodic task template to update'
+        ),
+      updates: z
+        .object({
+          title: z.string().optional().describe('New title for the template'),
+          description: z.string().optional().describe('New description'),
+          priority: z
+            .number()
+            .min(0)
+            .max(3)
+            .optional()
+            .describe('New priority level: 0=Low, 1=Medium, 2=High, 3=Urgent'),
+          recurrenceType: z
+            .enum([
+              'daily',
+              'weekly',
+              'biweekly',
+              'every_three_weeks',
+              'monthly',
+              'custom',
+            ])
+            .optional()
+            .describe('New recurrence pattern'),
+          recurrenceInterval: z
+            .number()
+            .optional()
+            .describe(
+              'For custom recurrence: new interval between repetitions'
+            ),
+          recurrenceUnit: z
+            .enum(['days', 'weeks', 'months'])
+            .optional()
+            .describe('For custom recurrence: new unit of time'),
+          isActive: z
+            .boolean()
+            .optional()
+            .describe(
+              'Whether the template should be active (true) or paused (false)'
+            ),
+        })
+        .describe('Object containing the updates to apply'),
+    }),
+  }
+);
+
+/**
+ * Generate instances from periodic task templates
+ */
+interface GeneratePeriodicInstancesInput {
+  templateReference?: string;
+  checkAll?: boolean;
+}
+
+const generatePeriodicInstancesTool = tool(
+  async (input: GeneratePeriodicInstancesInput) => {
+    const { templateReference, checkAll = false } = input;
+    try {
+      const periodicService = new PeriodicTaskService();
+
+      if (templateReference && !checkAll) {
+        // Generate from specific template
+        const templates = await periodicService.findAllTemplates();
+        const template = templates.find(
+          t =>
+            t.id === templateReference ||
+            t.title.toLowerCase().includes(templateReference.toLowerCase())
+        );
+
+        if (!template) {
+          const errorResponse = {
+            success: false,
+            error: `Could not find periodic task template matching "${templateReference}"`,
+            suggestion:
+              'Try being more specific about which periodic task template you want to generate from.',
+            availableTemplates: templates.map(t => ({
+              id: t.id,
+              title: t.title,
+            })),
+          };
+          return JSON.stringify(errorResponse);
+        }
+
+        const generatedTask =
+          await periodicService.generateInstanceFromTemplate(template.id);
+
+        const response = {
+          success: true,
+          generatedInstances: [generatedTask],
+          message: `✨ Generated new task instance: "${generatedTask.title}" from template "${template.title}"`,
+          reasoning: `Created a new task instance from the periodic task template`,
+          taskDetails: toolHelper.formatTaskDetails(generatedTask),
+        };
+        return JSON.stringify(response);
+      } else {
+        // Check and generate all pending instances
+        const result = checkAll
+          ? await periodicService.checkAndGenerateInstances()
+          : await periodicService.generatePendingInstances();
+
+        const response = {
+          success: true,
+          generatedInstances: result.generatedInstances,
+          totalGenerated: result.totalGenerated,
+          updatedTemplates: result.updatedTemplates.length,
+          message:
+            result.totalGenerated > 0
+              ? `✨ Generated ${result.totalGenerated} new task instances from periodic templates`
+              : '✅ No new task instances needed at this time',
+          reasoning: `Checked all active periodic task templates and generated instances as needed`,
+          instanceTitles: result.generatedInstances.map(task => task.title),
+        };
+        return JSON.stringify(response);
+      }
+    } catch (error) {
+      const errorResponse = {
+        success: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to generate periodic task instances',
+        suggestion:
+          'Please try again or check if you have active periodic task templates.',
+      };
+      return JSON.stringify(errorResponse);
+    }
+  },
+  {
+    name: 'generate_periodic_instances',
+    description:
+      'Generate new task instances from periodic task templates. Can generate from a specific template or check all templates for pending instances.',
+    schema: z.object({
+      templateReference: z
+        .string()
+        .optional()
+        .describe(
+          'Specific periodic task template to generate from (by title or ID)'
+        ),
+      checkAll: z
+        .boolean()
+        .optional()
+        .default(false)
+        .describe(
+          'Check all templates and generate any pending instances (default: false)'
+        ),
+    }),
+  }
+);
+
+/**
+ * Suggest recurrence patterns based on natural language input
+ */
+interface SuggestRecurrenceInput {
+  description: string;
+}
+
+const suggestRecurrenceTool = tool(
+  async (input: SuggestRecurrenceInput) => {
+    const { description } = input;
+    try {
+      const lowerDesc = description.toLowerCase();
+
+      // Pattern matching for common recurrence descriptions
+      const suggestions: Array<{
+        recurrenceType: RecurrenceType;
+        recurrenceInterval?: number;
+        recurrenceUnit?: 'days' | 'weeks' | 'months';
+        description: string;
+        confidence: number;
+        reasoning: string;
+      }> = [];
+
+      // Daily patterns
+      if (
+        lowerDesc.includes('every day') ||
+        lowerDesc.includes('daily') ||
+        lowerDesc.includes('each day')
+      ) {
+        suggestions.push({
+          recurrenceType: RecurrenceType.DAILY,
+          description: 'Daily (every day)',
+          confidence: 95,
+          reasoning: 'Detected daily frequency keywords',
+        });
+      }
+
+      // Weekly patterns
+      if (
+        lowerDesc.includes('every week') ||
+        lowerDesc.includes('weekly') ||
+        lowerDesc.includes('each week')
+      ) {
+        suggestions.push({
+          recurrenceType: RecurrenceType.WEEKLY,
+          description: 'Weekly (every 7 days)',
+          confidence: 95,
+          reasoning: 'Detected weekly frequency keywords',
+        });
+      }
+
+      // Biweekly patterns
+      if (
+        lowerDesc.includes('biweekly') ||
+        lowerDesc.includes('bi-weekly') ||
+        lowerDesc.includes('every two weeks') ||
+        lowerDesc.includes('every 2 weeks')
+      ) {
+        suggestions.push({
+          recurrenceType: RecurrenceType.BIWEEKLY,
+          description: 'Biweekly (every 2 weeks)',
+          confidence: 95,
+          reasoning: 'Detected biweekly frequency keywords',
+        });
+      }
+
+      // Every 3 weeks
+      if (
+        lowerDesc.includes('every three weeks') ||
+        lowerDesc.includes('every 3 weeks')
+      ) {
+        suggestions.push({
+          recurrenceType: RecurrenceType.EVERY_THREE_WEEKS,
+          description: 'Every 3 weeks',
+          confidence: 95,
+          reasoning: 'Detected three-week frequency keywords',
+        });
+      }
+
+      // Monthly patterns
+      if (
+        lowerDesc.includes('monthly') ||
+        lowerDesc.includes('every month') ||
+        lowerDesc.includes('each month')
+      ) {
+        suggestions.push({
+          recurrenceType: RecurrenceType.MONTHLY,
+          description: 'Monthly (every month)',
+          confidence: 95,
+          reasoning: 'Detected monthly frequency keywords',
+        });
+      }
+
+      // Custom patterns with numbers
+      const numberMatches = lowerDesc.match(/every (\d+) (day|week|month)s?/);
+      if (numberMatches) {
+        const interval = parseInt(numberMatches[1]);
+        const unit = (numberMatches[2] + 's') as 'days' | 'weeks' | 'months';
+        suggestions.push({
+          recurrenceType: RecurrenceType.CUSTOM,
+          recurrenceInterval: interval,
+          recurrenceUnit: unit,
+          description: `Every ${interval} ${unit}`,
+          confidence: 90,
+          reasoning: `Detected custom interval: ${interval} ${unit}`,
+        });
+      }
+
+      // Contextual suggestions based on task type
+      if (
+        lowerDesc.includes('workout') ||
+        lowerDesc.includes('exercise') ||
+        lowerDesc.includes('gym')
+      ) {
+        if (!suggestions.some(s => s.recurrenceType === RecurrenceType.DAILY)) {
+          suggestions.push({
+            recurrenceType: RecurrenceType.CUSTOM,
+            recurrenceInterval: 3,
+            recurrenceUnit: 'days',
+            description: 'Every 3 days (common for workouts)',
+            confidence: 70,
+            reasoning:
+              'Exercise tasks often benefit from rest days between sessions',
+          });
+        }
+      }
+
+      if (
+        lowerDesc.includes('review') ||
+        lowerDesc.includes('check') ||
+        lowerDesc.includes('report')
+      ) {
+        if (
+          !suggestions.some(s => s.recurrenceType === RecurrenceType.WEEKLY)
+        ) {
+          suggestions.push({
+            recurrenceType: RecurrenceType.WEEKLY,
+            description: 'Weekly (good for reviews and reports)',
+            confidence: 75,
+            reasoning: 'Review and reporting tasks are commonly done weekly',
+          });
+        }
+      }
+
+      if (
+        lowerDesc.includes('clean') ||
+        lowerDesc.includes('maintenance') ||
+        lowerDesc.includes('backup')
+      ) {
+        if (
+          !suggestions.some(s => s.recurrenceType === RecurrenceType.WEEKLY)
+        ) {
+          suggestions.push({
+            recurrenceType: RecurrenceType.WEEKLY,
+            description: 'Weekly (good for maintenance tasks)',
+            confidence: 75,
+            reasoning: 'Cleaning and maintenance tasks are often done weekly',
+          });
+        }
+      }
+
+      // Default suggestions if no patterns found
+      if (suggestions.length === 0) {
+        suggestions.push(
+          {
+            recurrenceType: RecurrenceType.DAILY,
+            description: 'Daily (every day)',
+            confidence: 50,
+            reasoning: 'Default suggestion for habit-forming tasks',
+          },
+          {
+            recurrenceType: RecurrenceType.WEEKLY,
+            description: 'Weekly (every 7 days)',
+            confidence: 60,
+            reasoning: 'Most common recurrence pattern for regular tasks',
+          },
+          {
+            recurrenceType: RecurrenceType.MONTHLY,
+            description: 'Monthly (every month)',
+            confidence: 40,
+            reasoning: 'Good for less frequent recurring tasks',
+          }
+        );
+      }
+
+      // Sort by confidence
+      suggestions.sort((a, b) => b.confidence - a.confidence);
+
+      const response = {
+        success: true,
+        suggestions: suggestions.slice(0, 5), // Top 5 suggestions
+        message: `🔄 Found ${suggestions.length} recurrence pattern suggestions for: "${description}"`,
+        reasoning:
+          'Analyzed the task description and provided recurrence pattern recommendations',
+        topSuggestion: suggestions[0],
+      };
+      return JSON.stringify(response);
+    } catch (error) {
+      const errorResponse = {
+        success: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to suggest recurrence patterns',
+        suggestion:
+          'Try describing when you want the task to repeat (e.g., "every day", "weekly", "monthly")',
+      };
+      return JSON.stringify(errorResponse);
+    }
+  },
+  {
+    name: 'suggest_recurrence',
+    description:
+      'Analyze a task description and suggest appropriate recurrence patterns for creating periodic tasks. Helps users choose the right schedule for recurring tasks.',
+    schema: z.object({
+      description: z
+        .string()
+        .describe(
+          'Description of the task or how often it should repeat (e.g., "daily workout", "weekly team meeting", "monthly report")'
+        ),
+    }),
+  }
+);
+
+/**
  * Get help and explanations about available AI tools and features
  */
 interface GetHelpInput {
@@ -1165,6 +1993,16 @@ const getHelpTool = tool(
           '**Updating Tasks**: Say "update the [task name]" and specify what to change',
           '**Completing Tasks**: Simply say "complete [task name]" or "mark [task] as done"',
           '**Task Details**: Ask "show me details for [task name]" to see full information',
+        ],
+      },
+      periodic: {
+        title: '🔄 Periodic Tasks Help',
+        content: [
+          '**Creating Recurring Tasks**: Say "create a periodic task for [description]" or "set up a recurring [task]"',
+          '**Recurrence Patterns**: Use daily, weekly, biweekly, monthly, or custom intervals like "every 3 days"',
+          '**Managing Templates**: View with "show periodic tasks", update with "update periodic task [name]"',
+          '**Generating Instances**: Say "generate periodic instances" to create pending tasks',
+          '**Pattern Suggestions**: Ask "suggest recurrence for [description]" for smart recommendations',
         ],
       },
       timer: {
@@ -1225,6 +2063,7 @@ const getHelpTool = tool(
       content: [
         '**Available Help Topics:**',
         '• `tasks` - Task management and operations',
+        '• `periodic` - Recurring task templates and automation',
         '• `timer` - Time tracking and sessions',
         '• `search` - Finding and filtering tasks',
         '• `productivity` - Analytics and insights',
@@ -1233,14 +2072,15 @@ const getHelpTool = tool(
         '**Quick Tips:**',
         '• Use natural language - no need for exact commands',
         '• I can find tasks by partial names or descriptions',
-        '• Ask for help on specific topics: "help with tasks"',
+        '• Ask for help on specific topics: "help with periodic tasks"',
         "• I always explain what I'm doing and provide reasoning",
         '',
         '**Examples:**',
         '• "Create a task to review the quarterly report"',
+        '• "Set up a daily workout reminder"',
         '• "Start timer for the email task"',
         '• "Show me urgent tasks due today"',
-        '• "Complete the project planning task"',
+        '• "Generate periodic task instances"',
         '• "How productive was I this week?"',
       ].join('\n'),
       availableTopics: allTopics,
@@ -1252,10 +2092,17 @@ const getHelpTool = tool(
   {
     name: 'get_help',
     description:
-      'Get help and explanations about AI assistant features, task management, time tracking, and how to use natural language commands effectively.',
+      'Get help and explanations about AI assistant features, task management, periodic tasks, time tracking, and how to use natural language commands effectively.',
     schema: z.object({
       topic: z
-        .enum(['tasks', 'timer', 'search', 'productivity', 'general'])
+        .enum([
+          'tasks',
+          'periodic',
+          'timer',
+          'search',
+          'productivity',
+          'general',
+        ])
         .optional()
         .describe('Specific help topic to get information about'),
     }),
@@ -1278,6 +2125,11 @@ export function getKiraPilotTools() {
     stopTimerTool,
     getTimeDataTool,
     analyzeProductivityTool,
+    createPeriodicTaskTool,
+    getPeriodicTasksTool,
+    updatePeriodicTaskTool,
+    generatePeriodicInstancesTool,
+    suggestRecurrenceTool,
     getHelpTool,
   ];
 }

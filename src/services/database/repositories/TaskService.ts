@@ -51,6 +51,10 @@ export class TaskService {
         project_id: request.projectId,
         parent_task_id: request.parentTaskId,
         task_list_id: request.taskListId,
+        // Periodic task properties
+        periodic_template_id: request.periodicTemplateId,
+        is_periodic_instance: request.isPeriodicInstance ?? false,
+        generation_date: request.generationDate?.toISOString(),
       };
 
       const result = await invoke<Record<string, unknown>>('create_task', {
@@ -156,6 +160,43 @@ export class TaskService {
     } catch (error) {
       const errorMessage = getDatabaseErrorMessage(
         'taskService.error.findAllFailed' as TranslationKey
+      );
+      throw new Error(`${errorMessage}: ${error}`);
+    }
+  }
+
+  /**
+   * Find periodic task instances
+   */
+  async findPeriodicInstances(templateId?: string): Promise<Task[]> {
+    try {
+      const result = await invoke<Record<string, unknown>[]>(
+        'get_periodic_instances',
+        {
+          template_id: templateId,
+        }
+      );
+      return result.map(task => this.transformTaskFromBackend(task));
+    } catch (error) {
+      const errorMessage = getDatabaseErrorMessage(
+        'taskService.error.findPeriodicInstancesFailed' as TranslationKey
+      );
+      throw new Error(`${errorMessage}: ${error}`);
+    }
+  }
+
+  /**
+   * Find non-periodic tasks (regular tasks and templates)
+   */
+  async findNonPeriodicTasks(): Promise<Task[]> {
+    try {
+      const result = await invoke<Record<string, unknown>[]>(
+        'get_non_periodic_tasks'
+      );
+      return result.map(task => this.transformTaskFromBackend(task));
+    } catch (error) {
+      const errorMessage = getDatabaseErrorMessage(
+        'taskService.error.findNonPeriodicTasksFailed' as TranslationKey
       );
       throw new Error(`${errorMessage}: ${error}`);
     }
@@ -484,6 +525,15 @@ export class TaskService {
       parentTaskId: backendTask.parent_task_id as string | undefined,
       subtasks: this.parseJsonField(backendTask.subtasks as string | null, []),
       taskListId: (backendTask.task_list_id as string) || 'default-task-list',
+      // Periodic task properties
+      periodicTemplateId: backendTask.periodic_template_id as
+        | string
+        | undefined,
+      isPeriodicInstance:
+        (backendTask.is_periodic_instance as boolean) || false,
+      generationDate: backendTask.generation_date
+        ? new Date(backendTask.generation_date as string)
+        : undefined,
       completedAt: backendTask.completed_at
         ? new Date(backendTask.completed_at as string)
         : undefined,
@@ -509,7 +559,7 @@ export class TaskService {
   /**
    * Apply client-side filters
    */
-  private applyClientSideFilters(tasks: Task[], filters: TaskFilters): Task[] {
+  applyClientSideFilters(tasks: Task[], filters: TaskFilters): Task[] {
     let filtered = tasks;
 
     if (filters.status && filters.status.length > 0) {
@@ -547,6 +597,28 @@ export class TaskService {
         task =>
           task.title.toLowerCase().includes(searchLower) ||
           task.description.toLowerCase().includes(searchLower)
+      );
+    }
+
+    // Periodic task filtering
+    if (filters.periodicFilter !== undefined) {
+      switch (filters.periodicFilter) {
+        case 'instances_only':
+          filtered = filtered.filter(task => task.isPeriodicInstance);
+          break;
+        case 'regular_only':
+          filtered = filtered.filter(task => !task.isPeriodicInstance);
+          break;
+        case 'all':
+        default:
+          // No filtering - show all tasks
+          break;
+      }
+    }
+
+    if (filters.periodicTemplateId) {
+      filtered = filtered.filter(
+        task => task.periodicTemplateId === filters.periodicTemplateId
       );
     }
 

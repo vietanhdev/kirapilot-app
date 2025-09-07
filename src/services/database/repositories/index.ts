@@ -7,6 +7,7 @@ import { TaskListService } from './TaskListService';
 import { LogStorageService } from './LogStorageService';
 import { EmotionalIntelligenceRepository } from './EmotionalIntelligenceRepository';
 import { ThreadService } from './ThreadService';
+import { PeriodicTaskService } from './PeriodicTaskService';
 
 // Singleton instances
 let taskService: TaskService | null = null;
@@ -18,6 +19,7 @@ let logStorageService: LogStorageService | null = null;
 let emotionalIntelligenceRepository: EmotionalIntelligenceRepository | null =
   null;
 let threadService: ThreadService | null = null;
+let periodicTaskService: PeriodicTaskService | null = null;
 
 // Export services
 export { TaskService } from './TaskService';
@@ -28,6 +30,7 @@ export { TaskListService } from './TaskListService';
 export { LogStorageService } from './LogStorageService';
 export { EmotionalIntelligenceRepository } from './EmotionalIntelligenceRepository';
 export { ThreadService } from './ThreadService';
+export { PeriodicTaskService } from './PeriodicTaskService';
 
 /**
  * Get TaskService instance (replaces TaskRepository)
@@ -107,4 +110,14 @@ export function getThreadRepository(): ThreadService {
     threadService = new ThreadService();
   }
   return threadService;
+}
+
+/**
+ * Get PeriodicTaskService instance
+ */
+export function getPeriodicTaskRepository(): PeriodicTaskService {
+  if (!periodicTaskService) {
+    periodicTaskService = new PeriodicTaskService();
+  }
+  return periodicTaskService;
 }

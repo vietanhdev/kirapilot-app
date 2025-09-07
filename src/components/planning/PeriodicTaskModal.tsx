@@ -1,9 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Task, Priority, TaskStatus, TimePreset } from '../../types';
-import { generateId } from '../../utils';
+import {
+  PeriodicTaskTemplate,
+  Priority,
+  RecurrenceType,
+  CreatePeriodicTaskRequest,
+  UpdatePeriodicTaskRequest,
+} from '../../types';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useTaskList } from '../../contexts/TaskListContext';
 import { useSettings } from '../../contexts/SettingsContext';
+import { PeriodicTaskService } from '../../services/database/repositories/PeriodicTaskService';
 import {
   Modal,
   ModalContent,
@@ -15,6 +21,9 @@ import {
   Select,
   SelectItem,
   Chip,
+  Switch,
+  Card,
+  CardBody,
 } from '@heroui/react';
 import {
   Calendar,
@@ -25,12 +34,15 @@ import {
   AlertCircle,
   CheckCircle2,
   Flame,
-  Timer,
   Edit3,
   PlusCircle,
+  Repeat,
+  Play,
+  Pause,
 } from 'lucide-react';
 import { MinimalRichTextEditor } from '../common/MinimalRichTextEditor';
 import { DatePicker } from '../common/DatePicker';
+import { RecurrencePatternSelector } from './RecurrencePatternSelector';
 import {
   ErrorDisplay,
   ErrorType,
@@ -39,55 +51,55 @@ import {
 } from '../common/ErrorDisplay';
 import { errorHandlingService } from '../../services/errorHandling/ErrorHandlingService';
 
-interface TaskModalProps {
+interface PeriodicTaskModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onCreateTask?: (task: Task) => Promise<void>;
-  onUpdateTask?: (updatedTask: Partial<Task>) => Promise<void>;
-  task?: Task | null; // If provided, we're editing; if null/undefined, we're creating
-  defaultDate?: Date;
+  onCreateTemplate?: (template: PeriodicTaskTemplate) => Promise<void>;
+  onUpdateTemplate?: (updatedTemplate: PeriodicTaskTemplate) => Promise<void>;
+  template?: PeriodicTaskTemplate | null;
   className?: string;
-  // Periodic task support
-  periodicTemplateId?: string; // If provided, create as periodic instance
-  isPeriodicInstance?: boolean; // Whether this is a periodic instance
 }
 
 interface FormData {
   title: string;
   description: string;
   priority: Priority;
-  timePreset: TimePreset;
   timeEstimate: number;
-  dueDate?: Date;
-  scheduledDate?: Date;
   tags: string[];
   taskListId: string;
+  recurrenceType: RecurrenceType;
+  recurrenceInterval: number;
+  recurrenceUnit?: 'days' | 'weeks' | 'months';
+  startDate: Date;
+  isActive: boolean;
 }
 
-export function TaskModal({
+export function PeriodicTaskModal({
   isOpen,
   onClose,
-  onCreateTask,
-  onUpdateTask,
-  task,
-  defaultDate,
-  periodicTemplateId,
-  isPeriodicInstance = false,
-}: TaskModalProps) {
+  onCreateTemplate,
+  onUpdateTemplate,
+  template,
+}: PeriodicTaskModalProps) {
   const { t } = useTranslation();
   const { preferences } = useSettings();
-  const isEditMode = !!task;
+  const isEditMode = !!template;
+  const periodicTaskService = new PeriodicTaskService();
+
   const [formData, setFormData] = useState<FormData>({
     title: '',
     description: '',
     priority: Priority.MEDIUM,
-    timePreset: TimePreset.SIXTY_MIN,
     timeEstimate: 60,
-    dueDate: undefined, // Never set a default due date
-    scheduledDate: defaultDate,
     tags: [],
     taskListId: 'default-task-list',
+    recurrenceType: RecurrenceType.WEEKLY,
+    recurrenceInterval: 1,
+    recurrenceUnit: undefined,
+    startDate: new Date(),
+    isActive: true,
   });
+
   const [newTag, setNewTag] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -95,32 +107,15 @@ export function TaskModal({
   const [isErrorRecoverable, setIsErrorRecoverable] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
 
-  // Helper function to determine time preset from time estimate
-  const getTimePresetFromEstimate = (timeEstimate: number): TimePreset => {
-    switch (timeEstimate) {
-      case 15:
-        return TimePreset.FIFTEEN_MIN;
-      case 30:
-        return TimePreset.THIRTY_MIN;
-      case 60:
-        return TimePreset.SIXTY_MIN;
-      case 0:
-        return TimePreset.NOT_APPLICABLE;
-      default:
-        return TimePreset.CUSTOM;
-    }
-  };
-
   // Get task list context for current selection
   const {
     getSelectedTaskListId,
     isAllSelected,
     taskLists,
-    moveTaskToList,
     error: taskListError,
   } = useTaskList();
 
-  // Initialize form data when modal opens or task changes
+  // Initialize form data when modal opens or template changes
   useEffect(() => {
     if (isOpen) {
       // Clear any previous submit errors
@@ -128,47 +123,42 @@ export function TaskModal({
       setErrorType(ErrorType.UNKNOWN);
       setIsErrorRecoverable(false);
       setRetryCount(0);
-      if (isEditMode && task) {
-        const timeEstimate = task.timeEstimate || 60;
+
+      if (isEditMode && template) {
         setFormData({
-          title: task.title,
-          description: task.description || '',
-          priority: task.priority,
-          timePreset:
-            task.timePreset || getTimePresetFromEstimate(timeEstimate),
-          timeEstimate: timeEstimate,
-          dueDate: task.dueDate,
-          scheduledDate: task.scheduledDate,
-          tags: task.tags || [],
-          taskListId: task.taskListId,
+          title: template.title,
+          description: template.description || '',
+          priority: template.priority,
+          timeEstimate: template.timeEstimate || 60,
+          tags: template.tags || [],
+          taskListId: template.taskListId,
+          recurrenceType: template.recurrenceType,
+          recurrenceInterval: template.recurrenceInterval || 1,
+          recurrenceUnit: template.recurrenceUnit,
+          startDate: template.startDate,
+          isActive: template.isActive,
         });
       } else {
-        // Creating new task - determine default task list
+        // Creating new template - determine default task list
         let defaultTaskListId: string;
         if (isAllSelected()) {
-          // When "All" is selected, use the default task list
           const defaultList = taskLists.find(list => list.isDefault);
           if (defaultList) {
             defaultTaskListId = defaultList.id;
           } else if (taskLists.length > 0) {
-            // Fallback to first available task list
             defaultTaskListId = taskLists[0].id;
           } else {
-            // No task lists available - this will cause an error, but we'll handle it in submit
             defaultTaskListId = '';
           }
         } else {
-          // Use the currently selected task list
           const selectedId = getSelectedTaskListId();
           if (selectedId) {
             defaultTaskListId = selectedId;
           } else if (taskLists.length > 0) {
-            // Fallback to first available task list
             const defaultList =
               taskLists.find(list => list.isDefault) || taskLists[0];
             defaultTaskListId = defaultList.id;
           } else {
-            // No task lists available
             defaultTaskListId = '';
           }
         }
@@ -177,39 +167,34 @@ export function TaskModal({
           title: '',
           description: '',
           priority: Priority.MEDIUM,
-          timePreset: TimePreset.SIXTY_MIN,
           timeEstimate: 60,
-          dueDate: undefined, // Always start with no due date - user must set it explicitly
-          scheduledDate: defaultDate,
           tags: [],
           taskListId: defaultTaskListId,
+          recurrenceType: RecurrenceType.WEEKLY,
+          recurrenceInterval: 1,
+          recurrenceUnit: undefined,
+          startDate: new Date(),
+          isActive: true,
         });
       }
       setNewTag('');
     }
   }, [
     isOpen,
-    task,
+    template,
     isEditMode,
-    defaultDate,
     isAllSelected,
     getSelectedTaskListId,
     taskLists,
   ]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
+  const validateForm = (): string | null => {
     if (!formData.title.trim()) {
-      return;
+      return 'Task title is required';
     }
 
-    // Validate that a task list is selected
     if (!formData.taskListId || formData.taskListId.trim() === '') {
-      setSubmitError('Please select a task list');
-      setErrorType(ErrorType.VALIDATION);
-      setIsErrorRecoverable(false);
-      return;
+      return 'Please select a task list';
     }
 
     // Validate that the selected task list exists
@@ -217,9 +202,47 @@ export function TaskModal({
       list => list.id === formData.taskListId
     );
     if (!selectedTaskList) {
-      setSubmitError(
-        'The selected task list is no longer available. Please select a different task list.'
-      );
+      return 'The selected task list is no longer available. Please select a different task list.';
+    }
+
+    // Validate start date is not in the past (allow today)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const startDate = new Date(formData.startDate);
+    startDate.setHours(0, 0, 0, 0);
+
+    if (startDate < today) {
+      return 'Start date cannot be in the past';
+    }
+
+    // Validate custom recurrence pattern
+    if (formData.recurrenceType === RecurrenceType.CUSTOM) {
+      if (!formData.recurrenceUnit) {
+        return 'Please select a unit for custom recurrence';
+      }
+      if (formData.recurrenceInterval < 1) {
+        return 'Recurrence interval must be at least 1';
+      }
+      if (formData.recurrenceInterval > 365) {
+        return 'Recurrence interval cannot exceed 365';
+      }
+    }
+
+    // Validate time estimate
+    if (formData.timeEstimate < 0) {
+      return 'Time estimate cannot be negative';
+    }
+
+    return null;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // Validate form
+    const validationError = validateForm();
+    if (validationError) {
+      setSubmitError(validationError);
       setErrorType(ErrorType.VALIDATION);
       setIsErrorRecoverable(false);
       return;
@@ -231,81 +254,69 @@ export function TaskModal({
     setIsErrorRecoverable(false);
 
     const executeOperation = async () => {
-      if (isEditMode && onUpdateTask && task) {
-        // Check if task list has changed and handle task movement
-        const taskListChanged = task.taskListId !== formData.taskListId;
+      if (isEditMode && onUpdateTemplate && template) {
+        // Edit existing template
+        const updateRequest: UpdatePeriodicTaskRequest = {
+          title: formData.title.trim(),
+          description: formData.description || '',
+          priority: formData.priority,
+          timeEstimate: formData.timeEstimate,
+          tags: formData.tags,
+          taskListId: formData.taskListId,
+          recurrenceType: formData.recurrenceType,
+          recurrenceInterval: formData.recurrenceInterval,
+          recurrenceUnit: formData.recurrenceUnit,
+          isActive: formData.isActive,
+        };
 
-        if (taskListChanged) {
-          // Validate the target task list exists
-          const targetTaskList = taskLists.find(
-            tl => tl.id === formData.taskListId
-          );
-          if (!targetTaskList) {
-            throw new Error(
-              `Target task list '${formData.taskListId}' not found in available task lists: ${taskLists.map(tl => tl.id).join(', ')}`
-            );
-          }
-
-          // Move task to new list first using enhanced error handling
+        const updatedTemplate =
           await errorHandlingService.executeDatabaseOperation(
-            () => moveTaskToList(task.id, formData.taskListId),
-            'move_task_to_list',
-            { component: 'TaskModal', operation: 'update_task' }
+            () =>
+              periodicTaskService.updateTemplate(template.id, updateRequest),
+            'update_periodic_task_template',
+            { component: 'PeriodicTaskModal', operation: 'update_template' }
           );
+
+        await onUpdateTemplate(updatedTemplate);
+      } else if (onCreateTemplate) {
+        // Create new template
+        const createRequest: CreatePeriodicTaskRequest = {
+          title: formData.title.trim(),
+          description: formData.description || '',
+          priority: formData.priority,
+          timeEstimate: formData.timeEstimate,
+          tags: formData.tags,
+          taskListId: formData.taskListId,
+          recurrenceType: formData.recurrenceType,
+          recurrenceInterval: formData.recurrenceInterval,
+          recurrenceUnit: formData.recurrenceUnit,
+          startDate: formData.startDate,
+        };
+
+        const newTemplate = await errorHandlingService.executeDatabaseOperation(
+          () => periodicTaskService.createTemplate(createRequest),
+          'create_periodic_task_template',
+          { component: 'PeriodicTaskModal', operation: 'create_template' }
+        );
+
+        // Generate instances for the next 30 days if the template is active
+        if (newTemplate.isActive) {
+          try {
+            const result =
+              await periodicTaskService.generateAdvancedInstances(30);
+            console.log(
+              `Generated ${result.totalGenerated} instances for periodic task: ${newTemplate.title}`
+            );
+          } catch (instanceError) {
+            console.warn(
+              'Failed to generate instances for periodic task:',
+              instanceError
+            );
+            // Don't fail the entire creation process if instance generation fails
+          }
         }
 
-        // Edit existing task - always include taskListId for local state consistency
-        const updatedFields: Partial<Task> = {
-          title: formData.title.trim(),
-          description: formData.description || '',
-          priority: formData.priority,
-          timePreset: formData.timePreset,
-          timeEstimate: formData.timeEstimate,
-          dueDate: formData.dueDate,
-          scheduledDate: formData.scheduledDate,
-          tags: formData.tags,
-          taskListId: formData.taskListId, // Always include for local state consistency
-          updatedAt: new Date(),
-        };
-
-        // Wrap onUpdateTask call with error handling since it now re-throws database errors
-        await errorHandlingService.executeDatabaseOperation(
-          () => onUpdateTask(updatedFields),
-          'update_task',
-          { component: 'TaskModal', operation: 'update_task_fields' }
-        );
-      } else if (onCreateTask) {
-        // Create new task with selected task list
-        const newTask: Task = {
-          id: generateId(),
-          title: formData.title.trim(),
-          description: formData.description || '',
-          status: TaskStatus.PENDING,
-          priority: formData.priority,
-          order: 0,
-          timePreset: formData.timePreset,
-          timeEstimate: formData.timeEstimate,
-          actualTime: 0,
-          dependencies: [],
-          subtasks: [],
-          dueDate: formData.dueDate,
-          scheduledDate: formData.scheduledDate,
-          taskListId: formData.taskListId,
-          tags: formData.tags,
-          // Periodic task properties
-          periodicTemplateId: periodicTemplateId,
-          isPeriodicInstance: isPeriodicInstance,
-          generationDate: isPeriodicInstance ? new Date() : undefined,
-          completedAt: undefined,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        };
-
-        await errorHandlingService.executeDatabaseOperation(
-          () => onCreateTask(newTask),
-          'create_task',
-          { component: 'TaskModal', operation: 'create_task' }
-        );
+        await onCreateTemplate(newTemplate);
       }
     };
 
@@ -313,12 +324,14 @@ export function TaskModal({
       await executeOperation();
       handleClose();
     } catch (error) {
-      console.error('Failed to save task:', error);
+      console.error('Failed to save periodic task template:', error);
 
       // Use enhanced error handling service
       const enhancedError = errorHandlingService.processError(error as Error, {
-        operation: isEditMode ? 'update_task' : 'create_task',
-        component: 'TaskModal',
+        operation: isEditMode
+          ? 'update_periodic_task_template'
+          : 'create_periodic_task_template',
+        component: 'PeriodicTaskModal',
       });
 
       const userMessage = errorHandlingService.getUserMessage(enhancedError);
@@ -373,6 +386,18 @@ export function TaskModal({
     }));
   };
 
+  const handleRecurrenceChange = (
+    type: RecurrenceType,
+    interval?: number,
+    unit?: 'days' | 'weeks' | 'months'
+  ) => {
+    setFormData(prev => ({
+      ...prev,
+      recurrenceType: type,
+      recurrenceInterval: interval || 1,
+      recurrenceUnit: unit,
+    }));
+  };
   const priorityOptions = [
     {
       key: Priority.LOW,
@@ -396,53 +421,9 @@ export function TaskModal({
     },
   ];
 
-  const timePresetOptions = [
-    {
-      key: TimePreset.FIFTEEN_MIN,
-      label: t('timePreset.fifteenMin'),
-      value: 15,
-    },
-    {
-      key: TimePreset.THIRTY_MIN,
-      label: t('timePreset.thirtyMin'),
-      value: 30,
-    },
-    {
-      key: TimePreset.SIXTY_MIN,
-      label: t('timePreset.sixtyMin'),
-      value: 60,
-    },
-    {
-      key: TimePreset.CUSTOM,
-      label: t('timePreset.custom'),
-      value: -1,
-    },
-    {
-      key: TimePreset.NOT_APPLICABLE,
-      label: t('timePreset.notApplicable'),
-      value: 0,
-    },
-  ];
-
   const selectedPriority = priorityOptions.find(
     p => p.key === formData.priority
   );
-
-  const selectedTimePreset = timePresetOptions.find(
-    p => p.key === formData.timePreset
-  );
-
-  const handleTimePresetChange = (preset: TimePreset) => {
-    const presetOption = timePresetOptions.find(p => p.key === preset);
-    if (presetOption) {
-      setFormData(prev => ({
-        ...prev,
-        timePreset: preset,
-        timeEstimate:
-          presetOption.value >= 0 ? presetOption.value : prev.timeEstimate,
-      }));
-    }
-  };
 
   // Prevent drag and drop events from propagating when modal is open
   const handlePreventDragEvents = (e: React.DragEvent) => {
@@ -486,19 +467,9 @@ export function TaskModal({
               )}
               <h2 className='text-lg font-semibold'>
                 {isEditMode
-                  ? t('task.modal.title.edit')
-                  : t('task.modal.title.create')}
+                  ? t('periodicTask.modal.title.edit')
+                  : t('periodicTask.modal.title.create')}
               </h2>
-              {(task?.isPeriodicInstance || isPeriodicInstance) && (
-                <Chip
-                  size='sm'
-                  variant='flat'
-                  color='secondary'
-                  startContent={<Timer className='w-3 h-3' />}
-                >
-                  {t('task.periodicInstance')}
-                </Chip>
-              )}
             </div>
           </ModalHeader>
 
@@ -509,8 +480,8 @@ export function TaskModal({
                 <div className='flex flex-col gap-1'>
                   <Input
                     autoFocus
-                    label={t('task.modal.label.title')}
-                    placeholder={t('task.modal.placeholder.title')}
+                    label={t('periodicTask.modal.label.title')}
+                    placeholder={t('periodicTask.modal.placeholder.title')}
                     value={formData.title}
                     onChange={e =>
                       setFormData(prev => ({ ...prev, title: e.target.value }))
@@ -531,8 +502,8 @@ export function TaskModal({
 
                 <div className='flex flex-col gap-1'>
                   <Select
-                    label={t('task.modal.label.taskList')}
-                    placeholder={t('task.modal.placeholder.taskList')}
+                    label={t('periodicTask.modal.label.taskList')}
+                    placeholder={t('periodicTask.modal.placeholder.taskList')}
                     selectedKeys={[formData.taskListId]}
                     onSelectionChange={keys => {
                       const taskListId = Array.from(keys)[0] as string;
@@ -573,7 +544,7 @@ export function TaskModal({
 
                 <div className='flex flex-col gap-1'>
                   <label className='text-sm font-medium text-foreground-600'>
-                    {t('task.modal.label.description')}
+                    {t('periodicTask.modal.label.description')}
                   </label>
                   <div className='h-32'>
                     <MinimalRichTextEditor
@@ -581,20 +552,21 @@ export function TaskModal({
                       onChange={content =>
                         setFormData(prev => ({ ...prev, description: content }))
                       }
-                      placeholder={t('task.modal.placeholder.description')}
+                      placeholder={t(
+                        'periodicTask.modal.placeholder.description'
+                      )}
                       className='h-full'
                     />
                   </div>
                 </div>
               </div>
-
-              {/* Scheduling Section */}
+              {/* Task Properties Section */}
               <div className='grid gap-3'>
                 <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
                   <div className='flex flex-col gap-1'>
                     <Select
-                      label={t('task.modal.label.priority')}
-                      placeholder={t('task.modal.placeholder.priority')}
+                      label={t('periodicTask.modal.label.priority')}
+                      placeholder={t('periodicTask.modal.placeholder.priority')}
                       selectedKeys={[formData.priority.toString()]}
                       onSelectionChange={keys => {
                         const priority = Array.from(keys)[0] as string;
@@ -631,105 +603,109 @@ export function TaskModal({
                   </div>
 
                   <div className='flex flex-col gap-1'>
-                    <Select
-                      label={t('task.modal.label.timePreset')}
-                      placeholder={t('task.modal.placeholder.timePreset')}
-                      selectedKeys={[formData.timePreset.toString()]}
-                      onSelectionChange={keys => {
-                        const preset = Array.from(keys)[0] as string;
-                        handleTimePresetChange(parseInt(preset) as TimePreset);
-                      }}
+                    <Input
+                      type='number'
+                      label={t('periodicTask.modal.label.timeEstimate')}
+                      placeholder={t(
+                        'periodicTask.modal.placeholder.timeEstimate'
+                      )}
+                      value={formData.timeEstimate.toString()}
+                      onChange={e =>
+                        setFormData(prev => ({
+                          ...prev,
+                          timeEstimate: parseInt(e.target.value) || 0,
+                        }))
+                      }
+                      min={0}
+                      step={1}
                       size='sm'
                       classNames={{
-                        trigger:
-                          'bg-content2 border-divider data-[hover=true]:bg-content3',
-                        value: 'text-foreground',
+                        input: 'text-foreground',
+                        inputWrapper:
+                          'bg-content2 border-divider data-[hover=true]:bg-content3 group-data-[focus=true]:bg-content2',
                         label: 'text-foreground-600 font-medium',
                       }}
-                      renderValue={() =>
-                        selectedTimePreset && (
-                          <div className='flex items-center gap-2'>
-                            <Timer className='w-4 h-4' />
-                            <span>{selectedTimePreset.label}</span>
-                          </div>
-                        )
-                      }
-                    >
-                      {timePresetOptions.map(preset => (
-                        <SelectItem
-                          key={preset.key}
-                          startContent={<Timer className='w-4 h-4' />}
-                        >
-                          {preset.label}
-                        </SelectItem>
-                      ))}
-                    </Select>
-
-                    {/* Custom time input - only show when Custom is selected */}
-                    {formData.timePreset === TimePreset.CUSTOM && (
-                      <Input
-                        type='number'
-                        label={t('task.modal.label.customTime')}
-                        placeholder={t('task.modal.placeholder.customTime')}
-                        value={formData.timeEstimate.toString()}
-                        onChange={e =>
-                          setFormData(prev => ({
-                            ...prev,
-                            timeEstimate: parseInt(e.target.value) || 60,
-                          }))
-                        }
-                        min={1}
-                        step={1}
-                        size='sm'
-                        startContent={<Timer className='w-4 h-4' />}
-                        classNames={{
-                          input: 'text-foreground',
-                          inputWrapper:
-                            'bg-content2 border-divider data-[hover=true]:bg-content3 group-data-[focus=true]:bg-content2',
-                          label: 'text-foreground-600 font-medium',
-                        }}
-                      />
-                    )}
+                    />
                   </div>
                 </div>
 
-                <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
+                <div className='flex flex-col gap-1'>
                   <DatePicker
-                    label={t('task.modal.label.dueDate')}
-                    value={formData.dueDate || null}
+                    label={t('periodicTask.modal.label.startDate')}
+                    value={formData.startDate}
                     onChange={date =>
                       setFormData(prev => ({
                         ...prev,
-                        dueDate: date || undefined,
+                        startDate: date || new Date(),
                       }))
                     }
                     dateFormat={preferences.dateFormat}
                     size='sm'
                     startContent={<Calendar className='w-4 h-4' />}
-                  />
-
-                  <DatePicker
-                    label={t('task.modal.label.scheduled')}
-                    value={formData.scheduledDate || null}
-                    onChange={date =>
-                      setFormData(prev => ({
-                        ...prev,
-                        scheduledDate: date || undefined,
-                      }))
-                    }
-                    dateFormat={preferences.dateFormat}
-                    size='sm'
-                    startContent={<Calendar className='w-4 h-4' />}
+                    isRequired
                   />
                 </div>
               </div>
+
+              {/* Recurrence Pattern Section */}
+              <div className='grid gap-3'>
+                <div className='flex items-center gap-2'>
+                  <Repeat className='w-4 h-4 text-foreground-500' />
+                  <span className='text-sm font-medium text-foreground-600'>
+                    Recurrence Pattern
+                  </span>
+                </div>
+                <RecurrencePatternSelector
+                  recurrenceType={formData.recurrenceType}
+                  recurrenceInterval={formData.recurrenceInterval}
+                  recurrenceUnit={formData.recurrenceUnit}
+                  startDate={formData.startDate}
+                  onChange={handleRecurrenceChange}
+                  size='sm'
+                />
+              </div>
+
+              {/* Template Status Section */}
+              {isEditMode && (
+                <Card className='bg-content1 border border-divider'>
+                  <CardBody className='p-3'>
+                    <div className='flex items-center justify-between'>
+                      <div className='flex flex-col gap-1'>
+                        <div className='flex items-center gap-2'>
+                          {formData.isActive ? (
+                            <Play className='w-4 h-4 text-success' />
+                          ) : (
+                            <Pause className='w-4 h-4 text-warning' />
+                          )}
+                          <span className='text-sm font-medium text-foreground-600'>
+                            {t('periodicTask.modal.label.status')}
+                          </span>
+                        </div>
+                        <span className='text-xs text-foreground-500'>
+                          {formData.isActive
+                            ? t('periodicTask.modal.status.active.description')
+                            : t('periodicTask.modal.status.paused.description')}
+                        </span>
+                      </div>
+                      <Switch
+                        isSelected={formData.isActive}
+                        onValueChange={isActive =>
+                          setFormData(prev => ({ ...prev, isActive }))
+                        }
+                        size='sm'
+                        color='success'
+                      />
+                    </div>
+                  </CardBody>
+                </Card>
+              )}
 
               {/* Tags Section */}
               <div className='grid gap-3'>
                 <div className='flex flex-col gap-1'>
                   <div className='flex gap-2'>
                     <Input
-                      placeholder={t('task.modal.placeholder.tag')}
+                      placeholder={t('periodicTask.modal.placeholder.tag')}
                       value={newTag}
                       onChange={e => setNewTag(e.target.value)}
                       onKeyDown={e =>
@@ -811,8 +787,8 @@ export function TaskModal({
               }
             >
               {isEditMode
-                ? t('task.modal.button.saveChanges')
-                : t('task.modal.button.createTask')}
+                ? t('periodicTask.modal.button.saveChanges')
+                : t('periodicTask.modal.button.createTemplate')}
             </Button>
           </ModalFooter>
         </form>

@@ -10,14 +10,18 @@ use database::repositories::{
         AiLogStorageStats, AiStats, CreateAiInteractionLogRequest, CreateAiInteractionRequest,
         CreateToolExecutionLogRequest, UpdateAiInteractionLogRequest, UpdateAiInteractionRequest,
     },
+    periodic_task_repository::{
+        CreatePeriodicTaskTemplateRequest, PeriodicTaskStats, UpdatePeriodicTaskTemplateRequest,
+    },
     task_list_repository::{CreateTaskListRequest, TaskListStats, UpdateTaskListRequest},
     task_repository::{CreateTaskRequest, TaskStats, UpdateTaskRequest},
     thread_repository::{
         CreateThreadMessageRequest, CreateThreadRequest, ThreadStatistics, UpdateThreadRequest,
     },
     time_tracking_repository::{CreateTimeSessionRequest, TimeStats, UpdateTimeSessionRequest},
-    AiRepository, TaskListRepository, TaskRepository, ThreadRepository, TimeTrackingRepository,
+    AiRepository, PeriodicTaskRepository, TaskListRepository, TaskRepository, ThreadRepository, TimeTrackingRepository,
 };
+use database::services::TaskGenerationEngine;
 use database::{
     check_database_health, get_database, get_migration_status, initialize_database,
     run_post_migration_init, test_migration_compatibility, validate_db_integrity, DatabaseHealth,
@@ -290,6 +294,225 @@ async fn search_tasks(query: String) -> Result<Vec<serde_json::Value>, String> {
             .map(|t| serde_json::to_value(t).unwrap_or_default())
             .collect()),
         Err(e) => Err(format!("Failed to search tasks: {}", e)),
+    }
+}
+
+// ============================================================================
+// Periodic Task Management Commands
+// ============================================================================
+
+#[tauri::command]
+async fn create_periodic_task_template(
+    request: CreatePeriodicTaskTemplateRequest,
+) -> Result<serde_json::Value, String> {
+    let db = get_database()
+        .await
+        .map_err(|e| format!("Database error: {}", e))?;
+    let repo = PeriodicTaskRepository::new(db);
+
+    match repo.create_template(request).await {
+        Ok(template) => Ok(serde_json::to_value(template).unwrap_or_default()),
+        Err(e) => Err(format!("Failed to create periodic task template: {}", e)),
+    }
+}
+
+#[tauri::command]
+async fn get_periodic_task_template(id: String) -> Result<Option<serde_json::Value>, String> {
+    let db = get_database()
+        .await
+        .map_err(|e| format!("Database error: {}", e))?;
+    let repo = PeriodicTaskRepository::new(db);
+
+    match repo.find_by_id(&id).await {
+        Ok(template) => Ok(template.map(|t| serde_json::to_value(t).unwrap_or_default())),
+        Err(e) => Err(format!("Failed to get periodic task template: {}", e)),
+    }
+}
+
+#[tauri::command]
+async fn get_all_periodic_task_templates() -> Result<Vec<serde_json::Value>, String> {
+    let db = get_database()
+        .await
+        .map_err(|e| format!("Database error: {}", e))?;
+    let repo = PeriodicTaskRepository::new(db);
+
+    match repo.find_all().await {
+        Ok(templates) => Ok(templates
+            .into_iter()
+            .map(|t| serde_json::to_value(t).unwrap_or_default())
+            .collect()),
+        Err(e) => Err(format!("Failed to get periodic task templates: {}", e)),
+    }
+}
+
+#[tauri::command]
+async fn get_active_periodic_task_templates() -> Result<Vec<serde_json::Value>, String> {
+    let db = get_database()
+        .await
+        .map_err(|e| format!("Database error: {}", e))?;
+    let repo = PeriodicTaskRepository::new(db);
+
+    match repo.find_active().await {
+        Ok(templates) => Ok(templates
+            .into_iter()
+            .map(|t| serde_json::to_value(t).unwrap_or_default())
+            .collect()),
+        Err(e) => Err(format!("Failed to get active periodic task templates: {}", e)),
+    }
+}
+
+#[tauri::command]
+async fn get_templates_needing_generation() -> Result<Vec<serde_json::Value>, String> {
+    let db = get_database()
+        .await
+        .map_err(|e| format!("Database error: {}", e))?;
+    let repo = PeriodicTaskRepository::new(db);
+
+    let current_time = chrono::Utc::now();
+    match repo.find_templates_needing_generation(current_time).await {
+        Ok(templates) => Ok(templates
+            .into_iter()
+            .map(|t| serde_json::to_value(t).unwrap_or_default())
+            .collect()),
+        Err(e) => Err(format!("Failed to get templates needing generation: {}", e)),
+    }
+}
+
+#[tauri::command]
+async fn update_periodic_task_template(
+    id: String,
+    request: UpdatePeriodicTaskTemplateRequest,
+) -> Result<serde_json::Value, String> {
+    let db = get_database()
+        .await
+        .map_err(|e| format!("Database error: {}", e))?;
+    let repo = PeriodicTaskRepository::new(db);
+
+    match repo.update_template(&id, request).await {
+        Ok(template) => Ok(serde_json::to_value(template).unwrap_or_default()),
+        Err(e) => Err(format!("Failed to update periodic task template: {}", e)),
+    }
+}
+
+#[tauri::command]
+async fn delete_periodic_task_template(id: String) -> Result<String, String> {
+    let db = get_database()
+        .await
+        .map_err(|e| format!("Database error: {}", e))?;
+    let repo = PeriodicTaskRepository::new(db);
+
+    match repo.delete_template(&id).await {
+        Ok(_) => Ok("Periodic task template deleted successfully".to_string()),
+        Err(e) => Err(format!("Failed to delete periodic task template: {}", e)),
+    }
+}
+
+#[tauri::command]
+async fn get_template_instances(template_id: String) -> Result<Vec<serde_json::Value>, String> {
+    let db = get_database()
+        .await
+        .map_err(|e| format!("Database error: {}", e))?;
+    let repo = PeriodicTaskRepository::new(db);
+
+    match repo.get_template_instances(&template_id).await {
+        Ok(instances) => Ok(instances
+            .into_iter()
+            .map(|i| serde_json::to_value(i).unwrap_or_default())
+            .collect()),
+        Err(e) => Err(format!("Failed to get template instances: {}", e)),
+    }
+}
+
+#[tauri::command]
+async fn count_template_instances(template_id: String) -> Result<u64, String> {
+    let db = get_database()
+        .await
+        .map_err(|e| format!("Database error: {}", e))?;
+    let repo = PeriodicTaskRepository::new(db);
+
+    match repo.count_template_instances(&template_id).await {
+        Ok(count) => Ok(count),
+        Err(e) => Err(format!("Failed to count template instances: {}", e)),
+    }
+}
+
+#[tauri::command]
+async fn calculate_next_generation_date(
+    current_date: String,
+    recurrence_type: String,
+    interval: i32,
+    unit: Option<String>,
+) -> Result<String, String> {
+    let db = get_database()
+        .await
+        .map_err(|e| format!("Database error: {}", e))?;
+    let repo = PeriodicTaskRepository::new(db);
+
+    let current = chrono::DateTime::parse_from_rfc3339(&current_date)
+        .map_err(|e| format!("Invalid current date: {}", e))?
+        .with_timezone(&chrono::Utc);
+
+    match repo.calculate_next_generation_date(current, &recurrence_type, interval, unit.as_deref()) {
+        Ok(next_date) => Ok(next_date.to_rfc3339()),
+        Err(e) => Err(format!("Failed to calculate next generation date: {}", e)),
+    }
+}
+
+#[tauri::command]
+async fn get_periodic_task_stats() -> Result<PeriodicTaskStats, String> {
+    let db = get_database()
+        .await
+        .map_err(|e| format!("Database error: {}", e))?;
+    let repo = PeriodicTaskRepository::new(db);
+
+    match repo.get_periodic_task_stats().await {
+        Ok(stats) => Ok(stats),
+        Err(e) => Err(format!("Failed to get periodic task stats: {}", e)),
+    }
+}
+
+#[tauri::command]
+async fn generate_pending_instances() -> Result<Vec<serde_json::Value>, String> {
+    let db = get_database()
+        .await
+        .map_err(|e| format!("Database error: {}", e))?;
+    let engine = TaskGenerationEngine::new(db);
+
+    match engine.generate_pending_instances().await {
+        Ok(instances) => Ok(instances
+            .into_iter()
+            .map(|i| serde_json::to_value(i).unwrap_or_default())
+            .collect()),
+        Err(e) => Err(format!("Failed to generate pending instances: {}", e)),
+    }
+}
+
+#[tauri::command]
+async fn generate_instance_from_template(template_id: String) -> Result<serde_json::Value, String> {
+    let db = get_database()
+        .await
+        .map_err(|e| format!("Database error: {}", e))?;
+    let engine = TaskGenerationEngine::new(db);
+
+    match engine.generate_instance_from_template(&template_id).await {
+        Ok(instance) => Ok(serde_json::to_value(instance).unwrap_or_default()),
+        Err(e) => Err(format!("Failed to generate instance from template: {}", e)),
+    }
+}
+
+#[tauri::command]
+async fn check_and_generate_instances() -> Result<Vec<serde_json::Value>, String> {
+    let db = get_database()
+        .await
+        .map_err(|e| format!("Database error: {}", e))?;
+    let engine = TaskGenerationEngine::new(db);
+
+    match engine.check_and_generate_instances().await {
+        Ok(instances) => Ok(instances
+            .into_iter()
+            .map(|i| serde_json::to_value(i).unwrap_or_default())
+            .collect()),
+        Err(e) => Err(format!("Failed to check and generate instances: {}", e)),
     }
 }
 
@@ -2623,6 +2846,27 @@ pub fn run() {
             tauri::async_runtime::spawn(async move {
                 if let Err(e) = initialize_database().await {
                     eprintln!("Failed to initialize database on startup: {}", e);
+                    return;
+                }
+
+                // Generate pending periodic task instances on startup
+                match get_database().await {
+                    Ok(db) => {
+                        let engine = TaskGenerationEngine::new(db);
+                        match engine.check_and_generate_instances().await {
+                            Ok(instances) => {
+                                if !instances.is_empty() {
+                                    println!("Generated {} periodic task instances on startup", instances.len());
+                                }
+                            }
+                            Err(e) => {
+                                eprintln!("Failed to generate periodic task instances on startup: {}", e);
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        eprintln!("Failed to get database connection for periodic task generation: {}", e);
+                    }
                 }
             });
             Ok(())
@@ -2650,6 +2894,21 @@ pub fn run() {
             get_task_dependents,
             get_task_stats,
             search_tasks,
+            // Periodic Task Management Commands
+            create_periodic_task_template,
+            get_periodic_task_template,
+            get_all_periodic_task_templates,
+            get_active_periodic_task_templates,
+            get_templates_needing_generation,
+            update_periodic_task_template,
+            delete_periodic_task_template,
+            get_template_instances,
+            count_template_instances,
+            calculate_next_generation_date,
+            get_periodic_task_stats,
+            generate_pending_instances,
+            generate_instance_from_template,
+            check_and_generate_instances,
             // Thread Management Commands
             create_thread,
             get_thread,
