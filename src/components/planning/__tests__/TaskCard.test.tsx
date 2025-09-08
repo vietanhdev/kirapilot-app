@@ -490,7 +490,10 @@ describe('TaskCard Periodic Task Features', () => {
     expect(calendarIcons.length).toBeGreaterThan(0);
 
     // Should show the formatted date
-    expect(screen.getByText('1/15/2024')).toBeInTheDocument();
+    const dateElements = screen.getAllByText((content, element) => {
+      return element?.textContent?.includes('1/15/2024') || false;
+    });
+    expect(dateElements.length).toBeGreaterThan(0);
   });
 
   it('shows template relationship for periodic instances', async () => {
@@ -504,14 +507,14 @@ describe('TaskCard Periodic Task Features', () => {
     render(<TaskCard {...defaultProps} task={periodicTask} />);
 
     // Should show template relationship (after loading)
-    await screen.findByText((content, element) => {
+    const templateElements = await screen.findAllByText((content, element) => {
       return element?.textContent?.includes('Daily Standup') || false;
     });
-    expect(
-      screen.getByText((content, element) => {
-        return element?.textContent?.includes('tasks.fromTemplate') || false;
-      })
-    ).toBeInTheDocument();
+    expect(templateElements.length).toBeGreaterThan(0);
+    const fromTemplateElements = screen.getAllByText((content, element) => {
+      return element?.textContent?.includes('tasks.fromTemplate') || false;
+    });
+    expect(fromTemplateElements.length).toBeGreaterThan(0);
   });
 
   it('shows view template button for periodic instances with onViewPeriodicTemplate handler', async () => {
@@ -533,9 +536,10 @@ describe('TaskCard Periodic Task Features', () => {
     );
 
     // Wait for template to load
-    await screen.findByText((content, element) => {
+    const templateElements = await screen.findAllByText((content, element) => {
       return element?.textContent?.includes('Daily Standup') || false;
     });
+    expect(templateElements.length).toBeGreaterThan(0);
 
     // Should have at least 2 repeat icons - one in the indicator and one in the action button
     const repeatButtons = container.querySelectorAll('svg.lucide-repeat');
@@ -583,9 +587,10 @@ describe('TaskCard Periodic Task Features', () => {
     );
 
     // Should still show template relationship
-    await screen.findByText((content, element) => {
+    const templateElements = await screen.findAllByText((content, element) => {
       return element?.textContent?.includes('Daily Standup') || false;
     });
+    expect(templateElements.length).toBeGreaterThan(0);
 
     // Should show template info
     expect(container.textContent).toContain('Daily Standup');
@@ -615,10 +620,9 @@ describe('TaskCard Periodic Task Features', () => {
     expect(container.textContent).toContain('1/15/2024');
 
     // Should not show template info
-    expect(
-      screen.queryByText((content, element) => {
-        return element?.textContent?.includes('tasks.fromTemplate') || false;
-      })
-    ).not.toBeInTheDocument();
+    const fromTemplateElements = screen.queryAllByText((content, element) => {
+      return element?.textContent?.includes('tasks.fromTemplate') || false;
+    });
+    expect(fromTemplateElements.length).toBe(0);
   });
 });

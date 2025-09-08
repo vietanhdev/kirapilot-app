@@ -299,17 +299,18 @@ export function PeriodicTaskModal({
           { component: 'PeriodicTaskModal', operation: 'create_template' }
         );
 
-        // Generate instances for the next 30 days if the template is active
+        // Generate the first instance immediately if the template is active
         if (newTemplate.isActive) {
           try {
-            const result =
-              await periodicTaskService.generateAdvancedInstances(30);
+            await periodicTaskService.generateInstanceFromTemplate(
+              newTemplate.id
+            );
             console.log(
-              `Generated ${result.totalGenerated} instances for periodic task: ${newTemplate.title}`
+              `Generated first instance for periodic task: ${newTemplate.title}`
             );
           } catch (instanceError) {
             console.warn(
-              'Failed to generate instances for periodic task:',
+              'Failed to generate first instance for periodic task:',
               instanceError
             );
             // Don't fail the entire creation process if instance generation fails
@@ -731,6 +732,8 @@ export function PeriodicTaskModal({
                       isDisabled={
                         !newTag.trim() || formData.tags.includes(newTag.trim())
                       }
+                      aria-label='Add tag'
+                      data-testid='add-tag-button'
                     >
                       <Plus className='w-4 h-4' />
                     </Button>
@@ -745,6 +748,7 @@ export function PeriodicTaskModal({
                           variant='flat'
                           color='primary'
                           size='sm'
+                          data-testid={`tag-${tag}`}
                         >
                           {tag}
                         </Chip>

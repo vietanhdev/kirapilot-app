@@ -49,18 +49,16 @@ export function PeriodicTasksView() {
     try {
       const periodicService = new PeriodicTaskService();
 
-      // Generate instances for the next 30 days
-      const result = await periodicService.generateAdvancedInstances(30);
+      // Use standard generation for now
+      const result = await periodicService.checkAndGenerateInstances();
 
       // Notify both periodic tasks list and planner to refresh
       window.dispatchEvent(new CustomEvent('periodic-tasks-updated'));
 
       if (result.totalGenerated > 0) {
-        alert(
-          `Generated ${result.totalGenerated} new task instances for the next 30 days!`
-        );
+        alert(`Generated ${result.totalGenerated} new task instances!`);
       } else {
-        alert('All task instances for the next 30 days are already generated.');
+        alert('No new task instances needed at this time.');
       }
     } catch (error) {
       console.error('Failed to generate periodic task instances:', error);
@@ -91,7 +89,7 @@ export function PeriodicTasksView() {
             onPress={handleGenerateInstances}
             isLoading={isGenerating}
           >
-            Generate Next 30 Days
+            Generate Instances
           </Button>
           <Button
             color='primary'

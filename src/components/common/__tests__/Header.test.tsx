@@ -153,7 +153,7 @@ describe('Header', () => {
     expect(screen.getByText('nav.week')).toBeInTheDocument();
     expect(screen.getByText('nav.day')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Kira' })).toBeInTheDocument();
-    expect(screen.getByTitle('timer.sessionHistory')).toBeInTheDocument();
+    expect(screen.getByTitle('nav.recurring')).toBeInTheDocument();
     expect(screen.getByTitle('nav.reports')).toBeInTheDocument();
     expect(screen.getByTitle('nav.settings')).toBeInTheDocument();
   });

@@ -184,8 +184,24 @@ describe('PeriodicTaskService', () => {
         },
       ];
 
-      mockInvoke.mockResolvedValueOnce(mockInstances);
-      mockInvoke.mockResolvedValueOnce([]); // findActiveTemplates
+      mockInvoke.mockResolvedValueOnce(mockInstances); // generate_pending_instances
+      mockInvoke.mockResolvedValueOnce({
+        id: 'template-1',
+        title: 'Daily Exercise Template',
+        description: 'Daily exercise routine',
+        priority: Priority.MEDIUM,
+        time_estimate: 30,
+        tags: '["health"]',
+        task_list_id: 'list-1',
+        recurrence_type: 'daily',
+        recurrence_interval: 1,
+        start_date: '2024-01-01T00:00:00Z',
+        next_generation_date: '2024-01-02T00:00:00Z',
+        is_active: true,
+        created_at: '2024-01-01T00:00:00Z',
+        updated_at: '2024-01-01T00:00:00Z',
+      }); // get_periodic_task_template
+      mockInvoke.mockResolvedValueOnce([]); // get_active_periodic_task_templates
 
       const result = await service.generatePendingInstances();
 

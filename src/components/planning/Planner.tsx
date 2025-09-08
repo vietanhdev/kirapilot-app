@@ -69,22 +69,15 @@ export function Planner({ viewMode = 'week' }: PlanningScreenProps) {
         try {
           // Generate any new periodic task instances
           const periodicService = new PeriodicTaskService();
-
-          // Generate both overdue and upcoming instances
-          const standardResult =
-            await periodicService.checkAndGenerateInstances();
-          const advancedResult =
-            await periodicService.generateAdvancedInstances(30);
+          const result = await periodicService.checkAndGenerateInstances();
 
           // Reload all tasks to include new instances
           const taskRepo = getTaskRepository();
           const dbTasks = await taskRepo.findAll();
 
-          const totalGenerated =
-            standardResult.totalGenerated + advancedResult.totalGenerated;
-          if (totalGenerated > 0) {
+          if (result.totalGenerated > 0) {
             console.log(
-              `Generated ${totalGenerated} new periodic task instances`
+              `Generated ${result.totalGenerated} new periodic task instances`
             );
           }
 
@@ -136,20 +129,10 @@ export function Planner({ viewMode = 'week' }: PlanningScreenProps) {
           // First, check and generate any pending periodic task instances
           try {
             const periodicService = new PeriodicTaskService();
-
-            // First try the standard generation for overdue tasks
-            const standardResult =
-              await periodicService.checkAndGenerateInstances();
-
-            // Then generate advanced instances for the next 30 days
-            const advancedResult =
-              await periodicService.generateAdvancedInstances(30);
-
-            const totalGenerated =
-              standardResult.totalGenerated + advancedResult.totalGenerated;
-            if (totalGenerated > 0) {
+            const result = await periodicService.checkAndGenerateInstances();
+            if (result.totalGenerated > 0) {
               console.log(
-                `Generated ${totalGenerated} periodic task instances (${standardResult.totalGenerated} overdue, ${advancedResult.totalGenerated} upcoming)`
+                `Generated ${result.totalGenerated} periodic task instances`
               );
             }
           } catch (periodicError) {
