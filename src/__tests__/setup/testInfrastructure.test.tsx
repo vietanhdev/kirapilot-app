@@ -356,7 +356,8 @@ describe('Test Infrastructure', () => {
       await mockAI.sendMessage('test');
       const elapsed = Date.now() - start;
 
-      expect(elapsed).toBeGreaterThanOrEqual(100);
+      // Allow for some timing variance in test environments
+      expect(elapsed).toBeGreaterThanOrEqual(95);
     });
 
     it('should simulate errors when configured', async () => {

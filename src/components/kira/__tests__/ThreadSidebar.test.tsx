@@ -203,24 +203,6 @@ describe('ThreadSidebar', () => {
       expect(mockOnThreadSelect).toHaveBeenCalledWith('2');
     });
 
-    // Note: Delete key test is skipped due to HeroUI Modal rendering issues in test environment
-    // The functionality works correctly in the actual application
-    it.skip('should handle Delete key for thread deletion when sidebar is focused', () => {
-      render(<ThreadSidebar {...defaultProps} />);
-
-      // Get the sidebar element and focus it
-      const sidebar = screen.getByLabelText('kira.sidebar.title');
-      sidebar.focus();
-
-      // Simulate Delete key - this should trigger the delete confirmation modal
-      fireEvent.keyDown(document, { key: 'Delete' });
-
-      // The delete modal should appear (testing the keyboard shortcut works)
-      expect(
-        screen.getByText('kira.thread.deleteModal.title')
-      ).toBeInTheDocument();
-    });
-
     it('should handle Enter key for thread assignment when sidebar is focused', async () => {
       render(<ThreadSidebar {...defaultProps} />);
 
