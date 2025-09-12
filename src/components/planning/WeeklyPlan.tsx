@@ -1,6 +1,6 @@
 // Weekly planning interface with day and week views
 import { useState, useEffect, useMemo } from 'react';
-import { Task, TaskStatus } from '../../types';
+import { Task, TaskStatus, VirtualTask } from '../../types';
 import { WeekView } from './WeekView';
 import { DayView } from './DayView';
 
@@ -9,7 +9,7 @@ import { useTimerContext } from '../../contexts/TimerContext';
 import { useTaskList } from '../../contexts/TaskListContext';
 
 interface WeeklyPlanProps {
-  tasks: Task[];
+  tasks: (Task | VirtualTask)[];
   currentWeek: Date;
   onWeekChange: (date: Date) => void;
   onTaskMove: (
@@ -20,8 +20,8 @@ interface WeeklyPlanProps {
   ) => void;
   onTaskCreate: (task: Task) => Promise<void>;
   onTaskEdit: (taskId: string, updates: Partial<Task>) => void;
-  onTaskStatusChange: (task: Task, status: TaskStatus) => void;
-  onTaskDelete?: (task: Task) => void;
+  onTaskStatusChange: (task: Task | VirtualTask, status: TaskStatus) => void;
+  onTaskDelete?: (task: Task | VirtualTask) => void;
   viewMode?: 'week' | 'day';
   className?: string;
   columnHeight?: number;
@@ -85,7 +85,10 @@ export function WeeklyPlan({
     onTaskMove(taskId, fromColumn, toColumn, date);
   };
 
-  const handleTaskStatusChange = (task: Task, status: TaskStatus) => {
+  const handleTaskStatusChange = (
+    task: Task | VirtualTask,
+    status: TaskStatus
+  ) => {
     if (onTaskStatusChange) {
       onTaskStatusChange(task, status);
     }
@@ -113,7 +116,7 @@ export function WeeklyPlan({
     }
   };
 
-  const handleTaskDelete = (task: Task) => {
+  const handleTaskDelete = (task: Task | VirtualTask) => {
     if (onTaskDelete) {
       onTaskDelete(task);
     }

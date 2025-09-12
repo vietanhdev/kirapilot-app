@@ -1,6 +1,12 @@
 // Modern task card component with enhanced note editing and completion effects
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Task, TaskStatus, TimePreset, Priority } from '../../types';
+import {
+  Task,
+  TaskStatus,
+  TimePreset,
+  Priority,
+  VirtualTask,
+} from '../../types';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -35,16 +41,17 @@ import { TaskModal } from './TaskModal';
 import { ConfirmationDialog } from '../common';
 import { MinimalRichTextEditor } from '../common/MinimalRichTextEditor';
 import { PeriodicTaskService } from '../../services/database/repositories/PeriodicTaskService';
+import { VirtualPeriodicTaskService } from '../../services/database/repositories/VirtualPeriodicTaskService';
 import { PeriodicTaskTemplate } from '../../types';
 
 interface PlanningTaskCardProps {
-  task: Task;
+  task: Task | VirtualTask;
   onEdit?: (updatedTask: Partial<Task>) => void;
   onStatusChange?: (status: TaskStatus) => void;
   onTimerStart?: (task: Task) => void;
   onTimerPause?: (task: Task) => void;
   onTimerStop?: (task: Task) => void;
-  onDelete?: (task: Task) => void;
+  onDelete?: (task: Task | VirtualTask) => void;
   onViewTimeHistory?: (task: Task) => void;
   onViewPeriodicTemplate?: (templateId: string) => void;
   activeTimerTaskId?: string | null;
@@ -508,6 +515,7 @@ export function TaskCard({
   const hasNotes = task.description && task.description.trim().length > 0;
   const isTimerActive = activeTimerTaskId === task.id;
   const isEditing = editMode !== 'none';
+  const isVirtual = VirtualPeriodicTaskService.isVirtualTask(task);
 
   return (
     <div
@@ -576,8 +584,20 @@ export function TaskCard({
 
                   {/* Minimal indicators on the right - always visible */}
                   <div className='flex items-center space-x-1 shrink-0 ml-2'>
+                    {/* Virtual task indicator */}
+                    {isVirtual && (
+                      <div
+                        className='flex items-center space-x-0.5'
+                        title='Virtual recurring task'
+                      >
+                        <div className='w-3 h-3 border border-dashed border-blue-500 dark:border-blue-400 rounded-sm flex items-center justify-center'>
+                          <Repeat className='w-2 h-2 text-blue-500 dark:text-blue-400' />
+                        </div>
+                      </div>
+                    )}
+
                     {/* Periodic instance indicator */}
-                    {task.isPeriodicInstance && (
+                    {task.isPeriodicInstance && !isVirtual && (
                       <div
                         className='flex items-center space-x-0.5'
                         title={t('tasks.periodicInstance')}
@@ -860,8 +880,8 @@ export function TaskCard({
               <div className='flex items-center justify-between transition-all duration-200'>
                 {/* Timer Controls - Left side */}
                 <div className='flex items-center space-x-0.5'>
-                  {/* Start Timer Button - Always visible when not completed */}
-                  {onTimerStart && !isCompleted && (
+                  {/* Start Timer Button - Always visible when not completed and not virtual */}
+                  {onTimerStart && !isCompleted && !isVirtual && (
                     <button
                       onClick={handleTimerClick}
                       onMouseDown={e => e.stopPropagation()}
@@ -898,8 +918,8 @@ export function TaskCard({
                     </button>
                   )}
 
-                  {/* Stop Timer Button - Only show when timer is active */}
-                  {isTimerActive && onTimerStop && (
+                  {/* Stop Timer Button - Only show when timer is active and not virtual */}
+                  {isTimerActive && onTimerStop && !isVirtual && (
                     <button
                       onClick={handleTimerStop}
                       onMouseDown={e => e.stopPropagation()}
@@ -939,22 +959,27 @@ export function TaskCard({
                     )}
                   </button>
 
-                  {/* Session Logs Button */}
+                  {/* Session Logs Button - Disabled for virtual tasks */}
                   <button
-                    onClick={handleViewTimeHistory}
+                    onClick={isVirtual ? undefined : handleViewTimeHistory}
                     onMouseDown={e => e.stopPropagation()}
                     onPointerDown={e => e.stopPropagation()}
+                    disabled={isVirtual}
                     className={`p-1.5 rounded transition-all duration-200 ${
-                      task.actualTime > 0
-                        ? 'bg-purple-50 dark:bg-purple-900/10 text-purple-600 dark:text-purple-400'
-                        : 'text-slate-400 dark:text-slate-500'
-                    } hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:text-purple-600 dark:hover:text-purple-400`}
+                      isVirtual
+                        ? 'text-slate-300 dark:text-slate-600 cursor-not-allowed'
+                        : task.actualTime > 0
+                          ? 'bg-purple-50 dark:bg-purple-900/10 text-purple-600 dark:text-purple-400'
+                          : 'text-slate-400 dark:text-slate-500'
+                    } ${!isVirtual ? 'hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:text-purple-600 dark:hover:text-purple-400' : ''}`}
                     title={
-                      task.actualTime > 0
-                        ? t('tasks.sessionLogsWithTime', {
-                            time: task.actualTime,
-                          })
-                        : t('tasks.sessionLogs')
+                      isVirtual
+                        ? 'Virtual tasks have no time history'
+                        : task.actualTime > 0
+                          ? t('tasks.sessionLogsWithTime', {
+                              time: task.actualTime,
+                            })
+                          : t('tasks.sessionLogs')
                     }
                   >
                     <History className='w-3 h-3' />

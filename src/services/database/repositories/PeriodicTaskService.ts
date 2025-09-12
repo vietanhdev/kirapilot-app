@@ -383,7 +383,7 @@ export class PeriodicTaskService {
       const result = await invoke<Record<string, unknown>>(
         'generate_instance_from_template',
         {
-          template_id: templateId,
+          templateId: templateId,
         }
       );
       const task = this.transformTaskFromBackend(result);

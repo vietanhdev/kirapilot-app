@@ -488,7 +488,8 @@ async fn generate_pending_instances() -> Result<Vec<serde_json::Value>, String> 
 }
 
 #[tauri::command]
-async fn generate_instance_from_template(template_id: String) -> Result<serde_json::Value, String> {
+async fn generate_instance_from_template(#[allow(non_snake_case)] templateId: String) -> Result<serde_json::Value, String> {
+    let template_id = templateId; // Convert to snake_case for Rust convention
     let db = get_database()
         .await
         .map_err(|e| format!("Database error: {}", e))?;

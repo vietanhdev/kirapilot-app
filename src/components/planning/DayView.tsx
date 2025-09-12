@@ -11,7 +11,7 @@ import {
   DragOverlay,
 } from '@dnd-kit/core';
 import { arrayMove } from '@dnd-kit/sortable';
-import { Task, TaskStatus, TaskTimerProps } from '../../types';
+import { Task, TaskStatus, TaskTimerProps, VirtualTask } from '../../types';
 import { TaskColumn } from './TaskColumn';
 import { TaskCard } from './TaskCard';
 import { TaskModal } from './TaskModal';
@@ -31,7 +31,7 @@ import {
 } from 'lucide-react';
 
 interface DayViewProps {
-  tasks: Task[];
+  tasks: (Task | VirtualTask)[];
   selectedDate: Date;
   onDateChange: (date: Date) => void;
   onTaskMove: (
@@ -41,10 +41,10 @@ interface DayViewProps {
     date?: Date
   ) => void;
   onTaskEdit: (task: Task) => void;
-  onTaskStatusChange: (task: Task, status: TaskStatus) => void;
+  onTaskStatusChange: (task: Task | VirtualTask, status: TaskStatus) => void;
   onTaskCreate: (task: Task) => Promise<void>;
   onInlineEdit?: (taskId: string, updates: Partial<Task>) => void;
-  onTaskDelete?: (task: Task) => void;
+  onTaskDelete?: (task: Task | VirtualTask) => void;
   onViewTimeHistory?: (task: Task) => void;
   getTaskTimerProps?: (task: Task) => TaskTimerProps;
   className?: string;

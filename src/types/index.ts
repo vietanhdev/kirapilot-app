@@ -74,6 +74,12 @@ export interface Task {
   updatedAt: Date;
 }
 
+export interface VirtualTask extends Task {
+  isVirtual: true;
+  virtualId: string; // Unique identifier for virtual tasks
+  originalTemplateId: string;
+}
+
 export interface CreateTaskRequest {
   title: string;
   description?: string;

@@ -1,8 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Task, TaskStatus, TaskFilters } from '../../types';
+import { Task, TaskStatus, TaskFilters, VirtualTask } from '../../types';
 import { useDatabase } from '../../hooks/useDatabase';
 import { getTaskRepository } from '../../services/database/repositories';
 import { PeriodicTaskService } from '../../services/database/repositories/PeriodicTaskService';
+import { VirtualPeriodicTaskService } from '../../services/database/repositories/VirtualPeriodicTaskService';
 import { useTaskList } from '../../contexts/TaskListContext';
 import { WeeklyPlan } from './WeeklyPlan';
 import { TaskFilterBar } from './TaskFilterBar';
@@ -14,6 +15,7 @@ interface PlanningScreenProps {
 export function Planner({ viewMode = 'week' }: PlanningScreenProps) {
   const { isInitialized } = useDatabase();
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [virtualTasks, setVirtualTasks] = useState<VirtualTask[]>([]);
   const [currentWeek, setCurrentWeek] = useState(new Date());
   const [filters, setFilters] = useState<TaskFilters>({});
   const [windowSize, setWindowSize] = useState({
@@ -25,9 +27,14 @@ export function Planner({ viewMode = 'week' }: PlanningScreenProps) {
   const { currentSelection, getSelectedTaskListId, isAllSelected } =
     useTaskList();
 
+  // Combine real tasks and virtual tasks
+  const allTasks = useMemo(() => {
+    return [...tasks, ...virtualTasks];
+  }, [tasks, virtualTasks]);
+
   // Filter tasks based on current task list selection and additional filters
   const filteredTasks = useMemo(() => {
-    let filtered = tasks;
+    let filtered = allTasks;
 
     // First apply task list filtering
     if (!isAllSelected()) {
@@ -47,7 +54,13 @@ export function Planner({ viewMode = 'week' }: PlanningScreenProps) {
     }
 
     return filtered;
-  }, [tasks, currentSelection, getSelectedTaskListId, isAllSelected, filters]);
+  }, [
+    allTasks,
+    currentSelection,
+    getSelectedTaskListId,
+    isAllSelected,
+    filters,
+  ]);
 
   // Track window size changes
   useEffect(() => {
@@ -82,6 +95,9 @@ export function Planner({ viewMode = 'week' }: PlanningScreenProps) {
           }
 
           setTasks(dbTasks);
+
+          // Refresh virtual tasks with updated real tasks
+          await loadVirtualTasks(dbTasks);
         } catch (error) {
           console.warn(
             'Failed to refresh tasks after periodic task update:',
@@ -101,7 +117,7 @@ export function Planner({ viewMode = 'week' }: PlanningScreenProps) {
         handlePeriodicTasksUpdate
       );
     };
-  }, [isInitialized]);
+  }, [isInitialized, currentWeek, viewMode]);
 
   // Calculate dynamic column height based on window size
   const getColumnHeight = () => {
@@ -118,6 +134,44 @@ export function Planner({ viewMode = 'week' }: PlanningScreenProps) {
     } else {
       // Use 3/4 of available height on larger screens (minimum 400px)
       return Math.max(400, availableHeight * 0.75);
+    }
+  };
+
+  // Load virtual tasks for the current view
+  const loadVirtualTasks = async (realTasks: Task[]) => {
+    try {
+      if (!isInitialized) {
+        setVirtualTasks([]);
+        return;
+      }
+
+      const virtualService = new VirtualPeriodicTaskService();
+      let virtualTasksToShow: VirtualTask[] = [];
+
+      if (viewMode === 'week') {
+        // Calculate week start (Monday)
+        const weekStart = new Date(currentWeek);
+        const day = weekStart.getDay();
+        const diff = weekStart.getDate() - day + (day === 0 ? -6 : 1);
+        weekStart.setDate(diff);
+        weekStart.setHours(0, 0, 0, 0);
+
+        virtualTasksToShow = await virtualService.getVirtualTasksForWeek(
+          weekStart,
+          realTasks
+        );
+      } else {
+        // Day view - show virtual tasks for the current week's selected day
+        virtualTasksToShow = await virtualService.getVirtualTasksForDay(
+          currentWeek,
+          realTasks
+        );
+      }
+
+      setVirtualTasks(virtualTasksToShow);
+    } catch (error) {
+      console.error('Failed to load virtual tasks:', error);
+      setVirtualTasks([]);
     }
   };
 
@@ -158,11 +212,15 @@ export function Planner({ viewMode = 'week' }: PlanningScreenProps) {
           }
 
           setTasks(dbTasks);
+
+          // Load virtual tasks after real tasks are loaded
+          await loadVirtualTasks(dbTasks);
         } else {
           // Clear and reinitialize sample data for testing
           localStorage.removeItem('kirapilot-mock-db');
           const sampleTasks: Task[] = [];
           setTasks(sampleTasks);
+          setVirtualTasks([]);
         }
       } catch (error) {
         console.error('Failed to load tasks:', error);
@@ -170,11 +228,12 @@ export function Planner({ viewMode = 'week' }: PlanningScreenProps) {
         localStorage.removeItem('kirapilot-mock-db');
         const fallbackTasks: Task[] = [];
         setTasks(fallbackTasks);
+        setVirtualTasks([]);
       }
     };
 
     loadTasks();
-  }, [isInitialized]);
+  }, [isInitialized, currentWeek, viewMode]);
 
   const handleTaskMove = async (
     taskId: string,
@@ -182,11 +241,42 @@ export function Planner({ viewMode = 'week' }: PlanningScreenProps) {
     toColumn: string,
     date?: Date
   ) => {
+    // Check if this is a virtual task
+    const virtualTask = virtualTasks.find(t => t.id === taskId);
+    if (virtualTask) {
+      // Materialize the virtual task first
+      try {
+        const virtualService = new VirtualPeriodicTaskService();
+        const realTask =
+          await virtualService.materializeVirtualTask(virtualTask);
+
+        // Remove the virtual task and add the real task
+        setVirtualTasks(prev => prev.filter(t => t.id !== taskId));
+        setTasks(prev => [realTask, ...prev]);
+
+        // Now handle the move with the real task
+        await handleTaskMoveInternal(realTask, _fromColumn, toColumn, date);
+        return;
+      } catch (error) {
+        console.error('Failed to materialize virtual task:', error);
+        return;
+      }
+    }
+
     const task = tasks.find(t => t.id === taskId);
     if (!task) {
       return;
     }
 
+    await handleTaskMoveInternal(task, _fromColumn, toColumn, date);
+  };
+
+  const handleTaskMoveInternal = async (
+    task: Task,
+    _fromColumn: string,
+    toColumn: string,
+    date?: Date
+  ) => {
     let newScheduledDate: Date | undefined;
 
     // Determine new scheduled date based on target column
@@ -219,17 +309,17 @@ export function Planner({ viewMode = 'week' }: PlanningScreenProps) {
       // Update in database
       if (isInitialized) {
         const taskRepo = getTaskRepository();
-        await taskRepo.update(taskId, {
+        await taskRepo.update(task.id, {
           scheduledDate: newScheduledDate,
         });
       }
 
       // Update local state
-      setTasks(prev => prev.map(t => (t.id === taskId ? updatedTask : t)));
+      setTasks(prev => prev.map(t => (t.id === task.id ? updatedTask : t)));
     } catch (error) {
       console.error('Failed to update task in database:', error);
       // Still update local state as fallback
-      setTasks(prev => prev.map(t => (t.id === taskId ? updatedTask : t)));
+      setTasks(prev => prev.map(t => (t.id === task.id ? updatedTask : t)));
     }
   };
 
@@ -267,6 +357,35 @@ export function Planner({ viewMode = 'week' }: PlanningScreenProps) {
   };
 
   const handleTaskEdit = async (taskId: string, updates: Partial<Task>) => {
+    // Check if this is a virtual task
+    const virtualTask = virtualTasks.find(t => t.id === taskId);
+    if (virtualTask) {
+      // Materialize the virtual task first
+      try {
+        const virtualService = new VirtualPeriodicTaskService();
+        const realTask =
+          await virtualService.materializeVirtualTask(virtualTask);
+
+        // Remove the virtual task and add the real task
+        setVirtualTasks(prev => prev.filter(t => t.id !== taskId));
+        setTasks(prev => [realTask, ...prev]);
+
+        // Now handle the edit with the real task
+        await handleTaskEditInternal(realTask.id, updates);
+        return;
+      } catch (error) {
+        console.error('Failed to materialize virtual task:', error);
+        throw error;
+      }
+    }
+
+    await handleTaskEditInternal(taskId, updates);
+  };
+
+  const handleTaskEditInternal = async (
+    taskId: string,
+    updates: Partial<Task>
+  ) => {
     try {
       // Update in database
       if (isInitialized) {
@@ -288,7 +407,37 @@ export function Planner({ viewMode = 'week' }: PlanningScreenProps) {
     }
   };
 
-  const handleTaskStatusChange = async (task: Task, status: TaskStatus) => {
+  const handleTaskStatusChange = async (
+    task: Task | VirtualTask,
+    status: TaskStatus
+  ) => {
+    // Check if this is a virtual task
+    if (VirtualPeriodicTaskService.isVirtualTask(task)) {
+      // Materialize the virtual task first
+      try {
+        const virtualService = new VirtualPeriodicTaskService();
+        const realTask = await virtualService.materializeVirtualTask(task);
+
+        // Remove the virtual task and add the real task
+        setVirtualTasks(prev => prev.filter(t => t.id !== task.id));
+        setTasks(prev => [realTask, ...prev]);
+
+        // Now handle the status change with the real task
+        await handleTaskStatusChangeInternal(realTask, status);
+        return;
+      } catch (error) {
+        console.error('Failed to materialize virtual task:', error);
+        return;
+      }
+    }
+
+    await handleTaskStatusChangeInternal(task, status);
+  };
+
+  const handleTaskStatusChangeInternal = async (
+    task: Task,
+    status: TaskStatus
+  ) => {
     console.debug(
       'Starting task status change:',
       task.title,
@@ -370,7 +519,14 @@ export function Planner({ viewMode = 'week' }: PlanningScreenProps) {
     }
   };
 
-  const handleTaskDelete = async (task: Task) => {
+  const handleTaskDelete = async (task: Task | VirtualTask) => {
+    // Check if this is a virtual task
+    if (VirtualPeriodicTaskService.isVirtualTask(task)) {
+      // For virtual tasks, just remove from virtual tasks list
+      setVirtualTasks(prev => prev.filter(t => t.id !== task.id));
+      return;
+    }
+
     try {
       // Delete from database
       if (isInitialized) {
