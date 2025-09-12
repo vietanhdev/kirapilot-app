@@ -8,6 +8,7 @@ export { MinimalRichTextEditor } from './MinimalRichTextEditor';
 export { RichTextEditor } from './RichTextEditor';
 export { ConfirmationDialog } from './ConfirmationDialog';
 export { ErrorDisplay } from './ErrorDisplay';
+export { ToastContainer } from './ToastContainer';
 export { Header } from './Header';
 export { AppLogo } from './AppLogo';
 export { TaskListDropdown } from './TaskListDropdown';

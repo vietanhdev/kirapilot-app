@@ -2,6 +2,7 @@ export { useAutoScroll } from './useAutoScroll';
 export { useClipboard } from './useClipboard';
 export { useDatabase } from './useDatabase';
 export { useNotifications } from './useNotifications';
+export { useToast, useToastHelpers } from './useToast';
 export { usePrivacyAware } from './usePrivacyAware';
 export { useSimpleTimer } from './useSimpleTimer';
 export { useTaskWithPreferences } from './useTaskWithPreferences';
@@ -24,3 +25,5 @@ export {
   useCurrentContextInsights,
   useWorkingStyleInsights,
 } from './useProductivityInsights';
+export { useThreads } from './useThreads';
+export { useThreadMessages } from './useThreadMessages';

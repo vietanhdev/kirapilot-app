@@ -241,6 +241,15 @@ export class TaskListService implements ITaskListService {
       parentTaskId: backendTask.parent_task_id as string | undefined,
       subtasks: this.parseJsonField(backendTask.subtasks as string | null, []),
       taskListId: (backendTask.task_list_id as string) || 'default-task-list',
+      // Periodic task properties
+      periodicTemplateId: backendTask.periodic_template_id as
+        | string
+        | undefined,
+      isPeriodicInstance:
+        (backendTask.is_periodic_instance as boolean) || false,
+      generationDate: backendTask.generation_date
+        ? new Date(backendTask.generation_date as string)
+        : undefined,
       completedAt: backendTask.completed_at
         ? new Date(backendTask.completed_at as string)
         : undefined,

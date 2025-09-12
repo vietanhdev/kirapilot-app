@@ -6,13 +6,17 @@ export const en = {
   'common.done': 'Done',
   'common.saving': 'Saving...',
   'common.saved': 'Saved',
+  'common.creating': 'Creating...',
+  'common.loading': 'Loading...',
+  'common.sending': 'Sending...',
+  'common.deleting': 'Deleting...',
+  'common.updating': 'Updating...',
   'common.unsavedChanges': 'Unsaved changes',
   'common.saveAndExit': 'Save and exit',
   'common.edit': 'Edit',
   'common.add': 'Add',
   'common.remove': 'Remove',
   'common.confirm': 'Confirm',
-  'common.loading': 'Loading...',
   'common.error': 'Error',
   'common.success': 'Success',
   'common.warning': 'Warning',
@@ -21,6 +25,7 @@ export const en = {
   'common.hide': 'Hide',
   'common.showLess': 'Show Less',
   'common.showMoreActions': 'Show more actions',
+  'common.viewDetails': 'View details',
   'common.clearDatabase': 'Clear Database (Dev Only)',
   'common.clearDatabaseConfirm':
     'Are you sure you want to clear all database data? This action cannot be undone.',
@@ -28,6 +33,7 @@ export const en = {
   // Navigation
   'nav.week': 'Week',
   'nav.day': 'Day',
+  'nav.recurring': 'Recurring Tasks',
   'nav.reports': 'Reports',
   'nav.logs': 'Logs',
   'nav.settings': 'Settings',
@@ -390,6 +396,12 @@ export const en = {
   'priority.high': 'High',
   'priority.urgent': 'Urgent',
 
+  // Status levels
+  'status.pending': 'Pending',
+  'status.inProgress': 'In Progress',
+  'status.completed': 'Completed',
+  'status.cancelled': 'Cancelled',
+
   // Response styles
   'responseStyle.concise': 'Concise',
   'responseStyle.balanced': 'Balanced',
@@ -457,8 +469,13 @@ export const en = {
   'task.schedule': 'Schedule',
   'task.scheduleTask': 'Schedule Task',
   'task.scheduleTaskForLater': 'Schedule this task for later',
+  'task.periodicInstance': 'Recurring',
   'tasks.expandEditor': 'Expand editor',
   'tasks.collapseEditor': 'Collapse editor',
+  'tasks.periodicInstance': 'Recurring task',
+  'tasks.fromTemplate': 'From template',
+  'tasks.viewTemplate': 'View template',
+  'tasks.generated': 'Generated',
 
   // Task Sorting
   'tasks.sort.title': 'Title',
@@ -582,6 +599,165 @@ export const en = {
   'ai.actions.copied': 'Copied!',
   'ai.actions.regenerate': 'Regenerate response',
 
+  // Kira Chat View
+  'kira.sidebar.title': 'Conversations',
+  'kira.sidebar.newThread': 'New Thread',
+  'kira.sidebar.noThreads': 'No conversations yet',
+  'kira.sidebar.threadCount': '{count} conversations',
+  'kira.sidebar.empty.title': 'Start a Conversation',
+  'kira.sidebar.empty.description':
+    'Create your first thread to begin chatting with Kira AI.',
+  'kira.sidebar.empty.createFirst': 'Create First Thread',
+  'kira.thread.general': 'General',
+  'kira.thread.assigned': 'Assigned',
+  'kira.thread.untitled': 'Untitled Thread',
+  'kira.thread.assign': 'Assign Thread',
+  'kira.thread.delete': 'Delete Thread',
+  'kira.thread.actions': 'Thread actions',
+  'kira.thread.messageCount': '{count} messages',
+  'kira.thread.lastUpdated': 'Last updated',
+  'kira.thread.createdOn': 'Created on',
+  'kira.thread.noActivity': 'No recent activity',
+  'kira.thread.deleteModal.title': 'Delete Thread',
+  'kira.thread.deleteModal.message':
+    'Are you sure you want to delete "{title}"?',
+  'kira.thread.deleteModal.warning':
+    'This action cannot be undone and will delete all messages in this thread.',
+
+  // Thread Assignment
+  'kira.assignment.modal.title': 'Assign Thread',
+  'kira.assignment.modal.subtitle': 'Assign "{title}" to provide context',
+  'kira.assignment.modal.assign': 'Assign Thread',
+  'kira.assignment.modal.update': 'Update Assignment',
+  'kira.assignment.type.title': 'Assignment Type',
+  'kira.assignment.general.title': 'General Conversation',
+  'kira.assignment.general.badge': 'Default',
+  'kira.assignment.general.description':
+    'A general conversation without specific context',
+  'kira.assignment.task.title': 'Task-Specific',
+  'kira.assignment.task.badge': 'Focused',
+  'kira.assignment.task.description':
+    'Get help with a specific task and its details',
+  'kira.assignment.task.selectTitle': 'Select Task',
+  'kira.assignment.task.selectPlaceholder': 'Choose a task...',
+  'kira.assignment.task.noTasks': 'No active tasks available',
+  'kira.assignment.task.createFirst':
+    'Create a task first to assign this thread',
+  'kira.assignment.day.title': 'Day Planning',
+  'kira.assignment.day.badge': 'Scheduled',
+  'kira.assignment.day.description':
+    'Focus on tasks and schedule for a specific day',
+  'kira.assignment.day.selectTitle': 'Select Date',
+  'kira.assignment.day.selectLabel': 'Choose date',
+  'kira.assignment.day.contextInfo':
+    'AI will have access to tasks scheduled for this day',
+  'kira.assignment.current.title': 'Current Assignment',
+
+  // Kira Chat Area
+  'kira.chat.noThreadSelected': 'No Thread Selected',
+  'kira.chat.selectThreadToStart':
+    'Select a thread from the sidebar to start chatting with Kira AI.',
+  'kira.chat.assignedToTask': 'Assigned to task',
+  'kira.chat.assignedToDay': 'Assigned to day',
+  'kira.chat.generalThread': 'General conversation',
+  'kira.chat.sendMessage': 'Send message',
+  'kira.chat.messagePlaceholder': 'Type your message...',
+  'kira.chat.messageInputLabel': 'Message input field',
+  'kira.chat.sendButtonHint': 'Click to send message or press Enter',
+  'kira.chat.characterCount': '{{current}} of {{max}} characters used',
+  'kira.chat.sending': 'Sending...',
+  'kira.chat.enterToSend': 'Press Enter to send, Shift+Enter for new line',
+  'kira.chat.noMessages': 'Start the conversation by sending a message below.',
+  'kira.chat.validation.messageEmpty': 'Message cannot be empty',
+  'kira.chat.validation.messageTooLong':
+    'Message is too long (maximum 10,000 characters)',
+
+  // Keyboard shortcuts
+  'kira.shortcuts.newThread': 'Ctrl/Cmd+N to create new thread',
+  'kira.shortcuts.navigation': 'Arrow keys to navigate threads',
+  'kira.shortcuts.delete': 'Delete key to remove thread',
+  'kira.shortcuts.sidebar':
+    'Use arrow keys to navigate, Delete to remove, Ctrl/Cmd+N for new thread',
+  'kira.chat.validation.messageInvalid': 'Message contains invalid characters',
+
+  // Recurrence Patterns
+  'recurrence.pattern': 'Recurrence Pattern',
+  'recurrence.selectPattern': 'Select recurrence pattern',
+  'recurrence.daily': 'Daily',
+  'recurrence.daily.description': 'Repeats every day',
+  'recurrence.weekly': 'Weekly',
+  'recurrence.weekly.description': 'Repeats every week',
+  'recurrence.biweekly': 'Biweekly',
+  'recurrence.biweekly.description': 'Repeats every 2 weeks',
+  'recurrence.everyThreeWeeks': 'Every 3 weeks',
+  'recurrence.everyThreeWeeks.description': 'Repeats every 3 weeks',
+  'recurrence.monthly': 'Monthly',
+  'recurrence.monthly.description': 'Repeats every month',
+  'recurrence.custom': 'Custom',
+  'recurrence.custom.description': 'Custom interval',
+  'recurrence.interval': 'Interval',
+  'recurrence.unit': 'Unit',
+  'recurrence.selectUnit': 'Select unit',
+  'recurrence.unit.days': 'Days',
+  'recurrence.unit.day': 'Day',
+  'recurrence.unit.weeks': 'Weeks',
+  'recurrence.unit.week': 'Week',
+  'recurrence.unit.months': 'Months',
+  'recurrence.unit.month': 'Month',
+  'recurrence.summary': 'Summary',
+  'recurrence.every': 'Every',
+  'recurrence.nextDates': 'Next dates',
+
+  // Periodic Tasks
+  'periodicTasks.title': 'Recurring Tasks',
+  'periodicTasks.description':
+    'Manage templates for automatically recurring tasks',
+  'periodicTasks.createTemplate': 'Create Template',
+  'periodicTask.modal.title.create': 'Create Periodic Task Template',
+  'periodicTask.modal.title.edit': 'Edit Periodic Task Template',
+  'periodicTask.modal.label.title': 'Task Title',
+  'periodicTask.modal.placeholder.title': 'Enter task title...',
+  'periodicTask.modal.label.description': 'Description',
+  'periodicTask.modal.placeholder.description': 'Describe the task...',
+  'periodicTask.modal.label.taskList': 'Task List',
+  'periodicTask.modal.placeholder.taskList': 'Select a task list',
+  'periodicTask.modal.label.priority': 'Priority',
+  'periodicTask.modal.placeholder.priority': 'Select priority',
+  'periodicTask.modal.label.timeEstimate': 'Time Estimate (minutes)',
+  'periodicTask.modal.placeholder.timeEstimate': 'Enter time estimate...',
+  'periodicTask.modal.label.startDate': 'Start Date',
+  'periodicTask.modal.placeholder.tag': 'Add a tag...',
+  'periodicTask.modal.label.status': 'Template Status',
+  'periodicTask.modal.status.active.description':
+    'Template will generate new task instances',
+  'periodicTask.modal.status.paused.description':
+    'Template is paused and will not generate instances',
+  'periodicTask.modal.button.createTemplate': 'Create Template',
+  'periodicTask.modal.button.saveChanges': 'Save Changes',
+
+  // Kira Error Messages
+  'kira.errors.threadCreate': 'Failed to create thread',
+  'kira.errors.threadLoad': 'Failed to load threads',
+  'kira.errors.threadDelete': 'Failed to delete thread',
+  'kira.errors.threadAssign': 'Failed to assign thread',
+  'kira.errors.messageLoad': 'Failed to load messages',
+  'kira.errors.messageSend': 'Failed to send message',
+  'kira.errors.messageFeedback': 'Failed to submit feedback',
+  'kira.errors.messageRegenerate': 'Failed to regenerate response',
+  'kira.errors.noThreadSelected': 'No thread selected',
+  'kira.errors.databaseConnection': 'Database connection error',
+  'kira.errors.aiServiceUnavailable': 'AI service temporarily unavailable',
+  'kira.errors.networkError': 'Network connection error',
+  'kira.errors.retryFailed': 'Retry operation failed',
+
+  // Kira Success Messages
+  'kira.success.threadCreated': 'Thread created successfully',
+  'kira.success.threadDeleted': 'Thread deleted successfully',
+  'kira.success.threadAssigned': 'Thread assigned successfully',
+  'kira.success.messageSent': 'Message sent successfully',
+  'kira.success.feedbackSubmitted': 'Feedback submitted successfully',
+  'kira.success.responseRegenerated': 'Response regenerated successfully',
+
   // Task Modal
   'task.modal.title.create': 'Create New Task',
   'task.modal.title.edit': 'Edit Task',
@@ -604,6 +780,17 @@ export const en = {
   'task.modal.placeholder.taskList': 'Select task list',
   'task.modal.button.saveChanges': 'Save Changes',
   'task.modal.button.createTask': 'Create Task',
+
+  // Task Filters
+  'filters.searchPlaceholder': 'Search tasks...',
+  'filters.status': 'Status',
+  'filters.priority': 'Priority',
+  'filters.clear': 'Clear',
+  'filters.active': 'active',
+  'filters.periodic.label': 'Task Type',
+  'filters.periodic.all': 'All Tasks',
+  'filters.periodic.instancesOnly': 'Recurring Only',
+  'filters.periodic.regularOnly': 'Regular Only',
 
   // Time Presets
   'timePreset.fifteenMin': '15 min',
@@ -761,6 +948,7 @@ export const en = {
   'ai.feedback.notHelpful': 'Not helpful',
   'ai.feedback.rateDetailed': 'Rate in detail',
   'ai.feedback.thankYou': 'Thank you!',
+  'ai.feedback.submitted': 'Feedback submitted',
 
   // Feedback Modal
   'ai.feedback.modal.title': 'Rate AI Response',

@@ -47,6 +47,9 @@ interface TaskModalProps {
   task?: Task | null; // If provided, we're editing; if null/undefined, we're creating
   defaultDate?: Date;
   className?: string;
+  // Periodic task support
+  periodicTemplateId?: string; // If provided, create as periodic instance
+  isPeriodicInstance?: boolean; // Whether this is a periodic instance
 }
 
 interface FormData {
@@ -68,6 +71,8 @@ export function TaskModal({
   onUpdateTask,
   task,
   defaultDate,
+  periodicTemplateId,
+  isPeriodicInstance = false,
 }: TaskModalProps) {
   const { t } = useTranslation();
   const { preferences } = useSettings();
@@ -287,6 +292,10 @@ export function TaskModal({
           scheduledDate: formData.scheduledDate,
           taskListId: formData.taskListId,
           tags: formData.tags,
+          // Periodic task properties
+          periodicTemplateId: periodicTemplateId,
+          isPeriodicInstance: isPeriodicInstance,
+          generationDate: isPeriodicInstance ? new Date() : undefined,
           completedAt: undefined,
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -480,6 +489,16 @@ export function TaskModal({
                   ? t('task.modal.title.edit')
                   : t('task.modal.title.create')}
               </h2>
+              {(task?.isPeriodicInstance || isPeriodicInstance) && (
+                <Chip
+                  size='sm'
+                  variant='flat'
+                  color='secondary'
+                  startContent={<Timer className='w-3 h-3' />}
+                >
+                  {t('task.periodicInstance')}
+                </Chip>
+              )}
             </div>
           </ModalHeader>
 

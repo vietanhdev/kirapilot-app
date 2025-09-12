@@ -70,6 +70,31 @@ jest.mock('../../common', () => ({
   ConfirmationDialog: () => <div data-testid='confirmation-dialog' />,
 }));
 
+// Mock the PeriodicTaskService
+jest.mock(
+  '../../../services/database/repositories/PeriodicTaskService',
+  () => ({
+    PeriodicTaskService: jest.fn().mockImplementation(() => ({
+      findTemplateById: jest.fn().mockResolvedValue({
+        id: 'template-1',
+        title: 'Daily Standup',
+        description: 'Daily team standup meeting',
+        priority: Priority.MEDIUM,
+        timeEstimate: 30,
+        tags: ['work', 'meeting'],
+        taskListId: 'work-list',
+        recurrenceType: 'daily',
+        recurrenceInterval: 1,
+        startDate: new Date('2024-01-01'),
+        nextGenerationDate: new Date('2024-01-02'),
+        isActive: true,
+        createdAt: new Date('2024-01-01'),
+        updatedAt: new Date('2024-01-01'),
+      }),
+    })),
+  })
+);
+
 const mockTask: Task = {
   id: '1',
   title: 'Test Task',
@@ -84,6 +109,7 @@ const mockTask: Task = {
   tags: ['test'],
   subtasks: [],
   taskListId: 'list-1',
+  isPeriodicInstance: false,
   createdAt: new Date(),
   updatedAt: new Date(),
 };
@@ -411,5 +437,192 @@ describe('TaskCard Urgency Indicators', () => {
       '[title="Urgent Priority"]'
     );
     expect(urgencyContainer).toBeInTheDocument();
+  });
+});
+
+describe('TaskCard Periodic Task Features', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('shows periodic instance indicator for periodic tasks', () => {
+    const periodicTask = {
+      ...mockTask,
+      isPeriodicInstance: true,
+      periodicTemplateId: 'template-1',
+      generationDate: new Date('2024-01-15'),
+    };
+
+    render(<TaskCard {...defaultProps} task={periodicTask} />);
+
+    // Should show the repeat icon indicator
+    expect(screen.getByTitle('tasks.periodicInstance')).toBeInTheDocument();
+  });
+
+  it('does not show periodic instance indicator for regular tasks', () => {
+    const regularTask = {
+      ...mockTask,
+      isPeriodicInstance: false,
+    };
+
+    render(<TaskCard {...defaultProps} task={regularTask} />);
+
+    // Should not show the repeat icon indicator
+    expect(
+      screen.queryByTitle('tasks.periodicInstance')
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows generation date for periodic instances', () => {
+    const periodicTask = {
+      ...mockTask,
+      isPeriodicInstance: true,
+      periodicTemplateId: 'template-1',
+      generationDate: new Date('2024-01-15'),
+    };
+
+    const { container } = render(
+      <TaskCard {...defaultProps} task={periodicTask} />
+    );
+
+    // Should show generation date - look for calendar icon with the date
+    const calendarIcons = container.querySelectorAll('svg.lucide-calendar');
+    expect(calendarIcons.length).toBeGreaterThan(0);
+
+    // Should show the formatted date
+    const dateElements = screen.getAllByText((content, element) => {
+      return element?.textContent?.includes('1/15/2024') || false;
+    });
+    expect(dateElements.length).toBeGreaterThan(0);
+  });
+
+  it('shows template relationship for periodic instances', async () => {
+    const periodicTask = {
+      ...mockTask,
+      isPeriodicInstance: true,
+      periodicTemplateId: 'template-1',
+      generationDate: new Date('2024-01-15'),
+    };
+
+    render(<TaskCard {...defaultProps} task={periodicTask} />);
+
+    // Should show template relationship (after loading)
+    const templateElements = await screen.findAllByText((content, element) => {
+      return element?.textContent?.includes('Daily Standup') || false;
+    });
+    expect(templateElements.length).toBeGreaterThan(0);
+    const fromTemplateElements = screen.getAllByText((content, element) => {
+      return element?.textContent?.includes('tasks.fromTemplate') || false;
+    });
+    expect(fromTemplateElements.length).toBeGreaterThan(0);
+  });
+
+  it('shows view template button for periodic instances with onViewPeriodicTemplate handler', async () => {
+    const periodicTask = {
+      ...mockTask,
+      isPeriodicInstance: true,
+      periodicTemplateId: 'template-1',
+      generationDate: new Date('2024-01-15'),
+    };
+
+    const mockOnViewPeriodicTemplate = jest.fn();
+
+    const { container } = render(
+      <TaskCard
+        {...defaultProps}
+        task={periodicTask}
+        onViewPeriodicTemplate={mockOnViewPeriodicTemplate}
+      />
+    );
+
+    // Wait for template to load
+    const templateElements = await screen.findAllByText((content, element) => {
+      return element?.textContent?.includes('Daily Standup') || false;
+    });
+    expect(templateElements.length).toBeGreaterThan(0);
+
+    // Should have at least 2 repeat icons - one in the indicator and one in the action button
+    const repeatButtons = container.querySelectorAll('svg.lucide-repeat');
+    expect(repeatButtons.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('does not show view template button when onViewPeriodicTemplate is not provided', () => {
+    const periodicTask = {
+      ...mockTask,
+      isPeriodicInstance: true,
+      periodicTemplateId: 'template-1',
+      generationDate: new Date('2024-01-15'),
+    };
+
+    render(<TaskCard {...defaultProps} task={periodicTask} />);
+
+    // Should not show view template button in action buttons
+    expect(screen.queryByTitle('tasks.viewTemplate')).not.toBeInTheDocument();
+  });
+
+  it('shows loading indicator while fetching template information', () => {
+    const periodicTask = {
+      ...mockTask,
+      isPeriodicInstance: true,
+      periodicTemplateId: 'template-1',
+      generationDate: new Date('2024-01-15'),
+    };
+
+    render(<TaskCard {...defaultProps} task={periodicTask} />);
+
+    // Should show loading indicator initially
+    expect(screen.getByText('common.loading')).toBeInTheDocument();
+  });
+
+  it('handles periodic instance without generation date gracefully', async () => {
+    const periodicTask = {
+      ...mockTask,
+      isPeriodicInstance: true,
+      periodicTemplateId: 'template-1',
+      // No generationDate
+    };
+
+    const { container } = render(
+      <TaskCard {...defaultProps} task={periodicTask} />
+    );
+
+    // Should still show template relationship
+    const templateElements = await screen.findAllByText((content, element) => {
+      return element?.textContent?.includes('Daily Standup') || false;
+    });
+    expect(templateElements.length).toBeGreaterThan(0);
+
+    // Should show template info
+    expect(container.textContent).toContain('Daily Standup');
+
+    // Should not show generation date - no calendar icon should be present
+    const calendarIcons = container.querySelectorAll('svg.lucide-calendar');
+    expect(calendarIcons.length).toBe(0);
+  });
+
+  it('handles periodic instance without template ID gracefully', () => {
+    const periodicTask = {
+      ...mockTask,
+      isPeriodicInstance: true,
+      // No periodicTemplateId
+      generationDate: new Date('2024-01-15'),
+    };
+
+    const { container } = render(
+      <TaskCard {...defaultProps} task={periodicTask} />
+    );
+
+    // Should show generation date - look for calendar icon and date text
+    const calendarIcons = container.querySelectorAll('svg.lucide-calendar');
+    expect(calendarIcons.length).toBeGreaterThan(0);
+
+    // Should show the formatted date somewhere in the component
+    expect(container.textContent).toContain('1/15/2024');
+
+    // Should not show template info
+    const fromTemplateElements = screen.queryAllByText((content, element) => {
+      return element?.textContent?.includes('tasks.fromTemplate') || false;
+    });
+    expect(fromTemplateElements.length).toBe(0);
   });
 });

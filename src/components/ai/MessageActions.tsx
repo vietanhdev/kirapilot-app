@@ -6,6 +6,7 @@ import { useTranslation } from '../../hooks/useTranslation';
 interface MessageActionsProps {
   content: string;
   onRegenerate?: () => void;
+  isRegenerating?: boolean;
   className?: string;
 }
 

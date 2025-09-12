@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   BarChart3,
   Settings,
@@ -6,13 +6,12 @@ import {
   Pause,
   Play,
   Square,
-  History,
   FileText,
+  Repeat,
 } from 'lucide-react';
 import { useTimerContext } from '../../contexts/TimerContext';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useSettings } from '../../contexts/SettingsContext';
-import { SessionHistoryModal } from '../timer/SessionHistory';
 import { AppLogo } from './AppLogo';
 import { TaskListDropdown } from './TaskListDropdown';
 
@@ -37,8 +36,6 @@ export const Header: React.FC<HeaderProps> = ({
   } = useTimerContext();
   const { t } = useTranslation();
   const { preferences } = useSettings();
-
-  const [showSessionLogs, setShowSessionLogs] = useState(false);
 
   const handleTimerControl = () => {
     if (!activeTask) {
@@ -130,7 +127,7 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       <nav className='flex items-center gap-2 sm:gap-3 flex-shrink-0'>
-        {/* Week/Day Toggle */}
+        {/* Week/Day/Kira View Toggle */}
         <div className='flex rounded-lg border border-divider overflow-hidden bg-content2 shadow-sm'>
           <button
             onClick={() => onViewChange('week')}
@@ -142,6 +139,7 @@ export const Header: React.FC<HeaderProps> = ({
           >
             {t('nav.week')}
           </button>
+          <div className='w-px bg-divider' />
           <button
             onClick={() => onViewChange('day')}
             className={`px-3 sm:px-4 py-2 text-sm font-medium transition-all duration-200 ${
@@ -152,15 +150,30 @@ export const Header: React.FC<HeaderProps> = ({
           >
             {t('nav.day')}
           </button>
+          <div className='w-px bg-divider' />
+          <button
+            onClick={() => onViewChange('kira')}
+            className={`px-3 sm:px-4 py-2 text-sm font-medium transition-all duration-200 ${
+              currentView === 'kira'
+                ? 'bg-primary-500 text-white shadow-sm'
+                : 'text-foreground-700 hover:text-foreground hover:bg-content3'
+            }`}
+          >
+            Kira
+          </button>
         </div>
 
-        {/* Session Logs Button */}
+        {/* Recurring Tasks Button */}
         <button
-          onClick={() => setShowSessionLogs(true)}
-          className='p-2.5 rounded-lg transition-all duration-200 text-foreground-600 hover:text-foreground hover:bg-content2 border border-transparent hover:border-divider'
-          title={t('timer.sessionHistory') || 'Session History'}
+          onClick={() => onViewChange('recurring')}
+          className={`p-2.5 rounded-lg transition-all duration-200 border ${
+            currentView === 'recurring'
+              ? 'bg-primary-500/10 text-primary-600 border-primary-500/20'
+              : 'text-foreground-600 hover:text-foreground hover:bg-content2 border-transparent hover:border-divider'
+          }`}
+          title={t('nav.recurring') || 'Recurring Tasks'}
         >
-          <History className='w-5 h-5' />
+          <Repeat className='w-5 h-5' />
         </button>
 
         {/* Other Navigation Buttons */}
@@ -185,14 +198,6 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
         ))}
       </nav>
-
-      {/* Session History Modal */}
-      <SessionHistoryModal
-        isOpen={showSessionLogs}
-        onClose={() => setShowSessionLogs(false)}
-        limit={20}
-        showTaskInfo={true}
-      />
     </header>
   );
 };

@@ -1,9 +1,11 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Task, TaskStatus } from '../../types';
+import { Task, TaskStatus, TaskFilters } from '../../types';
 import { useDatabase } from '../../hooks/useDatabase';
 import { getTaskRepository } from '../../services/database/repositories';
+import { PeriodicTaskService } from '../../services/database/repositories/PeriodicTaskService';
 import { useTaskList } from '../../contexts/TaskListContext';
 import { WeeklyPlan } from './WeeklyPlan';
+import { TaskFilterBar } from './TaskFilterBar';
 
 interface PlanningScreenProps {
   viewMode?: 'week' | 'day';
@@ -13,6 +15,7 @@ export function Planner({ viewMode = 'week' }: PlanningScreenProps) {
   const { isInitialized } = useDatabase();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [currentWeek, setCurrentWeek] = useState(new Date());
+  const [filters, setFilters] = useState<TaskFilters>({});
   const [windowSize, setWindowSize] = useState({
     width: window.innerWidth,
     height: window.innerHeight,
@@ -22,22 +25,29 @@ export function Planner({ viewMode = 'week' }: PlanningScreenProps) {
   const { currentSelection, getSelectedTaskListId, isAllSelected } =
     useTaskList();
 
-  // Filter tasks based on current task list selection
+  // Filter tasks based on current task list selection and additional filters
   const filteredTasks = useMemo(() => {
-    if (isAllSelected()) {
-      // Show all tasks when "All" is selected
-      return tasks;
+    let filtered = tasks;
+
+    // First apply task list filtering
+    if (!isAllSelected()) {
+      const selectedTaskListId = getSelectedTaskListId();
+      if (selectedTaskListId) {
+        filtered = filtered.filter(
+          task => task.taskListId === selectedTaskListId
+        );
+      }
     }
 
-    const selectedTaskListId = getSelectedTaskListId();
-    if (!selectedTaskListId) {
-      // Fallback to all tasks if no specific selection
-      return tasks;
+    // Then apply additional filters
+    if (Object.keys(filters).length > 0) {
+      const taskRepo = getTaskRepository();
+      // Use the TaskService's client-side filtering logic
+      filtered = taskRepo.applyClientSideFilters(filtered, filters);
     }
 
-    // Filter tasks by selected task list
-    return tasks.filter(task => task.taskListId === selectedTaskListId);
-  }, [tasks, currentSelection, getSelectedTaskListId, isAllSelected]);
+    return filtered;
+  }, [tasks, currentSelection, getSelectedTaskListId, isAllSelected, filters]);
 
   // Track window size changes
   useEffect(() => {
@@ -51,6 +61,47 @@ export function Planner({ viewMode = 'week' }: PlanningScreenProps) {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  // Listen for periodic task updates and refresh tasks
+  useEffect(() => {
+    const handlePeriodicTasksUpdate = async () => {
+      if (isInitialized) {
+        try {
+          // Generate any new periodic task instances
+          const periodicService = new PeriodicTaskService();
+          const result = await periodicService.checkAndGenerateInstances();
+
+          // Reload all tasks to include new instances
+          const taskRepo = getTaskRepository();
+          const dbTasks = await taskRepo.findAll();
+
+          if (result.totalGenerated > 0) {
+            console.log(
+              `Generated ${result.totalGenerated} new periodic task instances`
+            );
+          }
+
+          setTasks(dbTasks);
+        } catch (error) {
+          console.warn(
+            'Failed to refresh tasks after periodic task update:',
+            error
+          );
+        }
+      }
+    };
+
+    window.addEventListener(
+      'periodic-tasks-updated',
+      handlePeriodicTasksUpdate
+    );
+    return () => {
+      window.removeEventListener(
+        'periodic-tasks-updated',
+        handlePeriodicTasksUpdate
+      );
+    };
+  }, [isInitialized]);
 
   // Calculate dynamic column height based on window size
   const getColumnHeight = () => {
@@ -70,13 +121,42 @@ export function Planner({ viewMode = 'week' }: PlanningScreenProps) {
     }
   };
 
-  // Load tasks from database on mount
+  // Load tasks from database on mount and generate periodic task instances
   useEffect(() => {
     const loadTasks = async () => {
       try {
         if (isInitialized) {
+          // First, check and generate any pending periodic task instances
+          try {
+            const periodicService = new PeriodicTaskService();
+            const result = await periodicService.checkAndGenerateInstances();
+            if (result.totalGenerated > 0) {
+              console.log(
+                `Generated ${result.totalGenerated} periodic task instances`
+              );
+            }
+          } catch (periodicError) {
+            console.warn(
+              'Failed to generate periodic task instances:',
+              periodicError
+            );
+            // Don't fail the entire load process if periodic generation fails
+          }
+
+          // Then load all tasks
           const taskRepo = getTaskRepository();
           const dbTasks = await taskRepo.findAll();
+
+          // Debug: Log periodic task instances for troubleshooting
+          const periodicInstances = dbTasks.filter(
+            task => task.isPeriodicInstance
+          );
+          if (periodicInstances.length > 0) {
+            console.log(
+              `Loaded ${periodicInstances.length} periodic task instances`
+            );
+          }
+
           setTasks(dbTasks);
         } else {
           // Clear and reinitialize sample data for testing
@@ -308,7 +388,14 @@ export function Planner({ viewMode = 'week' }: PlanningScreenProps) {
   };
 
   return (
-    <div className='p-6 min-h-full'>
+    <div className='p-6 min-h-full space-y-4'>
+      {/* Task Filter Bar */}
+      <TaskFilterBar
+        filters={filters}
+        onFiltersChange={setFilters}
+        showPeriodicFilters={true}
+      />
+
       {/* Weekly Planning Interface */}
       <WeeklyPlan
         tasks={filteredTasks}

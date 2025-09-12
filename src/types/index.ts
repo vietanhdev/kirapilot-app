@@ -37,6 +37,15 @@ export enum TimePreset {
   NOT_APPLICABLE = 0,
 }
 
+export enum RecurrenceType {
+  DAILY = 'daily',
+  WEEKLY = 'weekly',
+  BIWEEKLY = 'biweekly',
+  EVERY_THREE_WEEKS = 'every_three_weeks',
+  MONTHLY = 'monthly',
+  CUSTOM = 'custom',
+}
+
 // Core Interfaces
 export interface Task {
   id: string;
@@ -56,6 +65,10 @@ export interface Task {
   parentTaskId?: string;
   subtasks: string[];
   taskListId: string; // Foreign key to task list
+  // Periodic task properties
+  periodicTemplateId?: string; // Foreign key to periodic task template
+  isPeriodicInstance: boolean; // Whether this task is generated from a periodic template
+  generationDate?: Date; // When this instance was generated from the template
   completedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -75,6 +88,10 @@ export interface CreateTaskRequest {
   projectId?: string;
   parentTaskId?: string;
   taskListId?: string; // Optional - defaults to current selection or default list
+  // Periodic task properties
+  periodicTemplateId?: string;
+  isPeriodicInstance?: boolean;
+  generationDate?: Date;
 }
 
 export interface UpdateTaskRequest {
@@ -90,6 +107,63 @@ export interface UpdateTaskRequest {
   tags?: string[];
   dependencies?: string[];
   taskListId?: string; // Allow moving tasks between lists
+}
+
+// Periodic Task Types
+export interface PeriodicTaskTemplate {
+  id: string;
+  title: string;
+  description: string;
+  priority: Priority;
+  timeEstimate: number; // in minutes
+  tags: string[];
+  taskListId: string;
+  recurrenceType: RecurrenceType;
+  recurrenceInterval: number; // For custom intervals (e.g., every 2 weeks)
+  recurrenceUnit?: 'days' | 'weeks' | 'months'; // For custom intervals
+  startDate: Date;
+  nextGenerationDate: Date;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CreatePeriodicTaskRequest {
+  title: string;
+  description?: string;
+  priority?: Priority;
+  timeEstimate?: number;
+  tags?: string[];
+  taskListId?: string;
+  recurrenceType: RecurrenceType;
+  recurrenceInterval?: number;
+  recurrenceUnit?: 'days' | 'weeks' | 'months';
+  startDate: Date;
+}
+
+export interface UpdatePeriodicTaskRequest {
+  title?: string;
+  description?: string;
+  priority?: Priority;
+  timeEstimate?: number;
+  tags?: string[];
+  taskListId?: string;
+  recurrenceType?: RecurrenceType;
+  recurrenceInterval?: number;
+  recurrenceUnit?: 'days' | 'weeks' | 'months';
+  isActive?: boolean;
+}
+
+export interface PeriodicTaskInstancesResponse {
+  templateId: string;
+  instances: Task[];
+  totalCount: number;
+}
+
+export interface GenerateInstancesResponse {
+  generatedInstances: Task[];
+  updatedTemplates: PeriodicTaskTemplate[];
+  totalGenerated: number;
 }
 
 // Task List Types
@@ -456,6 +530,9 @@ export interface TaskFilters {
   projectId?: string;
   taskListId?: string; // Filter by task list
   search?: string;
+  // Periodic task filtering
+  periodicFilter?: 'all' | 'instances_only' | 'regular_only';
+  periodicTemplateId?: string; // Filter by specific template
 }
 
 export interface TaskSortOptions {
@@ -495,3 +572,6 @@ export * from './aiConfirmation';
 
 // Re-export emotional intelligence types
 export * from './emotionalIntelligence';
+
+// Re-export thread types
+export * from './thread';

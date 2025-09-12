@@ -47,7 +47,12 @@ async fn create_test_tables(db: &DatabaseConnection) -> Result<(), DbErr> {
             completed_at TEXT,
             created_at TEXT NOT NULL,
             updated_at TEXT NOT NULL,
-            FOREIGN KEY (task_list_id) REFERENCES task_lists(id)
+            order_num INTEGER NOT NULL DEFAULT 0,
+            periodic_template_id TEXT,
+            is_periodic_instance BOOLEAN NOT NULL DEFAULT FALSE,
+            generation_date TEXT,
+            FOREIGN KEY (task_list_id) REFERENCES task_lists(id),
+            FOREIGN KEY (periodic_template_id) REFERENCES periodic_task_templates(id)
         )
     "#;
 
@@ -139,6 +144,28 @@ async fn create_test_tables(db: &DatabaseConnection) -> Result<(), DbErr> {
         )
     "#;
 
+    // Create periodic_task_templates table
+    let create_periodic_task_templates_sql = r#"
+        CREATE TABLE IF NOT EXISTS periodic_task_templates (
+            id TEXT PRIMARY KEY NOT NULL,
+            title TEXT NOT NULL,
+            description TEXT,
+            priority INTEGER NOT NULL DEFAULT 1,
+            time_estimate INTEGER NOT NULL DEFAULT 0,
+            tags TEXT,
+            task_list_id TEXT,
+            recurrence_type TEXT NOT NULL,
+            recurrence_interval INTEGER NOT NULL DEFAULT 1,
+            recurrence_unit TEXT,
+            start_date TEXT NOT NULL,
+            next_generation_date TEXT NOT NULL,
+            is_active BOOLEAN NOT NULL DEFAULT TRUE,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            FOREIGN KEY (task_list_id) REFERENCES task_lists(id)
+        )
+    "#;
+
     // Execute table creation statements
     db.execute(Statement::from_string(
         sea_orm::DatabaseBackend::Sqlite,
@@ -179,6 +206,12 @@ async fn create_test_tables(db: &DatabaseConnection) -> Result<(), DbErr> {
     db.execute(Statement::from_string(
         sea_orm::DatabaseBackend::Sqlite,
         create_task_lists_sql.to_string(),
+    ))
+    .await?;
+
+    db.execute(Statement::from_string(
+        sea_orm::DatabaseBackend::Sqlite,
+        create_periodic_task_templates_sql.to_string(),
     ))
     .await?;
 

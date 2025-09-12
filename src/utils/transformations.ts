@@ -36,6 +36,10 @@ export function createTaskRequestToTask(request: CreateTaskRequest): Task {
     parentTaskId: request.parentTaskId,
     subtasks: [],
     taskListId: request.taskListId || 'default-task-list',
+    // Periodic task properties
+    periodicTemplateId: request.periodicTemplateId,
+    isPeriodicInstance: request.isPeriodicInstance || false,
+    generationDate: request.generationDate,
     createdAt: now,
     updatedAt: now,
   };
@@ -162,6 +166,12 @@ export function dbRowToTask(row: Record<string, unknown>): Task {
     parentTaskId: row.parent_task_id as string | undefined,
     subtasks: safeJsonParse<string[]>(row.subtasks as string, []),
     taskListId: (row.task_list_id as string) || 'default-task-list',
+    // Periodic task properties
+    periodicTemplateId: row.periodic_template_id as string | undefined,
+    isPeriodicInstance: (row.is_periodic_instance as boolean) || false,
+    generationDate: row.generation_date
+      ? new Date(row.generation_date as string)
+      : undefined,
     completedAt: row.completed_at
       ? new Date(row.completed_at as string)
       : undefined,

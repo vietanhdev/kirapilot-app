@@ -22,6 +22,9 @@ pub struct Model {
     pub parent_task_id: Option<String>,
     pub task_list_id: Option<String>,
     pub subtasks: Option<String>, // JSON string
+    pub periodic_template_id: Option<String>,
+    pub is_periodic_instance: bool,
+    pub generation_date: Option<DateTimeUtc>,
     pub completed_at: Option<DateTimeUtc>,
     pub created_at: DateTimeUtc,
     pub updated_at: DateTimeUtc,
@@ -41,6 +44,12 @@ pub enum Relation {
         to = "super::task_lists::Column::Id"
     )]
     TaskList,
+    #[sea_orm(
+        belongs_to = "super::periodic_task_templates::Entity",
+        from = "Column::PeriodicTemplateId",
+        to = "super::periodic_task_templates::Column::Id"
+    )]
+    PeriodicTaskTemplate,
 }
 
 impl Related<super::task_dependencies::Entity> for Entity {
@@ -64,6 +73,12 @@ impl Related<super::focus_sessions::Entity> for Entity {
 impl Related<super::task_lists::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::TaskList.def()
+    }
+}
+
+impl Related<super::periodic_task_templates::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::PeriodicTaskTemplate.def()
     }
 }
 

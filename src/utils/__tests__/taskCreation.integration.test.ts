@@ -72,6 +72,9 @@ describe('Task Creation Integration Test', () => {
         parent_task_id: undefined,
         order_num: 0,
         task_list_id: undefined,
+        generation_date: undefined,
+        is_periodic_instance: false,
+        periodic_template_id: undefined,
       },
     });
 
@@ -134,6 +137,9 @@ describe('Task Creation Integration Test', () => {
         parent_task_id: undefined,
         order_num: 0,
         task_list_id: undefined,
+        generation_date: undefined,
+        is_periodic_instance: false,
+        periodic_template_id: undefined,
       },
     });
 
@@ -222,6 +228,9 @@ describe('Task Creation Integration Test', () => {
         parent_task_id: undefined,
         description: undefined,
         order_num: 0,
+        generation_date: undefined,
+        is_periodic_instance: false,
+        periodic_template_id: undefined,
         task_list_id: undefined,
       },
     });

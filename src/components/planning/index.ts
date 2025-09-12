@@ -4,3 +4,7 @@ export { TaskColumn } from './TaskColumn';
 export { WeekView } from './WeekView';
 export { DayView } from './DayView';
 export { DropPlaceholder } from './DropPlaceholder';
+export { PeriodicTaskModal } from './PeriodicTaskModal';
+export { RecurrencePatternSelector } from './RecurrencePatternSelector';
+export { PeriodicTaskList } from './PeriodicTaskList';
+export { TaskFilterBar } from './TaskFilterBar';

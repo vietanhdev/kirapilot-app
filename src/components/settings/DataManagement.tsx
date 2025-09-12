@@ -820,6 +820,7 @@ Perfect for exploring KiraPilot's task management, time tracking, and analytics 
         session_count: number;
         ai_interaction_count: number;
         dependency_count: number;
+        periodic_template_count: number;
       }>('export_data_to_file', { filePath });
 
       setExportProgress(100);
@@ -827,7 +828,7 @@ Perfect for exploring KiraPilot's task management, time tracking, and analytics 
       // Use Tauri's message dialog instead of alert
       const { message } = await import('@tauri-apps/plugin-dialog');
       await message(
-        `✅ Data exported successfully!\n\n📊 Export Summary:\n• ${metadata.task_count} tasks\n• ${metadata.session_count} time sessions\n• ${metadata.ai_interaction_count} AI conversations\n• ${metadata.dependency_count} task dependencies\n\n📁 Saved to: ${filePath}\n🗓️ Created: ${new Date(metadata.created_at).toLocaleString()}\n📦 Version: ${metadata.version}`,
+        `✅ Data exported successfully!\n\n📊 Export Summary:\n• ${metadata.task_count} tasks\n• ${metadata.session_count} time sessions\n• ${metadata.ai_interaction_count} AI conversations\n• ${metadata.dependency_count} task dependencies\n• ${metadata.periodic_template_count} periodic task templates\n\n📁 Saved to: ${filePath}\n🗓️ Created: ${new Date(metadata.created_at).toLocaleString()}\n📦 Version: ${metadata.version}`,
         { title: 'Export Successful', kind: 'info' }
       );
     } catch (error) {
@@ -892,6 +893,7 @@ Perfect for exploring KiraPilot's task management, time tracking, and analytics 
             session_count: number;
             ai_interaction_count: number;
             dependency_count: number;
+            periodic_template_count: number;
           };
         }>('validate_backup_comprehensive', { filePath });
 
@@ -935,7 +937,7 @@ Perfect for exploring KiraPilot's task management, time tracking, and analytics 
         // Show confirmation dialog using Tauri's confirm dialog
         const { confirm } = await import('@tauri-apps/plugin-dialog');
         const shouldProceed = await confirm(
-          `📦 Backup File Validation Successful!\n\n📊 Backup Contents:\n• ${metadata.task_count} tasks\n• ${metadata.session_count} time sessions\n• ${metadata.ai_interaction_count} AI conversations\n• ${metadata.dependency_count} task dependencies\n\n🗓️ Created: ${new Date(metadata.created_at).toLocaleString()}\n📦 Version: ${metadata.version}\n\n⚠️ WARNING: This will replace all your current data!\n\nDo you want to proceed with the import?`,
+          `📦 Backup File Validation Successful!\n\n📊 Backup Contents:\n• ${metadata.task_count} tasks\n• ${metadata.session_count} time sessions\n• ${metadata.ai_interaction_count} AI conversations\n• ${metadata.dependency_count} task dependencies\n• ${metadata.periodic_template_count} periodic task templates\n\n🗓️ Created: ${new Date(metadata.created_at).toLocaleString()}\n📦 Version: ${metadata.version}\n\n⚠️ WARNING: This will replace all your current data!\n\nDo you want to proceed with the import?`,
           { title: 'Confirm Data Import', kind: 'warning' }
         );
 
@@ -954,6 +956,7 @@ Perfect for exploring KiraPilot's task management, time tracking, and analytics 
           session_count: number;
           ai_interaction_count: number;
           dependency_count: number;
+          periodic_template_count: number;
         }>('import_data_from_file', { filePath, overwrite: true });
 
         setImportProgress(100);
@@ -961,7 +964,7 @@ Perfect for exploring KiraPilot's task management, time tracking, and analytics 
         // Show success message
         const { message } = await import('@tauri-apps/plugin-dialog');
         await message(
-          `✅ Data imported successfully!\n\n📊 Import Summary:\n• ${importResult.task_count} tasks restored\n• ${importResult.session_count} time sessions restored\n• ${importResult.ai_interaction_count} AI conversations restored\n• ${importResult.dependency_count} task dependencies restored\n\nThe application will now refresh to load the imported data.`,
+          `✅ Data imported successfully!\n\n📊 Import Summary:\n• ${importResult.task_count} tasks restored\n• ${importResult.session_count} time sessions restored\n• ${importResult.ai_interaction_count} AI conversations restored\n• ${importResult.dependency_count} task dependencies restored\n• ${importResult.periodic_template_count} periodic task templates restored\n\nThe application will now refresh to load the imported data.`,
           { title: 'Import Successful', kind: 'info' }
         );
 
@@ -1015,6 +1018,7 @@ Perfect for exploring KiraPilot's task management, time tracking, and analytics 
         session_count: number;
         ai_interaction_count: number;
         dependency_count: number;
+        periodic_template_count: number;
       }>('export_data_to_file', { filePath: testFilePath });
 
       // Validate the backup immediately
@@ -1029,6 +1033,7 @@ Perfect for exploring KiraPilot's task management, time tracking, and analytics 
           session_count: number;
           ai_interaction_count: number;
           dependency_count: number;
+          periodic_template_count: number;
         };
       }>('validate_backup_comprehensive', { filePath: testFilePath });
 
@@ -1036,7 +1041,7 @@ Perfect for exploring KiraPilot's task management, time tracking, and analytics 
 
       if (validationResult.is_valid) {
         await message(
-          `✅ Test backup created and validated successfully!\n\n📊 Backup Contents:\n• ${metadata.task_count} tasks\n• ${metadata.session_count} time sessions\n• ${metadata.ai_interaction_count} AI conversations\n• ${metadata.dependency_count} task dependencies\n\n📁 Saved to: ${testFilePath}\n\n✅ Validation: PASSED${validationResult.warnings.length > 0 ? `\n\n⚠️ Warnings:\n${validationResult.warnings.join('\n')}` : ''}`,
+          `✅ Test backup created and validated successfully!\n\n📊 Backup Contents:\n• ${metadata.task_count} tasks\n• ${metadata.session_count} time sessions\n• ${metadata.ai_interaction_count} AI conversations\n• ${metadata.dependency_count} task dependencies\n• ${metadata.periodic_template_count} periodic task templates\n\n📁 Saved to: ${testFilePath}\n\n✅ Validation: PASSED${validationResult.warnings.length > 0 ? `\n\n⚠️ Warnings:\n${validationResult.warnings.join('\n')}` : ''}`,
           { title: 'Test Backup Successful', kind: 'info' }
         );
       } else {

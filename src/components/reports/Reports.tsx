@@ -21,13 +21,15 @@ import {
   BarChart3,
   Timer,
   Zap,
+  History,
 } from 'lucide-react';
-import { Card, CardBody, CardHeader } from '@heroui/react';
+import { Card, CardBody, CardHeader, Tabs, Tab } from '@heroui/react';
 import { useDatabase } from '../../hooks/useDatabase';
 import { useTranslation } from '../../hooks/useTranslation';
 import { TimerSession, Task } from '../../types';
 import { TimeTrackingService } from '../../services/database/repositories/TimeTrackingService';
 import { TaskService } from '../../services/database/repositories/TaskService';
+import SessionHistoryView from '../timer/SessionHistoryView';
 
 interface TimeStats {
   totalHours: number;
@@ -61,12 +63,24 @@ interface TaskTimeData {
   productivity: number;
 }
 
-export function Reports() {
+interface ReportsProps {
+  initialTab?: string;
+}
+
+export function Reports({ initialTab = 'analytics' }: ReportsProps = {}) {
   const { isInitialized } = useDatabase();
   const { t, language } = useTranslation();
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [timeRange, setTimeRange] = useState<'week' | 'month' | 'quarter'>(
     'week'
   );
+
+  // Update active tab when initialTab prop changes
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<TimeStats | null>(null);
   const [dailyData, setDailyData] = useState<DailyData[]>([]);
@@ -341,567 +355,618 @@ export function Reports() {
           <p className='text-foreground-600'>{t('reports.subtitle')}</p>
         </div>
 
-        <div className='flex gap-2'>
-          {(['week', 'month', 'quarter'] as const).map(range => (
-            <button
-              key={range}
-              onClick={() => setTimeRange(range)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 border ${
-                timeRange === range
-                  ? 'bg-primary-500 text-white border-primary-500 shadow-lg shadow-primary-500/25'
-                  : 'bg-content2 text-foreground-600 hover:bg-content3 hover:text-foreground border-divider hover:border-primary-500/30'
-              }`}
-            >
-              {t(`reports.${range}`)}
-            </button>
-          ))}
-        </div>
+        {activeTab === 'analytics' && (
+          <div className='flex gap-2'>
+            {(['week', 'month', 'quarter'] as const).map(range => (
+              <button
+                key={range}
+                onClick={() => setTimeRange(range)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 border ${
+                  timeRange === range
+                    ? 'bg-primary-500 text-white border-primary-500 shadow-lg shadow-primary-500/25'
+                    : 'bg-content2 text-foreground-600 hover:bg-content3 hover:text-foreground border-divider hover:border-primary-500/30'
+                }`}
+              >
+                {t(`reports.${range}`)}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* Stats Cards */}
-      {stats && (
-        <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6'>
-          <Card className='bg-content1 border-divider'>
-            <CardBody className='p-4'>
-              <div className='flex items-center justify-between'>
-                <div>
-                  <p className='text-foreground-600 text-sm'>
-                    {t('reports.totalTime')}
-                  </p>
-                  <p className='text-2xl font-bold text-foreground'>
-                    {formatTime(stats.totalHours)}
-                  </p>
-                </div>
-                <Clock className='w-8 h-8 text-blue-500' />
-              </div>
-            </CardBody>
-          </Card>
-
-          <Card className='bg-content1 border-divider'>
-            <CardBody className='p-4'>
-              <div className='flex items-center justify-between'>
-                <div>
-                  <p className='text-foreground-600 text-sm'>
-                    {t('reports.focusTime')}
-                  </p>
-                  <p className='text-2xl font-bold text-foreground'>
-                    {formatTime(stats.workingHours)}
-                  </p>
-                </div>
-                <Target className='w-8 h-8 text-green-500' />
-              </div>
-            </CardBody>
-          </Card>
-
-          <Card className='bg-content1 border-divider'>
-            <CardBody className='p-4'>
-              <div className='flex items-center justify-between'>
-                <div>
-                  <p className='text-foreground-600 text-sm'>
-                    {t('reports.sessions')}
-                  </p>
-                  <p className='text-2xl font-bold text-foreground'>
-                    {stats.sessionsCount}
-                  </p>
-                </div>
-                <Timer className='w-8 h-8 text-purple-500' />
-              </div>
-            </CardBody>
-          </Card>
-
-          <Card className='bg-content1 border-divider'>
-            <CardBody className='p-4'>
-              <div className='flex items-center justify-between'>
-                <div>
-                  <p className='text-foreground-600 text-sm'>
-                    {t('reports.productivity')}
-                  </p>
-                  <p className='text-2xl font-bold text-foreground'>
-                    {Math.round(stats.productivityScore)}%
-                  </p>
-                </div>
-                <Zap className='w-8 h-8 text-yellow-500' />
-              </div>
-            </CardBody>
-          </Card>
-        </div>
-      )}
-
-      {/* Charts Grid */}
-      <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
-        {/* Daily Time Tracking */}
-        <Card className='bg-content1 border-divider'>
-          <CardHeader className='pb-2'>
-            <div className='flex items-center gap-2'>
-              <BarChart3 className='w-5 h-5 text-blue-500' />
-              <h3 className='text-lg font-semibold text-foreground'>
-                {t('reports.dailyActivity')}
-              </h3>
-            </div>
-          </CardHeader>
-          <CardBody className='pt-0'>
-            <ResponsiveContainer width='100%' height={300}>
-              <AreaChart data={dailyData}>
-                <CartesianGrid strokeDasharray='3 3' stroke='#374151' />
-                <XAxis dataKey='date' stroke='#9CA3AF' fontSize={12} />
-                <YAxis stroke='#9CA3AF' fontSize={12} />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#1F2937',
-                    border: '1px solid #374151',
-                    borderRadius: '8px',
-                    color: '#F9FAFB',
-                  }}
-                />
-                <Area
-                  type='monotone'
-                  dataKey='hours'
-                  stroke='#3B82F6'
-                  fill='#3B82F6'
-                  fillOpacity={0.3}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </CardBody>
-        </Card>
-
-        {/* Hourly Productivity */}
-        <Card className='bg-content1 border-divider'>
-          <CardHeader className='pb-2'>
-            <div className='flex items-center gap-2'>
-              <TrendingUp className='w-5 h-5 text-green-500' />
-              <h3 className='text-lg font-semibold text-foreground'>
-                {t('reports.hourlyPatterns')}
-              </h3>
-            </div>
-          </CardHeader>
-          <CardBody className='pt-0'>
-            <ResponsiveContainer width='100%' height={300}>
-              <LineChart data={hourlyData}>
-                <CartesianGrid strokeDasharray='3 3' stroke='#374151' />
-                <XAxis
-                  dataKey='hour'
-                  stroke='#9CA3AF'
-                  fontSize={12}
-                  tickFormatter={value => `${value}:00`}
-                />
-                <YAxis stroke='#9CA3AF' fontSize={12} />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#1F2937',
-                    border: '1px solid #374151',
-                    borderRadius: '8px',
-                    color: '#F9FAFB',
-                  }}
-                  labelFormatter={value => `${value}:00`}
-                  formatter={(value: number) => [
-                    `${value}%`,
-                    t('reports.productivity'),
-                  ]}
-                />
-                <Line
-                  type='monotone'
-                  dataKey='productivity'
-                  stroke='#10B981'
-                  strokeWidth={3}
-                  dot={{ fill: '#10B981', strokeWidth: 2, r: 4 }}
-                  activeDot={{ r: 6, stroke: '#10B981', strokeWidth: 2 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </CardBody>
-        </Card>
-
-        {/* Task Performance Dashboard - Replaced pie chart */}
-        <Card className='bg-content1 border-divider'>
-          <CardHeader className='pb-2'>
-            <div className='flex items-center gap-2'>
-              <Target className='w-5 h-5 text-purple-500' />
-              <h3 className='text-lg font-semibold text-foreground'>
-                {t('reports.taskPerformance')}
-              </h3>
-            </div>
-          </CardHeader>
-          <CardBody className='pt-0'>
-            {taskTimeData.length === 0 ? (
-              <div className='text-center py-12'>
-                <Activity className='w-12 h-12 text-foreground-400 mx-auto mb-3' />
-                <p className='text-foreground-600 mb-2'>
-                  {t('reports.noTaskData')}
-                </p>
-                <p className='text-sm text-foreground-500'>
-                  {t('reports.startWorkingTasks')}
-                </p>
-              </div>
-            ) : (
-              <div className='space-y-4'>
-                {/* Performance Summary */}
-                <div className='grid grid-cols-3 gap-4 p-4 bg-content2 rounded-lg'>
-                  <div className='text-center'>
-                    <div className='text-2xl font-bold text-purple-500'>
-                      {taskTimeData.length}
-                    </div>
-                    <div className='text-xs text-foreground-600'>
-                      {t('reports.activeTasks')}
-                    </div>
-                  </div>
-                  <div className='text-center'>
-                    <div className='text-2xl font-bold text-green-500'>
-                      {Math.round(
-                        taskTimeData.reduce(
-                          (sum, task) => sum + task.productivity,
-                          0
-                        ) / taskTimeData.length
-                      )}
-                      %
-                    </div>
-                    <div className='text-xs text-foreground-600'>
-                      {t('reports.avgFocus')}
-                    </div>
-                  </div>
-                  <div className='text-center'>
-                    <div className='text-2xl font-bold text-blue-500'>
-                      {formatTime(
-                        taskTimeData.reduce(
-                          (sum, task) => sum + task.totalTime,
-                          0
-                        )
-                      )}
-                    </div>
-                    <div className='text-xs text-foreground-600'>
-                      {t('reports.totalTime')}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Top Performing Tasks List */}
-                <div className='space-y-2'>
-                  <h4 className='text-sm font-medium text-foreground mb-3'>
-                    {t('reports.topPerformingTasks')}
-                  </h4>
-                  {taskTimeData.slice(0, 5).map((task, index) => {
-                    const maxTime = Math.max(
-                      ...taskTimeData.map(t => t.totalTime)
-                    );
-                    const timePercentage =
-                      maxTime > 0 ? (task.totalTime / maxTime) * 100 : 0;
-
-                    return (
-                      <div key={task.taskTitle} className='group'>
-                        <div className='flex items-center justify-between mb-1'>
-                          <div className='flex items-center gap-2 flex-1 min-w-0'>
-                            <div
-                              className={`w-3 h-3 rounded-full flex-shrink-0 ${
-                                index === 0
-                                  ? 'bg-yellow-500'
-                                  : index === 1
-                                    ? 'bg-gray-400'
-                                    : index === 2
-                                      ? 'bg-orange-600'
-                                      : 'bg-purple-400'
-                              }`}
-                            />
-                            <span className='text-sm text-foreground truncate font-medium'>
-                              {task.taskTitle}
-                            </span>
-                          </div>
-                          <div className='flex items-center gap-3 flex-shrink-0'>
-                            <span className='text-xs text-foreground-600'>
-                              {formatTime(task.totalTime)}
-                            </span>
-                            <div
-                              className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                task.productivity >= 80
-                                  ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                                  : task.productivity >= 60
-                                    ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
-                                    : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                              }`}
-                            >
-                              {task.productivity}%
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Progress bar for time */}
-                        <div className='w-full bg-content3 rounded-full h-2 mb-1'>
-                          <div
-                            className={`h-2 rounded-full transition-all duration-500 ${
-                              index === 0
-                                ? 'bg-yellow-500'
-                                : index === 1
-                                  ? 'bg-gray-400'
-                                  : index === 2
-                                    ? 'bg-orange-600'
-                                    : 'bg-purple-400'
-                            }`}
-                            style={{ width: `${Math.max(timePercentage, 5)}%` }}
-                          />
-                        </div>
-
-                        {/* Session count */}
-                        <div className='text-xs text-foreground-500'>
-                          {task.sessions}{' '}
-                          {task.sessions === 1
-                            ? t('reports.session')
-                            : t('reports.sessionsPlural')}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* Show more tasks if available */}
-                {taskTimeData.length > 5 && (
-                  <div className='text-center pt-2'>
-                    <button className='text-sm text-purple-500 hover:text-purple-600 font-medium'>
-                      {t('reports.viewAllTasks', {
-                        count: taskTimeData.length,
-                      })}
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-          </CardBody>
-        </Card>
-
-        {/* Enhanced Productivity Trends */}
-        <Card className='bg-content1 border-divider'>
-          <CardHeader className='pb-2'>
-            <div className='flex items-center justify-between'>
+      {/* Tabs */}
+      <div className='mb-6'>
+        <Tabs
+          selectedKey={activeTab}
+          onSelectionChange={key => setActiveTab(key as string)}
+          variant='underlined'
+          color='primary'
+          classNames={{
+            tabList:
+              'gap-6 w-full relative rounded-none p-0 border-b border-divider',
+            cursor: 'w-full bg-primary-500',
+            tab: 'max-w-fit px-0 h-12 data-[selected=true]:text-primary-600',
+            tabContent:
+              'group-data-[selected=true]:text-primary-600 transition-colors',
+          }}
+        >
+          <Tab
+            key='analytics'
+            title={
               <div className='flex items-center gap-2'>
-                <Activity className='w-5 h-5 text-orange-500' />
-                <h3 className='text-lg font-semibold text-foreground'>
-                  {t('reports.productivityTrends')}
-                </h3>
+                <BarChart3 className='w-4 h-4' />
+                <span>Analytics</span>
               </div>
-              {dailyData.length > 0 && (
-                <div className='flex items-center gap-2'>
-                  <div className='flex items-center gap-1'>
-                    <div className='w-2 h-2 bg-orange-500 rounded-full'></div>
-                    <span className='text-xs text-foreground-600'>
-                      {t('reports.dailyFocus')}
-                    </span>
-                  </div>
-                </div>
-              )}
-            </div>
-          </CardHeader>
-          <CardBody className='pt-0'>
-            {dailyData.length === 0 ? (
-              <div className='text-center py-12'>
-                <TrendingUp className='w-12 h-12 text-foreground-400 mx-auto mb-3' />
-                <p className='text-foreground-600 mb-2'>
-                  {t('reports.noProductivityData')}
-                </p>
-                <p className='text-sm text-foreground-500'>
-                  {t('reports.completeWorkSessions')}
-                </p>
+            }
+          />
+          <Tab
+            key='sessions'
+            title={
+              <div className='flex items-center gap-2'>
+                <History className='w-4 h-4' />
+                <span>Session History</span>
               </div>
-            ) : (
-              <div className='space-y-4'>
-                {/* Productivity Summary */}
-                <div className='grid grid-cols-3 gap-4 p-3 bg-content2 rounded-lg'>
-                  <div className='text-center'>
-                    <div className='text-xl font-bold text-orange-500'>
-                      {Math.max(...dailyData.map(d => d.productivity))}%
-                    </div>
-                    <div className='text-xs text-foreground-600'>
-                      {t('reports.bestDay')}
-                    </div>
-                  </div>
-                  <div className='text-center'>
-                    <div className='text-xl font-bold text-green-500'>
-                      {Math.round(
-                        dailyData.reduce((sum, d) => sum + d.productivity, 0) /
-                          dailyData.length
-                      )}
-                      %
-                    </div>
-                    <div className='text-xs text-foreground-600'>
-                      {t('reports.average')}
-                    </div>
-                  </div>
-                  <div className='text-center'>
-                    <div className='text-xl font-bold text-blue-500'>
-                      {dailyData.filter(d => d.productivity >= 80).length}
-                    </div>
-                    <div className='text-xs text-foreground-600'>
-                      {t('reports.highDays')}
-                    </div>
-                  </div>
-                </div>
+            }
+          />
+        </Tabs>
+      </div>
 
-                {/* Mini Chart */}
-                <ResponsiveContainer width='100%' height={180}>
-                  <BarChart
-                    data={dailyData}
-                    margin={{ top: 10, right: 10, left: 10, bottom: 5 }}
-                  >
-                    <CartesianGrid
-                      strokeDasharray='3 3'
-                      stroke='#374151'
-                      opacity={0.3}
-                    />
-                    <XAxis
-                      dataKey='date'
-                      stroke='#9CA3AF'
-                      fontSize={11}
-                      tick={{ fontSize: 11 }}
-                      interval={0}
-                      angle={-45}
-                      textAnchor='end'
-                      height={60}
-                    />
-                    <YAxis
-                      stroke='#9CA3AF'
-                      fontSize={11}
-                      domain={[0, 100]}
-                      tick={{ fontSize: 11 }}
-                    />
+      {/* Tab Content */}
+      {activeTab === 'analytics' && (
+        <>
+          {/* Stats Cards */}
+          {stats && (
+            <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6'>
+              <Card className='bg-content1 border-divider'>
+                <CardBody className='p-4'>
+                  <div className='flex items-center justify-between'>
+                    <div>
+                      <p className='text-foreground-600 text-sm'>
+                        {t('reports.totalTime')}
+                      </p>
+                      <p className='text-2xl font-bold text-foreground'>
+                        {formatTime(stats.totalHours)}
+                      </p>
+                    </div>
+                    <Clock className='w-8 h-8 text-blue-500' />
+                  </div>
+                </CardBody>
+              </Card>
+
+              <Card className='bg-content1 border-divider'>
+                <CardBody className='p-4'>
+                  <div className='flex items-center justify-between'>
+                    <div>
+                      <p className='text-foreground-600 text-sm'>
+                        {t('reports.focusTime')}
+                      </p>
+                      <p className='text-2xl font-bold text-foreground'>
+                        {formatTime(stats.workingHours)}
+                      </p>
+                    </div>
+                    <Target className='w-8 h-8 text-green-500' />
+                  </div>
+                </CardBody>
+              </Card>
+
+              <Card className='bg-content1 border-divider'>
+                <CardBody className='p-4'>
+                  <div className='flex items-center justify-between'>
+                    <div>
+                      <p className='text-foreground-600 text-sm'>
+                        {t('reports.sessions')}
+                      </p>
+                      <p className='text-2xl font-bold text-foreground'>
+                        {stats.sessionsCount}
+                      </p>
+                    </div>
+                    <Timer className='w-8 h-8 text-purple-500' />
+                  </div>
+                </CardBody>
+              </Card>
+
+              <Card className='bg-content1 border-divider'>
+                <CardBody className='p-4'>
+                  <div className='flex items-center justify-between'>
+                    <div>
+                      <p className='text-foreground-600 text-sm'>
+                        {t('reports.productivity')}
+                      </p>
+                      <p className='text-2xl font-bold text-foreground'>
+                        {Math.round(stats.productivityScore)}%
+                      </p>
+                    </div>
+                    <Zap className='w-8 h-8 text-yellow-500' />
+                  </div>
+                </CardBody>
+              </Card>
+            </div>
+          )}
+
+          {/* Charts Grid */}
+          <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
+            {/* Daily Time Tracking */}
+            <Card className='bg-content1 border-divider'>
+              <CardHeader className='pb-2'>
+                <div className='flex items-center gap-2'>
+                  <BarChart3 className='w-5 h-5 text-blue-500' />
+                  <h3 className='text-lg font-semibold text-foreground'>
+                    {t('reports.dailyActivity')}
+                  </h3>
+                </div>
+              </CardHeader>
+              <CardBody className='pt-0'>
+                <ResponsiveContainer width='100%' height={300}>
+                  <AreaChart data={dailyData}>
+                    <CartesianGrid strokeDasharray='3 3' stroke='#374151' />
+                    <XAxis dataKey='date' stroke='#9CA3AF' fontSize={12} />
+                    <YAxis stroke='#9CA3AF' fontSize={12} />
                     <Tooltip
                       contentStyle={{
                         backgroundColor: '#1F2937',
                         border: '1px solid #374151',
                         borderRadius: '8px',
                         color: '#F9FAFB',
-                        fontSize: '12px',
                       }}
-                      formatter={(value: number, name: string) => [
-                        `${value}%`,
-                        name === 'productivity'
-                          ? t('reports.focusScore')
-                          : name,
-                      ]}
-                      labelFormatter={label =>
-                        t('reports.dateLabel', { date: label })
-                      }
                     />
-                    <Bar
-                      dataKey='productivity'
-                      fill='#F59E0B'
-                      radius={[2, 2, 0, 0]}
-                      name='productivity'
+                    <Area
+                      type='monotone'
+                      dataKey='hours'
+                      stroke='#3B82F6'
+                      fill='#3B82F6'
+                      fillOpacity={0.3}
                     />
-                  </BarChart>
+                  </AreaChart>
                 </ResponsiveContainer>
+              </CardBody>
+            </Card>
 
-                {/* Trend Insights */}
-                <div className='space-y-2'>
-                  <h4 className='text-sm font-medium text-foreground'>
-                    {t('reports.recentPerformance')}
-                  </h4>
-                  {dailyData
-                    .slice(-3)
-                    .reverse()
-                    .map(day => (
-                      <div
-                        key={day.date}
-                        className='flex items-center justify-between p-2 bg-content2 rounded-lg'
-                      >
-                        <div className='flex items-center gap-2'>
-                          <div
-                            className={`w-2 h-2 rounded-full ${
-                              day.productivity >= 80
-                                ? 'bg-green-500'
-                                : day.productivity >= 60
-                                  ? 'bg-yellow-500'
-                                  : 'bg-red-500'
-                            }`}
-                          />
-                          <span className='text-sm text-foreground'>
-                            {day.date}
-                          </span>
+            {/* Hourly Productivity */}
+            <Card className='bg-content1 border-divider'>
+              <CardHeader className='pb-2'>
+                <div className='flex items-center gap-2'>
+                  <TrendingUp className='w-5 h-5 text-green-500' />
+                  <h3 className='text-lg font-semibold text-foreground'>
+                    {t('reports.hourlyPatterns')}
+                  </h3>
+                </div>
+              </CardHeader>
+              <CardBody className='pt-0'>
+                <ResponsiveContainer width='100%' height={300}>
+                  <LineChart data={hourlyData}>
+                    <CartesianGrid strokeDasharray='3 3' stroke='#374151' />
+                    <XAxis
+                      dataKey='hour'
+                      stroke='#9CA3AF'
+                      fontSize={12}
+                      tickFormatter={value => `${value}:00`}
+                    />
+                    <YAxis stroke='#9CA3AF' fontSize={12} />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: '#1F2937',
+                        border: '1px solid #374151',
+                        borderRadius: '8px',
+                        color: '#F9FAFB',
+                      }}
+                      labelFormatter={value => `${value}:00`}
+                      formatter={(value: number) => [
+                        `${value}%`,
+                        t('reports.productivity'),
+                      ]}
+                    />
+                    <Line
+                      type='monotone'
+                      dataKey='productivity'
+                      stroke='#10B981'
+                      strokeWidth={3}
+                      dot={{ fill: '#10B981', strokeWidth: 2, r: 4 }}
+                      activeDot={{ r: 6, stroke: '#10B981', strokeWidth: 2 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </CardBody>
+            </Card>
+
+            {/* Task Performance Dashboard - Replaced pie chart */}
+            <Card className='bg-content1 border-divider'>
+              <CardHeader className='pb-2'>
+                <div className='flex items-center gap-2'>
+                  <Target className='w-5 h-5 text-purple-500' />
+                  <h3 className='text-lg font-semibold text-foreground'>
+                    {t('reports.taskPerformance')}
+                  </h3>
+                </div>
+              </CardHeader>
+              <CardBody className='pt-0'>
+                {taskTimeData.length === 0 ? (
+                  <div className='text-center py-12'>
+                    <Activity className='w-12 h-12 text-foreground-400 mx-auto mb-3' />
+                    <p className='text-foreground-600 mb-2'>
+                      {t('reports.noTaskData')}
+                    </p>
+                    <p className='text-sm text-foreground-500'>
+                      {t('reports.startWorkingTasks')}
+                    </p>
+                  </div>
+                ) : (
+                  <div className='space-y-4'>
+                    {/* Performance Summary */}
+                    <div className='grid grid-cols-3 gap-4 p-4 bg-content2 rounded-lg'>
+                      <div className='text-center'>
+                        <div className='text-2xl font-bold text-purple-500'>
+                          {taskTimeData.length}
                         </div>
-                        <div className='flex items-center gap-3'>
-                          <span className='text-xs text-foreground-600'>
-                            {formatTime(day.hours)}
-                          </span>
-                          <span
-                            className={`text-xs font-medium px-2 py-1 rounded-full ${
-                              day.productivity >= 80
-                                ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                                : day.productivity >= 60
-                                  ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
-                                  : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                            }`}
-                          >
-                            {day.productivity}%
-                          </span>
+                        <div className='text-xs text-foreground-600'>
+                          {t('reports.activeTasks')}
                         </div>
                       </div>
-                    ))}
-                </div>
-              </div>
-            )}
-          </CardBody>
-        </Card>
-      </div>
-
-      {/* Task Details Table */}
-      {taskTimeData.length > 0 && (
-        <Card className='bg-content1 border-divider mt-6'>
-          <CardHeader className='pb-2'>
-            <div className='flex items-center gap-2'>
-              <Calendar className='w-5 h-5 text-indigo-500' />
-              <h3 className='text-lg font-semibold text-foreground'>
-                {t('reports.taskBreakdown')}
-              </h3>
-            </div>
-          </CardHeader>
-          <CardBody className='pt-0'>
-            <div className='overflow-x-auto'>
-              <table className='w-full text-sm'>
-                <thead>
-                  <tr className='border-b border-divider'>
-                    <th className='text-left py-3 px-4 text-foreground-600 font-medium'>
-                      {t('reports.task')}
-                    </th>
-                    <th className='text-left py-3 px-4 text-foreground-600 font-medium'>
-                      {t('reports.time')}
-                    </th>
-                    <th className='text-left py-3 px-4 text-foreground-600 font-medium'>
-                      {t('reports.sessions')}
-                    </th>
-                    <th className='text-left py-3 px-4 text-foreground-600 font-medium'>
-                      {t('reports.productivity')}
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {taskTimeData.map((task, index) => (
-                    <tr key={index} className='border-b border-divider/50'>
-                      <td className='py-3 px-4 text-foreground'>
-                        {task.taskTitle}
-                      </td>
-                      <td className='py-3 px-4 text-foreground-600'>
-                        {formatTime(task.totalTime)}
-                      </td>
-                      <td className='py-3 px-4 text-foreground-600'>
-                        {task.sessions}
-                      </td>
-                      <td className='py-3 px-4'>
-                        <div className='flex items-center gap-2'>
-                          <div className='w-16 bg-content3 rounded-full h-2'>
-                            <div
-                              className='bg-success h-2 rounded-full'
-                              style={{ width: `${task.productivity}%` }}
-                            />
-                          </div>
-                          <span className='text-foreground-600 text-xs'>
-                            {task.productivity}%
-                          </span>
+                      <div className='text-center'>
+                        <div className='text-2xl font-bold text-green-500'>
+                          {Math.round(
+                            taskTimeData.reduce(
+                              (sum, task) => sum + task.productivity,
+                              0
+                            ) / taskTimeData.length
+                          )}
+                          %
                         </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </CardBody>
-        </Card>
+                        <div className='text-xs text-foreground-600'>
+                          {t('reports.avgFocus')}
+                        </div>
+                      </div>
+                      <div className='text-center'>
+                        <div className='text-2xl font-bold text-blue-500'>
+                          {formatTime(
+                            taskTimeData.reduce(
+                              (sum, task) => sum + task.totalTime,
+                              0
+                            )
+                          )}
+                        </div>
+                        <div className='text-xs text-foreground-600'>
+                          {t('reports.totalTime')}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Top Performing Tasks List */}
+                    <div className='space-y-2'>
+                      <h4 className='text-sm font-medium text-foreground mb-3'>
+                        {t('reports.topPerformingTasks')}
+                      </h4>
+                      {taskTimeData.slice(0, 5).map((task, index) => {
+                        const maxTime = Math.max(
+                          ...taskTimeData.map(t => t.totalTime)
+                        );
+                        const timePercentage =
+                          maxTime > 0 ? (task.totalTime / maxTime) * 100 : 0;
+
+                        return (
+                          <div key={task.taskTitle} className='group'>
+                            <div className='flex items-center justify-between mb-1'>
+                              <div className='flex items-center gap-2 flex-1 min-w-0'>
+                                <div
+                                  className={`w-3 h-3 rounded-full flex-shrink-0 ${
+                                    index === 0
+                                      ? 'bg-yellow-500'
+                                      : index === 1
+                                        ? 'bg-gray-400'
+                                        : index === 2
+                                          ? 'bg-orange-600'
+                                          : 'bg-purple-400'
+                                  }`}
+                                />
+                                <span className='text-sm text-foreground truncate font-medium'>
+                                  {task.taskTitle}
+                                </span>
+                              </div>
+                              <div className='flex items-center gap-3 flex-shrink-0'>
+                                <span className='text-xs text-foreground-600'>
+                                  {formatTime(task.totalTime)}
+                                </span>
+                                <div
+                                  className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                    task.productivity >= 80
+                                      ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                                      : task.productivity >= 60
+                                        ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+                                        : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                                  }`}
+                                >
+                                  {task.productivity}%
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Progress bar for time */}
+                            <div className='w-full bg-content3 rounded-full h-2 mb-1'>
+                              <div
+                                className={`h-2 rounded-full transition-all duration-500 ${
+                                  index === 0
+                                    ? 'bg-yellow-500'
+                                    : index === 1
+                                      ? 'bg-gray-400'
+                                      : index === 2
+                                        ? 'bg-orange-600'
+                                        : 'bg-purple-400'
+                                }`}
+                                style={{
+                                  width: `${Math.max(timePercentage, 5)}%`,
+                                }}
+                              />
+                            </div>
+
+                            {/* Session count */}
+                            <div className='text-xs text-foreground-500'>
+                              {task.sessions}{' '}
+                              {task.sessions === 1
+                                ? t('reports.session')
+                                : t('reports.sessionsPlural')}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Show more tasks if available */}
+                    {taskTimeData.length > 5 && (
+                      <div className='text-center pt-2'>
+                        <button className='text-sm text-purple-500 hover:text-purple-600 font-medium'>
+                          {t('reports.viewAllTasks', {
+                            count: taskTimeData.length,
+                          })}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </CardBody>
+            </Card>
+
+            {/* Enhanced Productivity Trends */}
+            <Card className='bg-content1 border-divider'>
+              <CardHeader className='pb-2'>
+                <div className='flex items-center justify-between'>
+                  <div className='flex items-center gap-2'>
+                    <Activity className='w-5 h-5 text-orange-500' />
+                    <h3 className='text-lg font-semibold text-foreground'>
+                      {t('reports.productivityTrends')}
+                    </h3>
+                  </div>
+                  {dailyData.length > 0 && (
+                    <div className='flex items-center gap-2'>
+                      <div className='flex items-center gap-1'>
+                        <div className='w-2 h-2 bg-orange-500 rounded-full'></div>
+                        <span className='text-xs text-foreground-600'>
+                          {t('reports.dailyFocus')}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </CardHeader>
+              <CardBody className='pt-0'>
+                {dailyData.length === 0 ? (
+                  <div className='text-center py-12'>
+                    <TrendingUp className='w-12 h-12 text-foreground-400 mx-auto mb-3' />
+                    <p className='text-foreground-600 mb-2'>
+                      {t('reports.noProductivityData')}
+                    </p>
+                    <p className='text-sm text-foreground-500'>
+                      {t('reports.completeWorkSessions')}
+                    </p>
+                  </div>
+                ) : (
+                  <div className='space-y-4'>
+                    {/* Productivity Summary */}
+                    <div className='grid grid-cols-3 gap-4 p-3 bg-content2 rounded-lg'>
+                      <div className='text-center'>
+                        <div className='text-xl font-bold text-orange-500'>
+                          {Math.max(...dailyData.map(d => d.productivity))}%
+                        </div>
+                        <div className='text-xs text-foreground-600'>
+                          {t('reports.bestDay')}
+                        </div>
+                      </div>
+                      <div className='text-center'>
+                        <div className='text-xl font-bold text-green-500'>
+                          {Math.round(
+                            dailyData.reduce(
+                              (sum, d) => sum + d.productivity,
+                              0
+                            ) / dailyData.length
+                          )}
+                          %
+                        </div>
+                        <div className='text-xs text-foreground-600'>
+                          {t('reports.average')}
+                        </div>
+                      </div>
+                      <div className='text-center'>
+                        <div className='text-xl font-bold text-blue-500'>
+                          {dailyData.filter(d => d.productivity >= 80).length}
+                        </div>
+                        <div className='text-xs text-foreground-600'>
+                          {t('reports.highDays')}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Mini Chart */}
+                    <ResponsiveContainer width='100%' height={180}>
+                      <BarChart
+                        data={dailyData}
+                        margin={{ top: 10, right: 10, left: 10, bottom: 5 }}
+                      >
+                        <CartesianGrid
+                          strokeDasharray='3 3'
+                          stroke='#374151'
+                          opacity={0.3}
+                        />
+                        <XAxis
+                          dataKey='date'
+                          stroke='#9CA3AF'
+                          fontSize={11}
+                          tick={{ fontSize: 11 }}
+                          interval={0}
+                          angle={-45}
+                          textAnchor='end'
+                          height={60}
+                        />
+                        <YAxis
+                          stroke='#9CA3AF'
+                          fontSize={11}
+                          domain={[0, 100]}
+                          tick={{ fontSize: 11 }}
+                        />
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: '#1F2937',
+                            border: '1px solid #374151',
+                            borderRadius: '8px',
+                            color: '#F9FAFB',
+                            fontSize: '12px',
+                          }}
+                          formatter={(value: number, name: string) => [
+                            `${value}%`,
+                            name === 'productivity'
+                              ? t('reports.focusScore')
+                              : name,
+                          ]}
+                          labelFormatter={label =>
+                            t('reports.dateLabel', { date: label })
+                          }
+                        />
+                        <Bar
+                          dataKey='productivity'
+                          fill='#F59E0B'
+                          radius={[2, 2, 0, 0]}
+                          name='productivity'
+                        />
+                      </BarChart>
+                    </ResponsiveContainer>
+
+                    {/* Trend Insights */}
+                    <div className='space-y-2'>
+                      <h4 className='text-sm font-medium text-foreground'>
+                        {t('reports.recentPerformance')}
+                      </h4>
+                      {dailyData
+                        .slice(-3)
+                        .reverse()
+                        .map(day => (
+                          <div
+                            key={day.date}
+                            className='flex items-center justify-between p-2 bg-content2 rounded-lg'
+                          >
+                            <div className='flex items-center gap-2'>
+                              <div
+                                className={`w-2 h-2 rounded-full ${
+                                  day.productivity >= 80
+                                    ? 'bg-green-500'
+                                    : day.productivity >= 60
+                                      ? 'bg-yellow-500'
+                                      : 'bg-red-500'
+                                }`}
+                              />
+                              <span className='text-sm text-foreground'>
+                                {day.date}
+                              </span>
+                            </div>
+                            <div className='flex items-center gap-3'>
+                              <span className='text-xs text-foreground-600'>
+                                {formatTime(day.hours)}
+                              </span>
+                              <span
+                                className={`text-xs font-medium px-2 py-1 rounded-full ${
+                                  day.productivity >= 80
+                                    ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                                    : day.productivity >= 60
+                                      ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+                                      : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                                }`}
+                              >
+                                {day.productivity}%
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                )}
+              </CardBody>
+            </Card>
+          </div>
+
+          {/* Task Details Table */}
+          {taskTimeData.length > 0 && (
+            <Card className='bg-content1 border-divider mt-6'>
+              <CardHeader className='pb-2'>
+                <div className='flex items-center gap-2'>
+                  <Calendar className='w-5 h-5 text-indigo-500' />
+                  <h3 className='text-lg font-semibold text-foreground'>
+                    {t('reports.taskBreakdown')}
+                  </h3>
+                </div>
+              </CardHeader>
+              <CardBody className='pt-0'>
+                <div className='overflow-x-auto'>
+                  <table className='w-full text-sm'>
+                    <thead>
+                      <tr className='border-b border-divider'>
+                        <th className='text-left py-3 px-4 text-foreground-600 font-medium'>
+                          {t('reports.task')}
+                        </th>
+                        <th className='text-left py-3 px-4 text-foreground-600 font-medium'>
+                          {t('reports.time')}
+                        </th>
+                        <th className='text-left py-3 px-4 text-foreground-600 font-medium'>
+                          {t('reports.sessions')}
+                        </th>
+                        <th className='text-left py-3 px-4 text-foreground-600 font-medium'>
+                          {t('reports.productivity')}
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {taskTimeData.map((task, index) => (
+                        <tr key={index} className='border-b border-divider/50'>
+                          <td className='py-3 px-4 text-foreground'>
+                            {task.taskTitle}
+                          </td>
+                          <td className='py-3 px-4 text-foreground-600'>
+                            {formatTime(task.totalTime)}
+                          </td>
+                          <td className='py-3 px-4 text-foreground-600'>
+                            {task.sessions}
+                          </td>
+                          <td className='py-3 px-4'>
+                            <div className='flex items-center gap-2'>
+                              <div className='w-16 bg-content3 rounded-full h-2'>
+                                <div
+                                  className='bg-success h-2 rounded-full'
+                                  style={{ width: `${task.productivity}%` }}
+                                />
+                              </div>
+                              <span className='text-foreground-600 text-xs'>
+                                {task.productivity}%
+                              </span>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </CardBody>
+            </Card>
+          )}
+        </>
       )}
+
+      {/* Session History Tab */}
+      {activeTab === 'sessions' && <SessionHistoryView />}
     </div>
   );
 }

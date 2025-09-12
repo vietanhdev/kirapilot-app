@@ -23,6 +23,9 @@ pub struct CreateTaskRequest {
     pub project_id: Option<String>,
     pub parent_task_id: Option<String>,
     pub task_list_id: Option<String>,
+    pub periodic_template_id: Option<String>,
+    pub is_periodic_instance: Option<bool>,
+    pub generation_date: Option<chrono::DateTime<chrono::Utc>>,
 }
 
 /// Request structure for updating an existing task
@@ -115,6 +118,9 @@ impl TaskRepository {
             parent_task_id: Set(request.parent_task_id),
             task_list_id: Set(final_task_list_id),
             subtasks: Set(None),
+            periodic_template_id: Set(request.periodic_template_id),
+            is_periodic_instance: Set(request.is_periodic_instance.unwrap_or(false)),
+            generation_date: Set(request.generation_date),
             completed_at: Set(None),
             ..Default::default()
         };
@@ -516,6 +522,9 @@ impl TaskRepository {
             parent_task_id: Set(task.parent_task_id),
             task_list_id: Set(task.task_list_id),
             subtasks: Set(task.subtasks),
+            periodic_template_id: Set(task.periodic_template_id),
+            is_periodic_instance: Set(task.is_periodic_instance),
+            generation_date: Set(task.generation_date),
             completed_at: Set(task.completed_at),
             created_at: Set(task.created_at),
             updated_at: Set(task.updated_at),

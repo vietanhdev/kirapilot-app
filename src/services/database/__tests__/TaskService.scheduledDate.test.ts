@@ -70,6 +70,9 @@ describe('TaskService - ScheduledDate Functionality', () => {
           parent_task_id: undefined,
           order_num: 0,
           task_list_id: undefined,
+          generation_date: undefined,
+          is_periodic_instance: false,
+          periodic_template_id: undefined,
         },
       });
     });
@@ -124,6 +127,9 @@ describe('TaskService - ScheduledDate Functionality', () => {
           parent_task_id: undefined,
           order_num: 0,
           task_list_id: undefined,
+          generation_date: undefined,
+          is_periodic_instance: false,
+          periodic_template_id: undefined,
         },
       });
     });
@@ -182,6 +188,9 @@ describe('TaskService - ScheduledDate Functionality', () => {
           parent_task_id: undefined,
           order_num: 0,
           task_list_id: undefined,
+          generation_date: undefined,
+          is_periodic_instance: false,
+          periodic_template_id: undefined,
         },
       });
 
