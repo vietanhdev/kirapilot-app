@@ -1,6 +1,5 @@
 import {
   PlaceholderTransitionManager,
-  StaggeredAnimationManager,
   PLACEHOLDER_TRANSITION_CONFIG,
 } from '../dragPlaceholderUtils';
 
