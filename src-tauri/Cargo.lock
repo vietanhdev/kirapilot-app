@@ -3062,7 +3062,7 @@ dependencies = [
 
 [[package]]
 name = "kirapilot-app"
-version = "0.0.34"
+version = "0.0.35"
 dependencies = [
  "anyhow",
  "candle-core",
