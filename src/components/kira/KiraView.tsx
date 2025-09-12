@@ -3,10 +3,12 @@ import { Thread } from '../../types/thread';
 import { useThreads } from '../../hooks/useThreads';
 import { useThreadMessages } from '../../hooks/useThreadMessages';
 import { useToastContext } from '../../contexts/ToastContext';
+import { useAI } from '../../contexts/AIContext';
 import { ThreadSidebar } from './ThreadSidebar';
 import { ChatArea } from './ChatArea';
 import { ThreadAssignmentModal } from './ThreadAssignmentModal';
 import { ErrorDisplay } from '../common/ErrorDisplay';
+import { APIKeyMissingCard } from './APIKeyMissingCard';
 import {
   createRetryAction,
   globalDatabaseHealthChecker,
@@ -35,6 +37,9 @@ export function KiraView() {
     ai: true,
     lastCheck: Date.now(),
   });
+
+  // AI context for checking API key status
+  const { getModelStatus } = useAI();
 
   const {
     threads,
@@ -543,6 +548,31 @@ export function KiraView() {
     }
   };
 
+  /**
+   * Handle navigation to Settings view
+   */
+  const handleNavigateToSettings = () => {
+    // Dispatch a custom event to trigger navigation to settings
+    // This allows the parent App component to handle the navigation
+    window.dispatchEvent(
+      new CustomEvent('navigate-to-settings', {
+        detail: { tab: 'ai' },
+      })
+    );
+  };
+
+  /**
+   * Check if API key is missing
+   */
+  const isAPIKeyMissing = () => {
+    try {
+      const modelStatus = getModelStatus();
+      return !modelStatus.isReady && modelStatus.error?.includes('API key');
+    } catch {
+      return false;
+    }
+  };
+
   return (
     <div
       className='flex h-full relative overflow-hidden'
@@ -677,23 +707,31 @@ export function KiraView() {
           </div>
         </div>
 
-        <ChatArea
-          thread={selectedThread}
-          messages={messages}
-          isLoading={messagesLoading}
-          isSending={isSending}
-          isRegenerating={isRegenerating}
-          onSendMessage={handleSendMessage}
-          onFeedbackSubmit={handleFeedbackSubmit}
-          onRegenerateResponse={handleRegenerateResponse}
-          onEscapePress={() => {
-            // Handle escape in message input - close modals or blur focus
-            if (showAssignmentModal) {
-              handleAssignmentCancel();
-            }
-          }}
-          className='flex-1'
-        />
+        {/* Show API Key Missing Card or Chat Area */}
+        {isAPIKeyMissing() ? (
+          <APIKeyMissingCard
+            onNavigateToSettings={handleNavigateToSettings}
+            className='flex-1'
+          />
+        ) : (
+          <ChatArea
+            thread={selectedThread}
+            messages={messages}
+            isLoading={messagesLoading}
+            isSending={isSending}
+            isRegenerating={isRegenerating}
+            onSendMessage={handleSendMessage}
+            onFeedbackSubmit={handleFeedbackSubmit}
+            onRegenerateResponse={handleRegenerateResponse}
+            onEscapePress={() => {
+              // Handle escape in message input - close modals or blur focus
+              if (showAssignmentModal) {
+                handleAssignmentCancel();
+              }
+            }}
+            className='flex-1 min-h-0'
+          />
+        )}
       </div>
 
       {/* Assignment Modal */}

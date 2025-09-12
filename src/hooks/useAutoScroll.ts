@@ -24,7 +24,12 @@ export function useAutoScroll({
 
   const scrollToBottom = useCallback(() => {
     if (scrollRef.current && !isAutoScrollPaused) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      // Use requestAnimationFrame to ensure DOM has updated
+      requestAnimationFrame(() => {
+        if (scrollRef.current) {
+          scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+        }
+      });
     }
   }, [isAutoScrollPaused]);
 
@@ -85,9 +90,11 @@ export function useAutoScroll({
     };
   }, [handleScroll, userScrollTimeout]);
 
-  // Auto-scroll when content changes
+  // Auto-scroll when content changes (but only if not paused)
   useEffect(() => {
-    scrollToBottom();
+    if (!isAutoScrollPaused) {
+      scrollToBottom();
+    }
   });
 
   return {

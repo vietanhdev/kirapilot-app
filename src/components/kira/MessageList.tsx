@@ -72,7 +72,10 @@ export function MessageList({
   }
 
   return (
-    <div ref={scrollRef} className={`flex-1 overflow-y-auto ${className}`}>
+    <div
+      ref={scrollRef}
+      className={`flex-1 overflow-y-auto min-h-0 ${className}`}
+    >
       <div className='p-6 space-y-4'>
         {messages.map(message => (
           <MessageItem
@@ -209,15 +212,15 @@ function MessageItem({
               {message.toolExecutions.map((execution, index) => (
                 <div
                   key={index}
-                  className='bg-secondary-50 dark:bg-secondary-900/20 px-3 py-2 rounded-lg text-xs border-l-2 border-secondary-400'
+                  className='bg-default-50 dark:bg-default-100/10 px-3 py-2 rounded-lg text-xs border-l-2 border-default-300 dark:border-default-600'
                 >
                   <div className='flex items-center gap-1 mb-1'>
-                    <Check className='w-3 h-3 text-secondary-500' />
-                    <span className='font-medium text-secondary-700 dark:text-secondary-300'>
+                    <Check className='w-3 h-3 text-default-500 dark:text-default-400' />
+                    <span className='font-medium text-default-700 dark:text-default-300'>
                       Tool: {execution.toolName}
                     </span>
                     {execution.executionTime && (
-                      <span className='text-secondary-600 dark:text-secondary-200 ml-auto'>
+                      <span className='text-default-600 dark:text-default-400 ml-auto'>
                         {execution.executionTime}ms
                       </span>
                     )}
@@ -226,20 +229,20 @@ function MessageItem({
                     <div className='mb-1'>
                       <MarkdownRenderer
                         content={execution.reasoning}
-                        className='text-secondary-600 dark:text-secondary-200 [&_*]:text-secondary-600 dark:[&_*]:text-secondary-200'
+                        className='text-default-600 dark:text-default-300 [&_*]:text-default-600 dark:[&_*]:text-default-300'
                       />
                     </div>
                   )}
                   {execution.result !== null &&
                     execution.result !== undefined && (
-                      <div className='bg-secondary-100 dark:bg-secondary-800/30 p-2 rounded text-xs'>
+                      <div className='bg-default-100 dark:bg-default-200/10 p-2 rounded text-xs border border-default-200 dark:border-default-700'>
                         <MarkdownRenderer
                           content={
                             typeof execution.result === 'string'
                               ? execution.result
                               : JSON.stringify(execution.result, null, 2)
                           }
-                          className='text-secondary-700 dark:text-secondary-200 [&_*]:text-secondary-700 dark:[&_*]:text-secondary-200'
+                          className='text-default-700 dark:text-default-200 [&_*]:text-default-700 dark:[&_*]:text-default-200'
                         />
                       </div>
                     )}

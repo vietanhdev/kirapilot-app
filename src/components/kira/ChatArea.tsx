@@ -62,9 +62,9 @@ export function ChatArea({
   }
 
   return (
-    <div className={`flex-1 flex flex-col ${className}`}>
+    <div className={`flex-1 flex flex-col min-h-0 ${className}`}>
       {/* Chat Header */}
-      <div className='border-b border-divider px-6 py-4'>
+      <div className='border-b border-divider px-6 py-4 flex-shrink-0'>
         <h2 className='text-lg font-semibold text-foreground truncate'>
           {thread.title}
         </h2>
@@ -89,7 +89,7 @@ export function ChatArea({
         onFeedbackSubmit={onFeedbackSubmit}
         onRegenerateResponse={onRegenerateResponse}
         isRegenerating={isRegenerating}
-        className='flex-1'
+        className='flex-1 min-h-0'
       />
 
       {/* Message Input */}
@@ -98,7 +98,7 @@ export function ChatArea({
         isLoading={isSending}
         disabled={isLoading || isSending}
         onEscapePress={onEscapePress}
-        className='border-t border-divider'
+        className='border-t border-divider flex-shrink-0'
       />
     </div>
   );

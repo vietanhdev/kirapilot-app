@@ -37,6 +37,26 @@ function AppContent() {
     initializeDebugCommands();
   }, []);
 
+  // Listen for navigation events from child components
+  useEffect(() => {
+    const handleNavigateToSettings = (event: CustomEvent) => {
+      const { tab } = event.detail || {};
+      handleViewChange('settings', { tab });
+    };
+
+    window.addEventListener(
+      'navigate-to-settings',
+      handleNavigateToSettings as EventListener
+    );
+
+    return () => {
+      window.removeEventListener(
+        'navigate-to-settings',
+        handleNavigateToSettings as EventListener
+      );
+    };
+  }, []);
+
   const handleViewChange = (view: string, params?: Record<string, unknown>) => {
     setCurrentView(view);
     setViewParams(params || {});

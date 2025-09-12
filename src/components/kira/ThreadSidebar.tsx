@@ -599,7 +599,7 @@ export const ThreadSidebar: React.FC<ThreadSidebarProps> = ({
         </div>
 
         {/* Thread list */}
-        <div className='flex-1 overflow-y-auto p-4'>
+        <div className='flex-1 overflow-y-auto min-h-0 p-4'>
           {isLoading && threads.length === 0 ? (
             <div className='space-y-2'>
               {[...Array(3)].map((_, i) => (
