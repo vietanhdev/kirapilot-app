@@ -27,19 +27,28 @@ impl TaskGenerationEngine {
     /// Check for templates that need instance generation and generate them
     pub async fn check_and_generate_instances(&self) -> Result<Vec<tasks::Model>, DbErr> {
         let current_time = chrono::Utc::now();
+        println!("Checking for templates needing generation at: {}", current_time);
+        
         let templates = self
             .periodic_repo
             .find_templates_needing_generation(current_time)
             .await?;
 
+        println!("Found {} templates needing generation", templates.len());
+        
         let mut generated_instances = Vec::new();
 
         for template in templates {
+            println!("Processing template '{}' with next_generation_date: {}", 
+                    template.title, template.next_generation_date);
+            
             // Generate all overdue instances for this template
             let instances = self.generate_overdue_instances(&template, current_time).await?;
+            println!("Generated {} instances for template '{}'", instances.len(), template.title);
             generated_instances.extend(instances);
         }
 
+        println!("Total generated instances: {}", generated_instances.len());
         Ok(generated_instances)
     }
 

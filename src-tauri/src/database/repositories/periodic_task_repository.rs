@@ -1,6 +1,6 @@
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, DatabaseConnection, DbErr, EntityTrait, PaginatorTrait, QueryFilter,
-    QueryOrder, Set, TransactionTrait,
+    ActiveModelTrait, ColumnTrait, DatabaseConnection, DbErr, EntityTrait, PaginatorTrait,
+    QueryFilter, QueryOrder, Set, TransactionTrait,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -52,12 +52,9 @@ impl PeriodicTaskRepository {
         &self,
         request: CreatePeriodicTaskTemplateRequest,
     ) -> Result<periodic_task_templates::Model, DbErr> {
-        let next_generation_date = self.calculate_next_generation_date(
-            request.start_date,
-            &request.recurrence_type,
-            request.recurrence_interval,
-            request.recurrence_unit.as_deref(),
-        )?;
+        // For the first instance, the next generation date should be the start date
+        // This ensures that if someone creates a daily task today, it generates an instance today
+        let next_generation_date = request.start_date;
 
         let template = periodic_task_templates::ActiveModel {
             title: Set(request.title),
@@ -112,12 +109,37 @@ impl PeriodicTaskRepository {
         &self,
         current_time: chrono::DateTime<chrono::Utc>,
     ) -> Result<Vec<periodic_task_templates::Model>, DbErr> {
-        periodic_task_templates::Entity::find()
+        let all_active_templates = periodic_task_templates::Entity::find()
+            .filter(periodic_task_templates::Column::IsActive.eq(true))
+            .all(&*self.db)
+            .await?;
+
+        println!(
+            "Found {} active templates total",
+            all_active_templates.len()
+        );
+        for template in &all_active_templates {
+            println!(
+                "Template '{}': next_generation_date={}, current_time={}, needs_generation={}",
+                template.title,
+                template.next_generation_date,
+                current_time,
+                template.next_generation_date <= current_time
+            );
+        }
+
+        let templates_needing_generation = periodic_task_templates::Entity::find()
             .filter(periodic_task_templates::Column::IsActive.eq(true))
             .filter(periodic_task_templates::Column::NextGenerationDate.lte(current_time))
             .order_by_asc(periodic_task_templates::Column::NextGenerationDate)
             .all(&*self.db)
-            .await
+            .await?;
+
+        println!(
+            "Templates needing generation: {}",
+            templates_needing_generation.len()
+        );
+        Ok(templates_needing_generation)
     }
 
     /// Update a periodic task template
@@ -146,9 +168,7 @@ impl PeriodicTaskRepository {
             template.time_estimate = Set(time_estimate);
         }
         if let Some(tags) = request.tags {
-            template.tags = Set(Some(
-                serde_json::to_string(&tags).unwrap_or_default(),
-            ));
+            template.tags = Set(Some(serde_json::to_string(&tags).unwrap_or_default()));
         }
         if let Some(task_list_id) = request.task_list_id {
             template.task_list_id = Set(Some(task_list_id));
@@ -274,38 +294,36 @@ impl PeriodicTaskRepository {
             }
             "monthly" => {
                 // Add months while preserving the day of month
-                if let Some(new_date) = next_date
-                    .checked_add_months(chrono::Months::new(interval as u32))
+                if let Some(new_date) =
+                    next_date.checked_add_months(chrono::Months::new(interval as u32))
                 {
                     next_date = new_date;
                 } else {
                     return Err(DbErr::Custom("Invalid date calculation".to_string()));
                 }
             }
-            "custom" => {
-                match unit {
-                    Some("days") => {
-                        next_date = next_date + chrono::Duration::days(interval as i64);
-                    }
-                    Some("weeks") => {
-                        next_date = next_date + chrono::Duration::weeks(interval as i64);
-                    }
-                    Some("months") => {
-                        if let Some(new_date) = next_date
-                            .checked_add_months(chrono::Months::new(interval as u32))
-                        {
-                            next_date = new_date;
-                        } else {
-                            return Err(DbErr::Custom("Invalid date calculation".to_string()));
-                        }
-                    }
-                    _ => {
-                        return Err(DbErr::Custom(
-                            "Invalid recurrence unit for custom type".to_string(),
-                        ));
+            "custom" => match unit {
+                Some("days") => {
+                    next_date = next_date + chrono::Duration::days(interval as i64);
+                }
+                Some("weeks") => {
+                    next_date = next_date + chrono::Duration::weeks(interval as i64);
+                }
+                Some("months") => {
+                    if let Some(new_date) =
+                        next_date.checked_add_months(chrono::Months::new(interval as u32))
+                    {
+                        next_date = new_date;
+                    } else {
+                        return Err(DbErr::Custom("Invalid date calculation".to_string()));
                     }
                 }
-            }
+                _ => {
+                    return Err(DbErr::Custom(
+                        "Invalid recurrence unit for custom type".to_string(),
+                    ));
+                }
+            },
             _ => {
                 return Err(DbErr::Custom("Invalid recurrence type".to_string()));
             }
@@ -387,14 +405,14 @@ impl PeriodicTaskRepository {
     /// Get periodic task statistics
     pub async fn get_periodic_task_stats(&self) -> Result<PeriodicTaskStats, DbErr> {
         let total_templates = self.count_all_templates().await?;
-        
+
         let active_templates = periodic_task_templates::Entity::find()
             .filter(periodic_task_templates::Column::IsActive.eq(true))
             .count(&*self.db)
             .await?;
-        
+
         let inactive_templates = total_templates - active_templates;
-        
+
         let total_instances = tasks::Entity::find()
             .filter(tasks::Column::IsPeriodicInstance.eq(true))
             .count(&*self.db)
