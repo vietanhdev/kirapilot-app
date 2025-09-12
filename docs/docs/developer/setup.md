@@ -131,12 +131,20 @@ The project uses Husky for Git hooks:
 ```bash
 # Development
 npm run dev              # Start Vite dev server
-npm run tauri dev        # Start Tauri app in dev mode
+npm run tauri:dev        # Start Tauri app in dev mode
 
 # Building
 npm run build            # Build frontend (tsc + vite build)
 npm run tauri:build      # Build Tauri application
 npm run build:all        # Run type-check, lint, test, and build
+npm run release:prepare  # Prepare complete release build
+
+# Cross-platform building
+npm run build:macos      # Build for macOS (universal binary)
+npm run build:windows    # Build for Windows x64
+npm run build:linux      # Build for Linux x64
+npm run build:linux-arm64 # Build for Linux ARM64
+npm run build:all-platforms # Build for all platforms
 
 # Testing
 npm test                 # Run Jest tests
@@ -149,6 +157,25 @@ npm run lint:fix         # ESLint auto-fix
 npm run format           # Prettier format
 npm run format:check     # Prettier check
 npm run type-check       # TypeScript check without emit
+
+# Version Management
+npm run sync-version     # Sync version across files
+npm run version:patch    # Bump patch version
+npm run version:minor    # Bump minor version
+npm run version:major    # Bump major version
+
+# Internationalization
+npm run i18n:validate    # Validate translation files
+npm run i18n:check       # Check translation consistency
+
+# Documentation
+npm run docs:start       # Start documentation server
+npm run docs:build       # Build documentation
+npm run docs:serve       # Serve built documentation
+
+# AI Testing
+npm run test_llm         # Test local LLM integration
+npm run test_llm_integration # Test LLM integration
 ```
 
 ## IDE Setup

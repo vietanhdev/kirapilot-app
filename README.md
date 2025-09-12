@@ -35,7 +35,9 @@ KiraPilot is a cross-platform productivity application that combines task manage
 - **Task Management**: Rich text descriptions, priority levels, dependencies, and week-based planning
 - **Time Tracking**: Built-in timer with session notes and productivity analytics
 - **Pattern Recognition**: Productivity analytics and automatic scheduling suggestions
-- **AI Assistant**: Natural language interface with tool access to all app features
+- **AI Assistant**: Natural language interface powered by Google Gemini with tool access to all app features
+- **Periodic Tasks**: Automated recurring task generation with flexible scheduling
+- **Internationalization**: Multi-language support with comprehensive translation system
 
 ## 🚀 Technology Stack
 
@@ -47,7 +49,10 @@ KiraPilot is a cross-platform productivity application that combines task manage
 - **Icons**: Lucide React
 - **Animations**: Framer Motion
 - **Rich Text**: Tiptap editor
+- **Drag & Drop**: @dnd-kit
 - **Validation**: Zod schemas
+- **AI Framework**: LangChain with Google Gemini integration
+- **ORM**: SeaORM for type-safe database operations
 
 ## 🛠️ Development
 
@@ -100,7 +105,10 @@ src/
 │   └── TitleBar.tsx     # Custom window title bar
 ├── services/            # Business logic and external integrations
 │   ├── database/        # Database layer with repositories
-│   └── notifications/   # System notifications
+│   ├── ai/              # AI service implementations and tools
+│   ├── notifications/   # System notifications
+│   ├── security/        # Security and privacy utilities
+│   └── startup/         # Application startup services
 ├── contexts/            # React context providers
 ├── hooks/               # Custom React hooks
 ├── types/               # TypeScript type definitions

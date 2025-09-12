@@ -20,7 +20,7 @@ Understand the technical architecture and design decisions behind KiraPilot.
 ### Development Tools
 
 - **Linting**: ESLint 9+ with TypeScript rules
-- **Formatting**: Prettier with single quotes, 2-space tabs
+- **Formatting**: Prettier with single quotes, 2-space tabs, don't use "any" as ts type
 - **Testing**: Jest with ts-jest, React Testing Library
 - **Git Hooks**: Husky with lint-staged
 - **Type Checking**: TypeScript 5.8+ in strict mode
@@ -103,9 +103,9 @@ AIContext; // AI assistant state
 #### Unidirectional Data Flow
 
 ```
-User Action → Context → Service → Repository → Database
+User Action → Context → Service → Tauri Command → SeaORM → SQLite
                 ↓
-            Component ← Context ← Service ← Repository
+            Component ← Context ← Service ← Tauri Response ← Database
 ```
 
 #### Repository Pattern
@@ -123,12 +123,12 @@ interface TaskRepository {
 
 ### Database Architecture
 
-#### SQLite with Migrations
+#### SQLite with SeaORM
 
-- **Primary**: SQLite for production
+- **Primary**: SQLite with SeaORM migrations system
 - **Fallback**: Mock database for development/testing
-- **Migrations**: Versioned schema changes
-- **Transactions**: Proper concurrency handling
+- **Queries**: Direct SQL with type-safe interfaces via SeaORM
+- **Transactions**: Proper concurrency handling with queue system
 
 #### Entity Design
 
@@ -137,9 +137,13 @@ Tasks ←→ TaskLists
   ↓
 TaskDependencies
   ↓
-TimeSessions
+TimerSessions
   ↓
 FocusSessions
+  ↓
+PeriodicTaskTemplates
+  ↓
+AIInteractionLogs
 ```
 
 ## Design Decisions

@@ -91,17 +91,18 @@ The timer automatically tracks:
 
 ## Meeting Your AI Assistant
 
-KiraPilot includes an intelligent AI assistant that can help with task management and productivity insights:
+KiraPilot includes an intelligent AI assistant powered by Google Gemini that can help with task management and productivity insights:
 
 1. **Click the floating AI button** (🤖) in the bottom-right corner
-2. **Set up your AI provider** if prompted (OpenAI, Anthropic, or local models)
+2. **Set up your Google Gemini API key** if prompted (get one from [Google AI Studio](https://aistudio.google.com/))
 3. **Start chatting** with natural language commands like:
    - "Create a task to review quarterly reports"
    - "Show me my tasks for tomorrow"
    - "Start a timer for my current task"
    - "How productive was I this week?"
+   - "Schedule my high-priority tasks for tomorrow"
 
-The AI assistant has access to all your tasks and time data, making it a powerful productivity companion.
+The AI assistant has access to all your tasks and time data through specialized tools, making it a powerful productivity companion that understands your workflow.
 
 ## Understanding Task Lists
 

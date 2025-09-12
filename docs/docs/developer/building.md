@@ -82,6 +82,21 @@ npm run format:check
 npm test
 npm run test:watch
 npm run test:coverage
+
+# Version management
+npm run sync-version
+npm run version:patch
+npm run version:minor
+npm run version:major
+
+# Internationalization
+npm run i18n:validate
+npm run i18n:check
+
+# Documentation
+npm run docs:start
+npm run docs:build
+npm run docs:serve
 ```
 
 ## Production Build
@@ -266,7 +281,15 @@ Key dependencies in `src-tauri/Cargo.toml`:
 [dependencies]
 tauri = { version = "2", features = ["macos-private-api"] }
 tauri-plugin-sql = { version = "2", features = ["sqlite"] }
-sea-orm = { version = "1.1", features = ["sqlx-sqlite", "runtime-tokio-rustls", "macros"] }
+tauri-plugin-opener = "2"
+tauri-plugin-notification = "2"
+tauri-plugin-dialog = "2"
+sea-orm = { version = "1.1", features = ["sqlx-sqlite", "runtime-tokio-rustls", "macros", "with-chrono", "with-uuid"] }
+sea-orm-migration = { version = "1.1" }
+llama-cpp-2 = "0.1.118"
+candle-core = "0.8"
+candle-nn = "0.8"
+candle-transformers = "0.8"
 ```
 
 ## Build Optimization

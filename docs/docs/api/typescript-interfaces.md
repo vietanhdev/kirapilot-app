@@ -72,6 +72,19 @@ enum TimePreset {
 }
 ```
 
+### RecurrenceType
+
+```typescript
+enum RecurrenceType {
+  DAILY = 'daily',
+  WEEKLY = 'weekly',
+  BIWEEKLY = 'biweekly',
+  EVERY_THREE_WEEKS = 'every_three_weeks',
+  MONTHLY = 'monthly',
+  CUSTOM = 'custom',
+}
+```
+
 ## Core Interfaces
 
 ### TrendData
@@ -188,6 +201,7 @@ interface UserPreferences {
     toolPermissions: boolean;
     responseStyle: 'concise' | 'balanced' | 'detailed';
     suggestionFrequency: 'minimal' | 'moderate' | 'frequent';
+    showInteractionLogs: boolean;
     modelType?: 'local' | 'gemini';
     geminiApiKey?: string;
     localModelConfig?: {
@@ -207,6 +221,22 @@ interface UserPreferences {
       autoCleanup: boolean;
       exportFormat: 'json' | 'csv';
     };
+    // Personality and emotional intelligence settings
+    personalitySettings?: {
+      warmth: number; // 1-10 scale
+      enthusiasm: number; // 1-10 scale
+      supportiveness: number; // 1-10 scale
+      humor: number; // 1-10 scale
+    };
+    interactionStyle?: 'casual' | 'professional' | 'friendly';
+    emojiUsage?: 'minimal' | 'moderate' | 'frequent';
+    emotionalFeatures?: {
+      dailyMoodTracking: boolean;
+      stressDetection: boolean;
+      encouragementFrequency: 'low' | 'medium' | 'high';
+      celebrationStyle: 'subtle' | 'enthusiastic';
+    };
+    onboardingCompleted?: boolean;
   };
   taskSettings: {
     defaultPriority: Priority;
@@ -215,6 +245,11 @@ interface UserPreferences {
     weekStartDay: 0 | 1; // 0 = Sunday, 1 = Monday
     showCompletedTasks: boolean;
     compactView: boolean;
+  };
+  soundSettings: {
+    hapticFeedback: boolean;
+    completionSound: boolean;
+    soundVolume: number; // 0-100
   };
   dateFormat: 'DD/MM/YYYY' | 'MM/DD/YYYY' | 'YYYY-MM-DD';
   theme: 'light' | 'dark' | 'auto';
@@ -255,7 +290,33 @@ interface Task {
   parentTaskId?: string;
   subtasks: string[];
   taskListId: string; // Foreign key to task list
+  // Periodic task properties
+  periodicTemplateId?: string; // Foreign key to periodic task template
+  isPeriodicInstance: boolean; // Whether this task is generated from a periodic template
+  generationDate?: Date; // When this instance was generated from the template
   completedAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+```
+
+### PeriodicTaskTemplate
+
+```typescript
+interface PeriodicTaskTemplate {
+  id: string;
+  title: string;
+  description: string;
+  priority: Priority;
+  timeEstimate: number; // in minutes
+  tags: string[];
+  taskListId: string;
+  recurrenceType: RecurrenceType;
+  recurrenceInterval: number; // For custom intervals (e.g., every 2 weeks)
+  recurrenceUnit?: 'days' | 'weeks' | 'months'; // For custom intervals
+  startDate: Date;
+  nextGenerationDate: Date;
+  isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -369,8 +430,11 @@ interface TaskFilters {
     to?: Date;
   };
   projectId?: string;
-  taskListId?: string;
+  taskListId?: string; // Filter by task list
   search?: string;
+  // Periodic task filtering
+  periodicFilter?: 'all' | 'instances_only' | 'regular_only';
+  periodicTemplateId?: string; // Filter by specific template
 }
 ```
 

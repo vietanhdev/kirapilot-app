@@ -10,6 +10,28 @@ jest.mock('../../../hooks/useTranslation', () => ({
   }),
 }));
 
+// Mock Date.prototype.toLocaleTimeString to return consistent format
+const originalToLocaleTimeString = Date.prototype.toLocaleTimeString;
+beforeAll(() => {
+  Date.prototype.toLocaleTimeString = jest.fn().mockImplementation(function (
+    this: Date
+  ) {
+    // Mock specific timestamps for consistent testing
+    if (this.getTime() === new Date('2024-01-01T10:00:00Z').getTime()) {
+      return '5:00:00 PM';
+    }
+    if (this.getTime() === new Date('2024-01-01T10:01:00Z').getTime()) {
+      return '5:01:00 PM';
+    }
+    // Fallback to original implementation for other dates
+    return originalToLocaleTimeString.call(this);
+  });
+});
+
+afterAll(() => {
+  Date.prototype.toLocaleTimeString = originalToLocaleTimeString;
+});
+
 // Mock the auto-scroll hook
 jest.mock('../../../hooks/useAutoScroll', () => ({
   useAutoScroll: () => ({

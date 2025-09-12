@@ -21,30 +21,49 @@ kirapilot-app/
 │   │   │   ├── repositories/    # Data access services (TaskService, etc.)
 │   │   │   └── __mocks__/       # Mock implementations for testing
 │   │   ├── ai/                  # AI service implementations
-│   │   │   ├── LocalAIService.ts    # Local LLM integration
-│   │   │   ├── ReactAIService.ts    # Google Gemini integration
-│   │   │   ├── ToolRegistry.ts      # AI tool management
-│   │   │   ├── LoggingInterceptor.ts # AI conversation logging
-│   │   │   └── tools.ts             # AI tool definitions
+│   │   │   ├── AIServiceInterface.ts    # Common AI service interface
+│   │   │   ├── LocalAIService.ts        # Local LLM integration
+│   │   │   ├── GeminiAIService.ts       # Google Gemini integration
+│   │   │   ├── ModelManager.ts          # AI model management
+│   │   │   ├── ToolRegistry.ts          # AI tool management
+│   │   │   ├── ToolExecutionEngine.ts   # Tool execution logic
+│   │   │   ├── LoggingInterceptor.ts    # AI conversation logging
+│   │   │   ├── LogRetentionManager.ts   # Log cleanup and retention
+│   │   │   ├── FeedbackAnalysisService.ts # User feedback analysis
+│   │   │   └── tools.ts                 # AI tool definitions
 │   │   ├── notifications/       # System notifications
 │   │   ├── security/            # Security and privacy utilities
-│   │   └── errorHandling/       # Error management services
+│   │   ├── errorHandling/       # Error management services
+│   │   └── startup/             # Application startup services
 │   ├── contexts/                # React context providers
 │   │   ├── AIContext.tsx        # AI assistant state management
 │   │   ├── TaskListContext.tsx  # Task list state and operations
 │   │   ├── TimerContext.tsx     # Timer and session management
 │   │   ├── SettingsContext.tsx  # User preferences and settings
 │   │   ├── NavigationContext.tsx # App navigation state
-│   │   └── PrivacyContext.tsx   # Privacy and data protection
+│   │   ├── PrivacyContext.tsx   # Privacy and data protection
+│   │   ├── LoggingStatusContext.tsx # AI logging status tracking
+│   │   └── ToastContext.tsx     # Toast notification management
 │   ├── hooks/                   # Custom React hooks
 │   │   ├── useDatabase.ts       # Database connection and operations
 │   │   ├── useTaskWithPreferences.ts # Task management with user prefs
 │   │   ├── useTimerWithPreferences.ts # Timer with user preferences
 │   │   ├── useTranslation.ts    # Internationalization support
-│   │   └── usePrivacyAware.ts   # Privacy-aware data handling
+│   │   ├── usePrivacyAware.ts   # Privacy-aware data handling
+│   │   ├── useProductivityInsights.ts # Productivity analytics
+│   │   ├── useThreads.ts        # AI conversation threads
+│   │   ├── useThreadMessages.ts # Thread message management
+│   │   ├── useConfirmationDialog.ts # Confirmation dialogs
+│   │   ├── useNotifications.ts  # System notifications
+│   │   ├── useToast.ts          # Toast notifications
+│   │   └── useUserPreferences.ts # User preference management
 │   ├── types/                   # TypeScript type definitions
 │   │   ├── index.ts             # Core interfaces and enums
 │   │   ├── aiLogging.ts         # AI logging type definitions
+│   │   ├── aiConfirmation.ts    # AI confirmation types
+│   │   ├── emotionalIntelligence.ts # Emotional AI types
+│   │   ├── taskMatching.ts      # Task matching types
+│   │   ├── thread.ts            # Conversation thread types
 │   │   ├── database.ts          # Database-related types
 │   │   └── validation.ts        # Data validation schemas
 │   ├── utils/                   # Pure utility functions
@@ -52,8 +71,15 @@ kirapilot-app/
 │   │   ├── taskSorting.ts       # Task organization logic
 │   │   ├── migration.ts         # Database migration utilities
 │   │   ├── translationUtils.ts  # i18n helper functions
+│   │   ├── translationDevTools.ts # Translation development tools
+│   │   ├── translationValidation.ts # Translation validation
 │   │   ├── dataBackup.ts        # Data export/import utilities
-│   │   └── performanceMonitoring.ts # Performance tracking
+│   │   ├── performanceMonitoring.ts # Performance tracking
+│   │   ├── errorTracking.ts     # Error tracking utilities
+│   │   ├── retryMechanism.ts    # Retry logic utilities
+│   │   ├── circuitBreakerUtils.ts # Circuit breaker patterns
+│   │   ├── debugCommands.ts     # Debug command utilities
+│   │   └── version.ts           # Version management
 │   ├── i18n/                    # Internationalization
 │   │   ├── locales/             # Translation files
 │   │   └── index.ts             # i18n configuration
