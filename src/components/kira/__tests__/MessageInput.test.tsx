@@ -365,7 +365,9 @@ describe('MessageInput', () => {
     await user.tab();
 
     // Should not be highlighted when blurred
-    expect(hint).not.toHaveClass('text-primary-500');
+    await waitFor(() => {
+      expect(hint).not.toHaveClass('text-primary-500');
+    });
   });
 
   it('exposes ref methods correctly', async () => {
