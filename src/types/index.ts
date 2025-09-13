@@ -581,3 +581,28 @@ export * from './emotionalIntelligence';
 
 // Re-export thread types
 export * from './thread';
+
+// Re-export enhanced context types
+export * from './enhancedContext';
+// Re-export natural language understanding types (selective to avoid conflicts)
+export type {
+  EnhancedNLU,
+  IntentAnalysis,
+  ImplicitRequest,
+  MessageComplexity,
+  ContextualCue,
+  UserIntent,
+  IntentType,
+  IntentCategory,
+  EmotionType,
+  EmotionalTrigger,
+  EmotionalResponseStrategy,
+  ComplexityFactor,
+  ContextualCueType,
+  NLUConfig,
+  NLUProcessingResult,
+  ImplicitRequestType,
+  UrgencyIndicator,
+  TimeframeIntent,
+  IntentScope,
+} from './naturalLanguageUnderstanding';

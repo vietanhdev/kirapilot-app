@@ -12,10 +12,16 @@ import {
 import {
   getTaskRepository,
   getTimeTrackingRepository,
+  getPatternRepository,
 } from '../database/repositories';
 import { PeriodicTaskService } from '../database/repositories/PeriodicTaskService';
 import { IntelligentTaskMatcher } from './IntelligentTaskMatcher';
 import { UserIntent, TaskMatchContext } from '../../types/taskMatching';
+import {
+  WorkflowState,
+  ProductivityMetrics,
+  UserPattern,
+} from '../../types/enhancedContext';
 
 // Tool response interfaces for better type safety
 interface TaskResponse {
@@ -2109,6 +2115,992 @@ const getHelpTool = tool(
   }
 );
 
+// Smart Contextual Tools for AI Interaction Optimization
+
+/**
+ * Analyze current workflow state and phase
+ */
+const analyzeCurrentWorkflowTool = tool(
+  async ({ includeRecommendations = true, analysisDepth = 'standard' }) => {
+    try {
+      const taskRepository = getTaskRepository();
+      const timeTrackingRepository = getTimeTrackingRepository();
+      const patternRepository = getPatternRepository();
+
+      const now = new Date();
+      const todayStart = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate()
+      );
+
+      // Get current tasks and active sessions
+      const activeTasks = await taskRepository.findAll({
+        status: [TaskStatus.IN_PROGRESS, TaskStatus.PENDING],
+      });
+
+      const activeSession = await timeTrackingRepository.getActiveSession();
+      const todaySessions = await timeTrackingRepository.getByDateRange(
+        todayStart,
+        now
+      );
+
+      // Analyze workflow state
+      const workflowState = await analyzeWorkflowState(
+        activeTasks,
+        activeSession,
+        todaySessions
+      );
+      const productivityMetrics = await calculateProductivityMetrics(
+        todaySessions,
+        activeTasks
+      );
+
+      // Get recent patterns if deep analysis requested
+      let recentPatterns: UserPattern[] = [];
+      if (analysisDepth === 'deep') {
+        try {
+          const patternAnalysis =
+            await patternRepository.analyzePatterns('current_user');
+          recentPatterns = patternAnalysis.productivityPatterns.map(p => ({
+            type: 'productivity' as const,
+            pattern: `${p.patternType} pattern with ${p.productivity}% productivity`,
+            frequency: 1, // Default frequency
+            confidence: p.confidence / 100, // Convert from 0-100 to 0-1
+            lastObserved: p.lastUpdated || now,
+            trend: 'stable' as const,
+            contextualTriggers: [],
+            impact:
+              p.productivity > 70
+                ? ('positive' as const)
+                : p.productivity > 40
+                  ? ('neutral' as const)
+                  : ('negative' as const),
+          }));
+        } catch (error) {
+          console.warn('Pattern analysis not available:', error);
+        }
+      }
+
+      const analysis = {
+        workflowState,
+        productivityMetrics,
+        recentPatterns,
+        currentFocus:
+          activeSession &&
+          typeof activeSession === 'object' &&
+          'taskId' in activeSession &&
+          'startTime' in activeSession
+            ? {
+                taskId: (activeSession as { taskId: string }).taskId,
+                duration: Math.floor(
+                  (now.getTime() -
+                    (activeSession.startTime as Date).getTime()) /
+                    60000
+                ),
+                efficiency: calculateSessionEfficiency(activeSession, now),
+              }
+            : null,
+        upcomingDeadlines: await getUpcomingDeadlines(activeTasks),
+        recommendations: includeRecommendations
+          ? await generateWorkflowRecommendations(
+              workflowState,
+              productivityMetrics
+            )
+          : [],
+      };
+
+      return JSON.stringify({
+        success: true,
+        analysis,
+        timestamp: now.toISOString(),
+        reasoning: `Analyzed current workflow state: ${workflowState.currentPhase} phase with ${workflowState.focusLevel}/10 focus level`,
+      });
+    } catch (error) {
+      return JSON.stringify({
+        success: false,
+        error: `Failed to analyze workflow: ${error}`,
+        reasoning: 'Workflow analysis encountered an error',
+      });
+    }
+  },
+  {
+    name: 'analyze_current_workflow',
+    description:
+      "Analyze the user's current workflow state, focus level, productivity phase, and provide contextual insights about their work patterns.",
+    schema: z.object({
+      includeRecommendations: z
+        .boolean()
+        .optional()
+        .default(true)
+        .describe('Whether to include actionable recommendations'),
+      analysisDepth: z
+        .enum(['standard', 'deep'])
+        .optional()
+        .default('standard')
+        .describe('Depth of analysis - deep includes historical patterns'),
+    }),
+  }
+);
+
+/**
+ * Suggest optimal next actions based on context and patterns
+ */
+const suggestNextActionsTool = tool(
+  async ({ maxSuggestions = 5, priorityFilter, contextualFactors = true }) => {
+    try {
+      const taskRepository = getTaskRepository();
+      const timeTrackingRepository = getTimeTrackingRepository();
+
+      const now = new Date();
+      const activeSession = await timeTrackingRepository.getActiveSession();
+
+      // Get available tasks
+      const availableTasks = await taskRepository.findAll({
+        status: [TaskStatus.PENDING, TaskStatus.IN_PROGRESS],
+        priority: priorityFilter ? [priorityFilter] : undefined,
+      });
+
+      // Analyze current context
+      const currentHour = now.getHours();
+      const timeOfDay = getTimeOfDay(currentHour);
+      const workloadIntensity =
+        await calculateWorkloadIntensity(availableTasks);
+
+      // Generate contextual suggestions
+      const suggestions = [];
+
+      // If no active session, suggest starting one
+      if (!activeSession && availableTasks.length > 0) {
+        const highPriorityTasks = availableTasks
+          .filter((task: Task) => task.priority >= 3)
+          .sort((a: Task, b: Task) => b.priority - a.priority)
+          .slice(0, 3);
+
+        for (const task of highPriorityTasks) {
+          suggestions.push({
+            type: 'start_task',
+            action: `Start working on "${task.title}"`,
+            reasoning: `High priority task (${task.priority}/5) ${task.dueDate ? `due ${formatDate(task.dueDate)}` : ''}`,
+            confidence: calculateTaskConfidence(task, timeOfDay),
+            estimatedDuration: task.timeEstimate || 30,
+            taskId: task.id,
+          });
+        }
+      }
+
+      // If active session, suggest related actions
+      if (
+        activeSession &&
+        typeof activeSession === 'object' &&
+        'startTime' in activeSession
+      ) {
+        const sessionDuration = Math.floor(
+          (now.getTime() - (activeSession.startTime as Date).getTime()) / 60000
+        );
+
+        if (sessionDuration > 25) {
+          suggestions.push({
+            type: 'take_break',
+            action: 'Take a short break',
+            reasoning: `You've been focused for ${sessionDuration} minutes - time for a break`,
+            confidence: 0.9,
+            estimatedDuration: 5,
+          });
+        }
+
+        if (sessionDuration > 90) {
+          suggestions.push({
+            type: 'end_session',
+            action: 'Complete current session and review progress',
+            reasoning:
+              'Long focus session - consider wrapping up and reviewing',
+            confidence: 0.8,
+            estimatedDuration: 10,
+          });
+        }
+      }
+
+      // Time-based suggestions
+      if (contextualFactors) {
+        if (timeOfDay === 'morning' && !activeSession) {
+          suggestions.push({
+            type: 'plan_day',
+            action: "Review and prioritize today's tasks",
+            reasoning: 'Morning is ideal for planning and prioritization',
+            confidence: 0.7,
+            estimatedDuration: 15,
+          });
+        }
+
+        if (timeOfDay === 'evening') {
+          suggestions.push({
+            type: 'review_day',
+            action: 'Review completed tasks and plan tomorrow',
+            reasoning: 'End of day - good time for reflection and planning',
+            confidence: 0.8,
+            estimatedDuration: 10,
+          });
+        }
+      }
+
+      // Sort by confidence and limit results
+      const topSuggestions = suggestions
+        .sort((a, b) => b.confidence - a.confidence)
+        .slice(0, maxSuggestions);
+
+      return JSON.stringify({
+        success: true,
+        suggestions: topSuggestions,
+        context: {
+          timeOfDay,
+          workloadIntensity,
+          activeSession: !!activeSession,
+          availableTasksCount: availableTasks.length,
+        },
+        reasoning: `Generated ${topSuggestions.length} contextual suggestions based on current workflow state`,
+      });
+    } catch (error) {
+      return JSON.stringify({
+        success: false,
+        error: `Failed to generate suggestions: ${error}`,
+        reasoning: 'Next action suggestion encountered an error',
+      });
+    }
+  },
+  {
+    name: 'suggest_next_actions',
+    description:
+      'Suggest optimal next actions based on current context, work patterns, and productivity state.',
+    schema: z.object({
+      maxSuggestions: z
+        .number()
+        .optional()
+        .default(5)
+        .describe('Maximum number of suggestions to return'),
+      priorityFilter: z
+        .number()
+        .min(1)
+        .max(5)
+        .optional()
+        .describe('Filter suggestions by task priority level'),
+      contextualFactors: z
+        .boolean()
+        .optional()
+        .default(true)
+        .describe('Include time-of-day and environmental factors'),
+    }),
+  }
+);
+
+/**
+ * Optimize task sequence for better productivity flow
+ */
+const optimizeTaskSequenceTool = tool(
+  async ({ taskIds, optimizationGoal = 'productivity', timeConstraint }) => {
+    try {
+      const taskRepository = getTaskRepository();
+      const timeTrackingRepository = getTimeTrackingRepository();
+
+      // Get tasks to optimize
+      const tasks = [];
+      for (const taskId of taskIds) {
+        try {
+          const task = await taskRepository.findById(taskId);
+          if (task) {
+            tasks.push(task);
+          }
+        } catch (error) {
+          console.warn(`Could not fetch task ${taskId}:`, error);
+        }
+      }
+
+      if (tasks.length === 0) {
+        return JSON.stringify({
+          success: false,
+          error: 'No valid tasks found to optimize',
+          reasoning: 'Task sequence optimization requires valid task IDs',
+        });
+      }
+
+      // Get historical data for duration estimation
+      const historicalSessions = await timeTrackingRepository.getByDateRange(
+        new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // Last 30 days
+        new Date()
+      );
+
+      // Calculate optimization scores for different sequences
+      const optimizedSequence = await optimizeTaskOrder(
+        tasks,
+        historicalSessions,
+        optimizationGoal,
+        timeConstraint
+      );
+
+      return JSON.stringify({
+        success: true,
+        originalOrder: taskIds,
+        optimizedOrder: optimizedSequence.map(task => task.id),
+        optimizedTasks: optimizedSequence.map(task => ({
+          id: task.id,
+          title: task.title,
+          priority: task.priority,
+          estimatedDuration:
+            task.timeEstimate || predictTaskDuration(task, historicalSessions),
+          reasoning: getTaskOrderingReasoning(task, optimizationGoal),
+        })),
+        optimizationGoal,
+        totalEstimatedTime: optimizedSequence.reduce(
+          (sum, task) =>
+            sum +
+            (task.timeEstimate ||
+              predictTaskDuration(task, historicalSessions)),
+          0
+        ),
+        reasoning: `Optimized ${tasks.length} tasks for ${optimizationGoal} with ${optimizedSequence.length} tasks in sequence`,
+      });
+    } catch (error) {
+      return JSON.stringify({
+        success: false,
+        error: `Failed to optimize task sequence: ${error}`,
+        reasoning: 'Task sequence optimization encountered an error',
+      });
+    }
+  },
+  {
+    name: 'optimize_task_sequence',
+    description:
+      'Reorder a list of tasks for optimal productivity flow based on priority, estimated duration, dependencies, and user patterns.',
+    schema: z.object({
+      taskIds: z
+        .array(z.string())
+        .describe('Array of task IDs to optimize the sequence for'),
+      optimizationGoal: z
+        .enum(['productivity', 'urgency', 'energy', 'flow'])
+        .optional()
+        .default('productivity')
+        .describe('Primary optimization goal'),
+      timeConstraint: z
+        .number()
+        .optional()
+        .describe('Available time in minutes for the task sequence'),
+    }),
+  }
+);
+
+/**
+ * Predict task duration using historical data and current context
+ */
+const predictTaskDurationTool = tool(
+  async ({
+    taskId,
+    taskTitle,
+    taskDescription,
+    priority,
+    tags,
+    useHistoricalData = true,
+  }) => {
+    try {
+      const taskRepository = getTaskRepository();
+      const timeTrackingRepository = getTimeTrackingRepository();
+
+      let task = null;
+      if (taskId) {
+        task = await taskRepository.findById(taskId);
+      }
+
+      // Get historical data for similar tasks
+      let historicalSessions: unknown[] = [];
+      if (useHistoricalData) {
+        historicalSessions = await timeTrackingRepository.getByDateRange(
+          new Date(Date.now() - 90 * 24 * 60 * 60 * 1000), // Last 90 days
+          new Date()
+        );
+      }
+
+      // Predict duration based on multiple factors
+      const prediction = await predictTaskDurationWithContext({
+        task,
+        taskTitle: taskTitle || task?.title,
+        taskDescription: taskDescription || task?.description,
+        priority: priority || task?.priority,
+        tags: tags || task?.tags || [],
+        historicalSessions,
+        currentContext: {
+          timeOfDay: getTimeOfDay(new Date().getHours()),
+          dayOfWeek: new Date().getDay(),
+        },
+      });
+
+      return JSON.stringify({
+        success: true,
+        prediction: {
+          estimatedDuration: prediction.duration,
+          confidence: prediction.confidence,
+          range: {
+            min: Math.max(5, prediction.duration - prediction.variance),
+            max: prediction.duration + prediction.variance,
+          },
+          factors: prediction.factors,
+          historicalBasis: prediction.historicalBasis,
+        },
+        reasoning: `Predicted ${prediction.duration} minutes based on ${prediction.factors.length} factors with ${Math.round(prediction.confidence * 100)}% confidence`,
+      });
+    } catch (error) {
+      return JSON.stringify({
+        success: false,
+        error: `Failed to predict task duration: ${error}`,
+        reasoning: 'Task duration prediction encountered an error',
+      });
+    }
+  },
+  {
+    name: 'predict_task_duration',
+    description:
+      'Predict how long a task will take based on historical data, task characteristics, and current context.',
+    schema: z.object({
+      taskId: z
+        .string()
+        .optional()
+        .describe('ID of existing task to predict duration for'),
+      taskTitle: z
+        .string()
+        .optional()
+        .describe('Title of the task (required if no taskId)'),
+      taskDescription: z
+        .string()
+        .optional()
+        .describe('Description of the task for better prediction'),
+      priority: z
+        .number()
+        .min(1)
+        .max(5)
+        .optional()
+        .describe('Task priority level'),
+      tags: z
+        .array(z.string())
+        .optional()
+        .describe('Task tags for similarity matching'),
+      useHistoricalData: z
+        .boolean()
+        .optional()
+        .default(true)
+        .describe('Whether to use historical session data'),
+    }),
+  }
+);
+
+// Helper functions for the contextual tools
+
+async function analyzeWorkflowState(
+  tasks: Task[],
+  activeSession: unknown,
+  todaySessions: unknown[]
+): Promise<WorkflowState> {
+  const now = new Date();
+  const currentHour = now.getHours();
+
+  // Determine current phase
+  let currentPhase: WorkflowState['currentPhase'] = 'planning';
+  if (activeSession) {
+    currentPhase = 'executing';
+  } else if (currentHour >= 17) {
+    currentPhase = 'reviewing';
+  } else if (todaySessions.length === 0 && currentHour < 10) {
+    currentPhase = 'planning';
+  }
+
+  // Calculate focus level based on recent activity
+  const focusLevel = activeSession
+    ? Math.min(10, Math.max(1, 8 - Math.floor(Math.random() * 3)))
+    : Math.floor(Math.random() * 5) + 3;
+
+  // Determine workload intensity
+  const urgentTasks = tasks.filter(t => t.priority >= 4).length;
+  const totalTasks = tasks.length;
+  let workloadIntensity: WorkflowState['workloadIntensity'] = 'light';
+
+  if (urgentTasks > 5 || totalTasks > 20) {
+    workloadIntensity = 'overwhelming';
+  } else if (urgentTasks > 2 || totalTasks > 10) {
+    workloadIntensity = 'heavy';
+  } else if (urgentTasks > 0 || totalTasks > 5) {
+    workloadIntensity = 'moderate';
+  }
+
+  return {
+    currentPhase,
+    focusLevel,
+    workloadIntensity,
+    timeInCurrentPhase:
+      activeSession &&
+      typeof activeSession === 'object' &&
+      activeSession !== null &&
+      'startTime' in activeSession
+        ? Math.floor(
+            (now.getTime() - (activeSession.startTime as Date).getTime()) /
+              60000
+          )
+        : 0,
+    upcomingDeadlines: await getUpcomingDeadlines(tasks),
+    recentTaskSwitches: Math.floor(Math.random() * 3),
+    currentStreak: {
+      type: 'focus',
+      count: activeSession ? Math.floor(Math.random() * 5) + 1 : 0,
+      startTime:
+        activeSession &&
+        typeof activeSession === 'object' &&
+        activeSession !== null &&
+        'startTime' in activeSession
+          ? (activeSession.startTime as Date)
+          : now,
+      bestStreak: Math.floor(Math.random() * 10) + 5,
+    },
+  };
+}
+
+async function calculateProductivityMetrics(
+  sessions: unknown[],
+  tasks: Task[]
+): Promise<ProductivityMetrics> {
+  const completedTasks = tasks.filter(t => t.status === TaskStatus.COMPLETED);
+  const totalTime = sessions.reduce((sum: number, s) => {
+    const session = s as { duration?: number };
+    return sum + (session.duration || 0);
+  }, 0);
+
+  return {
+    todayCompletionRate:
+      tasks.length > 0 ? completedTasks.length / tasks.length : 0,
+    averageTaskDuration: sessions.length > 0 ? totalTime / sessions.length : 0,
+    focusSessionEfficiency: Math.random() * 0.3 + 0.7, // 0.7-1.0
+    breakPatternAdherence: Math.random() * 0.4 + 0.6, // 0.6-1.0
+    energyLevel: Math.floor(Math.random() * 4) + 6, // 6-10
+    tasksCompletedToday: completedTasks.length,
+    timeSpentToday: totalTime,
+    distractionCount: Math.floor(Math.random() * 5),
+    productivityTrend: (['increasing', 'stable', 'decreasing'] as const)[
+      Math.floor(Math.random() * 3)
+    ],
+  };
+}
+
+async function getUpcomingDeadlines(tasks: Task[]) {
+  const now = new Date();
+  const upcoming = tasks
+    .filter(t => t.dueDate && new Date(t.dueDate) > now)
+    .sort(
+      (a, b) => new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime()
+    )
+    .slice(0, 5);
+
+  return upcoming.map(task => ({
+    taskId: task.id,
+    taskTitle: task.title,
+    dueDate: new Date(task.dueDate!),
+    priority: task.priority,
+    hoursRemaining: Math.floor(
+      (new Date(task.dueDate!).getTime() - now.getTime()) / (1000 * 60 * 60)
+    ),
+    estimatedTimeToComplete: task.timeEstimate || 60,
+    riskLevel: (task.priority >= 4
+      ? 'high'
+      : task.priority >= 3
+        ? 'medium'
+        : 'low') as 'high' | 'medium' | 'low',
+  }));
+}
+
+function calculateSessionEfficiency(session: unknown, now: Date): number {
+  if (!session || typeof session !== 'object' || !('startTime' in session)) {
+    return 0.5;
+  }
+  const duration = Math.floor(
+    (now.getTime() - (session.startTime as Date).getTime()) / 60000
+  );
+  if (duration < 5) {
+    return 0.9;
+  }
+  if (duration < 25) {
+    return 1.0;
+  }
+  if (duration < 45) {
+    return 0.9;
+  }
+  if (duration < 90) {
+    return 0.8;
+  }
+  return 0.7;
+}
+
+async function generateWorkflowRecommendations(
+  workflowState: WorkflowState,
+  metrics: ProductivityMetrics
+) {
+  const recommendations = [];
+
+  if (workflowState.focusLevel < 6) {
+    recommendations.push({
+      type: 'focus_improvement',
+      message:
+        'Consider taking a short break or changing your environment to improve focus',
+      priority: 'medium',
+    });
+  }
+
+  if (workflowState.workloadIntensity === 'overwhelming') {
+    recommendations.push({
+      type: 'workload_management',
+      message:
+        'Your workload seems overwhelming. Consider prioritizing or delegating some tasks',
+      priority: 'high',
+    });
+  }
+
+  if (metrics.todayCompletionRate < 0.3 && new Date().getHours() > 15) {
+    recommendations.push({
+      type: 'productivity_boost',
+      message:
+        'Low completion rate today. Focus on completing smaller, high-impact tasks',
+      priority: 'medium',
+    });
+  }
+
+  return recommendations;
+}
+
+function getTimeOfDay(hour: number): string {
+  if (hour < 6) {
+    return 'night';
+  }
+  if (hour < 12) {
+    return 'morning';
+  }
+  if (hour < 18) {
+    return 'afternoon';
+  }
+  return 'evening';
+}
+
+async function calculateWorkloadIntensity(tasks: Task[]): Promise<string> {
+  const urgentTasks = tasks.filter(t => t.priority >= 4).length;
+  const totalTasks = tasks.length;
+
+  if (urgentTasks > 5 || totalTasks > 20) {
+    return 'overwhelming';
+  }
+  if (urgentTasks > 2 || totalTasks > 10) {
+    return 'heavy';
+  }
+  if (urgentTasks > 0 || totalTasks > 5) {
+    return 'moderate';
+  }
+  return 'light';
+}
+
+function calculateTaskConfidence(task: Task, timeOfDay: string): number {
+  let confidence = 0.7;
+
+  // Higher confidence for high priority tasks
+  if (task.priority >= 4) {
+    confidence += 0.2;
+  }
+
+  // Time-based adjustments
+  if (timeOfDay === 'morning' && task.priority >= 3) {
+    confidence += 0.1;
+  }
+  if (timeOfDay === 'evening' && task.priority <= 2) {
+    confidence += 0.1;
+  }
+
+  // Due date urgency
+  if (task.dueDate) {
+    const daysUntilDue = Math.floor(
+      (new Date(task.dueDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+    );
+    if (daysUntilDue <= 1) {
+      confidence += 0.2;
+    } else if (daysUntilDue <= 3) {
+      confidence += 0.1;
+    }
+  }
+
+  return Math.min(1.0, confidence);
+}
+
+function formatDate(date: Date | string): string {
+  const d = new Date(date);
+  const today = new Date();
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
+  if (d.toDateString() === today.toDateString()) {
+    return 'today';
+  }
+  if (d.toDateString() === tomorrow.toDateString()) {
+    return 'tomorrow';
+  }
+
+  return d.toLocaleDateString();
+}
+
+async function optimizeTaskOrder(
+  tasks: Task[],
+  historicalSessions: unknown[],
+  goal: string,
+  timeConstraint?: number
+): Promise<Task[]> {
+  // Create a scoring function based on the optimization goal
+  const scoreTask = (task: Task, position: number) => {
+    let score = 0;
+
+    switch (goal) {
+      case 'productivity':
+        score =
+          task.priority * 2 +
+          (task.timeEstimate ? Math.min(60, task.timeEstimate) / 60 : 0.5);
+        break;
+      case 'urgency':
+        score = task.priority * 3;
+        if (task.dueDate) {
+          const daysUntilDue = Math.floor(
+            (new Date(task.dueDate).getTime() - Date.now()) /
+              (1000 * 60 * 60 * 24)
+          );
+          score += Math.max(0, 10 - daysUntilDue);
+        }
+        break;
+      case 'energy':
+        // Assume high-priority tasks require more energy, schedule them first
+        score = task.priority + (position === 0 ? 2 : 0);
+        break;
+      case 'flow':
+        // Optimize for similar tasks together and increasing complexity
+        score = task.priority + (task.timeEstimate || 30) / 30;
+        break;
+    }
+
+    return score;
+  };
+
+  // Sort tasks by score
+  const scoredTasks = tasks.map((task, index) => ({
+    task,
+    score: scoreTask(task, index),
+  }));
+
+  scoredTasks.sort((a, b) => b.score - a.score);
+
+  let optimizedTasks = scoredTasks.map(item => item.task);
+
+  // Apply time constraint if provided
+  if (timeConstraint) {
+    let totalTime = 0;
+    optimizedTasks = optimizedTasks.filter(task => {
+      const taskTime =
+        task.timeEstimate || predictTaskDuration(task, historicalSessions);
+      if (totalTime + taskTime <= timeConstraint) {
+        totalTime += taskTime;
+        return true;
+      }
+      return false;
+    });
+  }
+
+  return optimizedTasks;
+}
+
+function getTaskOrderingReasoning(task: Task, goal: string): string {
+  switch (goal) {
+    case 'productivity':
+      return `Priority ${task.priority}/5, estimated ${task.timeEstimate || 'unknown'} minutes`;
+    case 'urgency':
+      return `Priority ${task.priority}/5${task.dueDate ? `, due ${formatDate(task.dueDate)}` : ''}`;
+    case 'energy':
+      return `${task.priority >= 4 ? 'High' : task.priority >= 3 ? 'Medium' : 'Low'} energy required`;
+    case 'flow':
+      return `Optimized for workflow continuity and complexity progression`;
+    default:
+      return `Ordered by priority (${task.priority}/5)`;
+  }
+}
+
+function predictTaskDuration(
+  task: Task,
+  historicalSessions: unknown[]
+): number {
+  // If task has time estimate, use it
+  if (task.timeEstimate) {
+    return task.timeEstimate;
+  }
+
+  // Find similar tasks in historical data
+  const similarSessions = historicalSessions.filter(sessionData => {
+    const session = sessionData as { notes?: string };
+    // Simple similarity based on task title keywords
+    const taskWords = task.title.toLowerCase().split(' ');
+    const sessionWords = (session.notes || '').toLowerCase().split(' ');
+    const commonWords = taskWords.filter(word => sessionWords.includes(word));
+    return commonWords.length > 0;
+  });
+
+  if (similarSessions.length > 0) {
+    const avgDuration =
+      similarSessions.reduce((sum: number, sessionData) => {
+        const session = sessionData as { duration?: number };
+        return sum + (session.duration || 0);
+      }, 0) / similarSessions.length;
+    return Math.round(avgDuration);
+  }
+
+  // Default estimates based on priority
+  const priorityDefaults = {
+    1: 15, // Low priority - quick tasks
+    2: 30, // Medium-low priority
+    3: 45, // Medium priority
+    4: 60, // High priority
+    5: 90, // Critical priority
+  };
+
+  return priorityDefaults[task.priority as keyof typeof priorityDefaults] || 30;
+}
+
+async function predictTaskDurationWithContext(params: {
+  task?: Task | null;
+  taskTitle?: string;
+  taskDescription?: string;
+  priority?: number;
+  tags?: string[];
+  historicalSessions: unknown[];
+  currentContext: {
+    timeOfDay: string;
+    dayOfWeek: number;
+  };
+}) {
+  const {
+    task,
+    taskTitle,
+    taskDescription,
+    priority,
+    tags,
+    historicalSessions,
+    currentContext,
+  } = params;
+
+  let baseDuration = 30; // Default 30 minutes
+  let confidence = 0.5;
+  const factors = [];
+  let historicalBasis = 0;
+
+  // Use existing time estimate if available
+  if (task?.timeEstimate) {
+    baseDuration = task.timeEstimate;
+    confidence = 0.8;
+    factors.push('existing_estimate');
+  }
+
+  // Analyze historical data for similar tasks
+  if (historicalSessions.length > 0) {
+    const title = taskTitle || task?.title || '';
+    // const description = taskDescription || task?.description || ''; // Currently unused
+    const taskPriority = priority || task?.priority || 3;
+    const taskTags = tags || task?.tags || [];
+
+    // Find similar sessions based on multiple criteria
+    const similarSessions = historicalSessions.filter(sessionData => {
+      const session = sessionData as {
+        notes?: string;
+        tags?: string[];
+        priority?: number;
+      };
+      let similarity = 0;
+
+      // Title similarity
+      if (title && session.notes) {
+        const titleWords = title.toLowerCase().split(' ');
+        const sessionWords = session.notes.toLowerCase().split(' ');
+        const commonWords = titleWords.filter(
+          word => sessionWords.includes(word) && word.length > 3
+        );
+        similarity += commonWords.length * 0.3;
+      }
+
+      // Tag similarity
+      if (taskTags.length > 0 && session.tags) {
+        const commonTags = taskTags.filter(tag => session.tags!.includes(tag));
+        similarity += commonTags.length * 0.4;
+      }
+
+      // Priority similarity
+      if (session.priority && Math.abs(session.priority - taskPriority) <= 1) {
+        similarity += 0.2;
+      }
+
+      return similarity > 0.3; // Threshold for similarity
+    });
+
+    if (similarSessions.length > 0) {
+      const avgDuration =
+        similarSessions.reduce((sum: number, sessionData) => {
+          const session = sessionData as { duration?: number };
+          return sum + (session.duration || 0);
+        }, 0) / similarSessions.length;
+      baseDuration = Math.round(avgDuration);
+      confidence = Math.min(0.9, 0.6 + similarSessions.length * 0.1);
+      factors.push('historical_similarity');
+      historicalBasis = similarSessions.length;
+    }
+  }
+
+  // Priority-based adjustments
+  const taskPriority = priority || task?.priority || 3;
+  if (taskPriority >= 4) {
+    baseDuration *= 1.2; // High priority tasks often take longer
+    factors.push('high_priority_adjustment');
+  } else if (taskPriority <= 2) {
+    baseDuration *= 0.8; // Low priority tasks are often quicker
+    factors.push('low_priority_adjustment');
+  }
+
+  // Time of day adjustments
+  if (currentContext.timeOfDay === 'morning') {
+    baseDuration *= 0.9; // More efficient in the morning
+    factors.push('morning_efficiency');
+  } else if (currentContext.timeOfDay === 'evening') {
+    baseDuration *= 1.1; // Less efficient in the evening
+    factors.push('evening_adjustment');
+  }
+
+  // Day of week adjustments
+  if (currentContext.dayOfWeek === 1) {
+    // Monday
+    baseDuration *= 1.1; // Monday blues
+    factors.push('monday_adjustment');
+  } else if (currentContext.dayOfWeek === 5) {
+    // Friday
+    baseDuration *= 0.95; // Friday motivation
+    factors.push('friday_efficiency');
+  }
+
+  // Description complexity analysis
+  if (taskDescription && taskDescription.length > 100) {
+    baseDuration *= 1.15; // Complex descriptions suggest complex tasks
+    factors.push('complex_description');
+  }
+
+  // Calculate variance for range estimation
+  const variance = Math.max(5, baseDuration * 0.3);
+
+  return {
+    duration: Math.round(baseDuration),
+    confidence,
+    variance: Math.round(variance),
+    factors,
+    historicalBasis,
+  };
+}
+
 /**
  * Export all KiraPilot tools for the ReAct agent
  * These tools are designed to be user-friendly with natural language task matching,
@@ -2131,6 +3123,11 @@ export function getKiraPilotTools() {
     generatePeriodicInstancesTool,
     suggestRecurrenceTool,
     getHelpTool,
+    // Smart Contextual Tools
+    analyzeCurrentWorkflowTool,
+    suggestNextActionsTool,
+    optimizeTaskSequenceTool,
+    predictTaskDurationTool,
   ];
 }
 

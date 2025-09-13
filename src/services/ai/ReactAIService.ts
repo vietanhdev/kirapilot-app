@@ -43,6 +43,13 @@ import {
   PerformanceMonitor,
 } from './PerformanceMonitor';
 import type { UserPreferences, EmotionalTone } from '../../types';
+import { getEnhancedNLU, EnhancedNLUService } from './EnhancedNLU';
+import { ContextualContextAggregator } from './ContextualContextAggregator';
+import { EnhancedAppContext } from '../../types/enhancedContext';
+import {
+  NLUProcessingResult,
+  EmotionalContext,
+} from '../../types/naturalLanguageUnderstanding';
 
 // Internal types for AI service
 interface ToolCall {
@@ -298,6 +305,8 @@ export class ReactAIService implements AIServiceInterface {
   private apiKey: string | null = null;
   private toolExecutionEngine: ToolExecutionEngine;
   private resultFormatter: ToolResultFormatter;
+  private enhancedNLU: EnhancedNLUService;
+  private contextAggregator: ContextualContextAggregator;
   private translationFunction: TranslationFunction | null = null;
   private loggingInterceptor: LoggingInterceptor | null = null;
   private personalityService: PersonalityService | null = null;
@@ -311,6 +320,8 @@ export class ReactAIService implements AIServiceInterface {
     this.toolExecutionEngine = getToolExecutionEngine();
     this.resultFormatter = getToolResultFormatter();
     this.performanceMonitor = getPerformanceMonitor();
+    this.enhancedNLU = getEnhancedNLU();
+    this.contextAggregator = new ContextualContextAggregator();
 
     // Initialize logging interceptor if available
     try {
@@ -358,9 +369,289 @@ export class ReactAIService implements AIServiceInterface {
   }
 
   /**
-   * Process a user message using the ReAct pattern
+   * Process a user message using the ReAct pattern with enhanced NLU
    */
   async processMessage(
+    message: string,
+    context: AppContext
+  ): Promise<AIResponse> {
+    // Use enhanced processing if context aggregator is available
+    if (this.contextAggregator) {
+      try {
+        const enhancedContextResult =
+          await this.contextAggregator.buildEnhancedContext(
+            context,
+            message,
+            [] // conversation history would be passed here in a real implementation
+          );
+        return this.processMessageWithEnhancedNLU(
+          message,
+          enhancedContextResult.enhancedContext
+        );
+      } catch (error) {
+        console.warn(
+          'Enhanced NLU processing failed, falling back to basic processing:',
+          error
+        );
+        // Fall back to basic processing
+      }
+    }
+
+    return this.processMessageBasic(message, context);
+  }
+
+  /**
+   * Enhanced message processing with NLU capabilities
+   */
+  async processMessageWithEnhancedNLU(
+    message: string,
+    context: EnhancedAppContext
+  ): Promise<AIResponse> {
+    const startTime = Date.now();
+    let requestId: string | null = null;
+    const operationId = `ai-request-enhanced-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+    // Start performance monitoring
+    this.performanceMonitor.startOperation(operationId, {
+      type: 'ai_request_enhanced',
+      messageLength: message.length,
+      contextSize: JSON.stringify(context).length,
+    });
+
+    try {
+      if (!this.apiKey) {
+        const errorMessage = this.translationFunction
+          ? this.translationFunction(
+              'ai.error.apiKeyRequired' as TranslationKey
+            )
+          : 'AI model not initialized. Please provide a valid API key.';
+        throw new Error(errorMessage);
+      }
+
+      // Perform enhanced NLU analysis
+      const nluResult = await this.enhancedNLU.processComplete(
+        message,
+        context,
+        [] // conversation history would be passed here
+      );
+
+      // Intercept request for logging with NLU insights
+      if (this.loggingInterceptor) {
+        try {
+          requestId = await this.loggingInterceptor.interceptRequest(
+            this,
+            message,
+            context
+          );
+        } catch (error) {
+          console.warn('Failed to intercept request for logging:', error);
+        }
+      }
+
+      // Generate enhanced system prompt with NLU insights
+      const enhancedSystemPrompt = this.generateEnhancedSystemPrompt(
+        context,
+        nluResult
+      );
+
+      // Prepare the input for the graph
+      const input = {
+        messages: [
+          {
+            role: 'user' as const,
+            content: message,
+          },
+        ],
+      };
+
+      // Configure the graph with enhanced context and NLU insights
+      const config = {
+        configurable: {
+          appContext: context,
+          apiKey: this.apiKey,
+          systemPromptTemplate: enhancedSystemPrompt,
+          model: 'gemini-2.0-flash',
+        },
+      };
+
+      // Run the ReAct graph
+      const result = await graph.invoke(input, config);
+
+      // Extract the final response
+      const messages = result.messages;
+      const lastMessage = messages[messages.length - 1];
+
+      let responseMessage = '';
+      const actions: AIAction[] = [];
+
+      // Handle the response content
+      if (lastMessage.content) {
+        if (Array.isArray(lastMessage.content)) {
+          responseMessage = lastMessage.content
+            .filter(item => 'type' in item && item.type === 'text')
+            .map(item => ('text' in item ? item.text : ''))
+            .join('');
+        } else if (typeof lastMessage.content === 'string') {
+          responseMessage = lastMessage.content;
+        } else {
+          responseMessage = String(lastMessage.content);
+        }
+      }
+
+      // Process tool executions from the conversation
+      const toolExecutions = this.extractToolExecutions(messages);
+      const formattedResults: FormattedToolResult[] = [];
+
+      if (toolExecutions.length > 0) {
+        // Validate and format tool executions
+        for (const execution of toolExecutions) {
+          const validation = this.toolExecutionEngine.validateExecution(
+            execution.name,
+            execution.args
+          );
+
+          if (!validation.allowed) {
+            formattedResults.push({
+              success: false,
+              error: validation.reason,
+              userMessage: `❌ ${execution.name} failed: ${validation.reason}`,
+              formattedMessage: `❌ ${execution.name} failed: ${validation.reason}`,
+            });
+            continue;
+          }
+
+          // Find corresponding tool result in messages
+          const toolResult = this.findToolResult(messages, execution.id);
+          if (toolResult) {
+            const executionResult = this.toolExecutionEngine.formatResult(
+              execution.name,
+              toolResult,
+              0 // execution time not available from LangGraph
+            );
+
+            const formattedResult = this.resultFormatter.format(
+              execution.name,
+              executionResult,
+              JSON.parse(toolResult)
+            );
+
+            formattedResults.push(formattedResult);
+
+            // Create action record
+            actions.push({
+              type: execution.name.toUpperCase() as AIAction['type'],
+              parameters: execution.args,
+              context,
+              confidence: formattedResult.success ? 100 : 0,
+              reasoning: `Selected ${execution.name} tool based on user request analysis and current context`,
+            });
+          }
+        }
+
+        // If we have tool executions but no text response, generate one from formatted results
+        if (!responseMessage.trim()) {
+          responseMessage = formattedResults
+            .map(result => result.formattedMessage)
+            .join('\n\n');
+        }
+      }
+
+      // Generate enhanced suggestions based on NLU analysis
+      const suggestions = await this.generateEnhancedSuggestions(
+        context,
+        nluResult
+      );
+
+      // Apply personality and emotional intelligence to the response
+      const enhancedMessage = await this.applyEnhancedPersonalityToResponse(
+        responseMessage || "I've processed your request.",
+        message,
+        context,
+        nluResult.emotionalContext
+      );
+
+      const response: AIResponse = {
+        message: enhancedMessage,
+        actions,
+        suggestions,
+        context,
+        reasoning: this.extractReasoning(responseMessage),
+      };
+
+      // Intercept response for logging with NLU insights
+      if (this.loggingInterceptor && requestId) {
+        try {
+          const responseTime = Date.now() - startTime;
+          await this.loggingInterceptor.interceptResponse(requestId, response, {
+            responseTime,
+            tokenCount: undefined, // Token count not available from LangGraph
+            modelInfo: this.getModelInfo(),
+            sessionId: this.loggingInterceptor.getCurrentSessionId(),
+            timestamp: new Date(),
+          });
+        } catch (error) {
+          console.warn('Failed to intercept response for logging:', error);
+        }
+      }
+
+      // End performance monitoring - success
+      this.performanceMonitor.endOperation(operationId, {
+        success: true,
+        additionalMetrics: {
+          response_length: response.message.length,
+          actions_count: response.actions?.length || 0,
+          suggestions_count: response.suggestions?.length || 0,
+          nlu_confidence: nluResult.confidence,
+          intent_type_detected: nluResult.emotionalContext.supportNeeded
+            ? 1
+            : 0,
+          emotional_support_needed: nluResult.emotionalContext.supportNeeded
+            ? 1
+            : 0,
+          implicit_requests_count: nluResult.implicitRequests.length,
+        },
+      });
+
+      return response;
+    } catch (error) {
+      console.error('Enhanced ReAct AI Service Error:', error);
+
+      // End performance monitoring - error
+      this.performanceMonitor.endOperation(operationId, {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+
+      // Intercept error for logging
+      if (this.loggingInterceptor && requestId) {
+        try {
+          await this.loggingInterceptor.interceptError(
+            requestId,
+            error as Error,
+            {
+              message,
+              context,
+              sessionId: this.loggingInterceptor.getCurrentSessionId(),
+              timestamp: new Date(startTime),
+              modelInfo: this.getModelInfo(),
+            }
+          );
+        } catch (logError) {
+          console.warn('Failed to intercept error for logging:', logError);
+        }
+      }
+
+      // Throw a ModelProcessingError for better error handling by ModelManager
+      throw new ModelProcessingError(
+        error instanceof Error ? error.message : 'Unknown error occurred'
+      );
+    }
+  }
+
+  /**
+   * Basic message processing (fallback when enhanced processing fails)
+   */
+  async processMessageBasic(
     message: string,
     context: AppContext
   ): Promise<AIResponse> {
@@ -660,6 +951,272 @@ export class ReactAIService implements AIServiceInterface {
     }
 
     return suggestions;
+  }
+
+  /**
+   * Generate enhanced system prompt with NLU insights
+   */
+  private generateEnhancedSystemPrompt(
+    context: EnhancedAppContext,
+    nluResult: NLUProcessingResult
+  ): string {
+    const basePrompt = KIRA_SYSTEM_PROMPT;
+
+    // Add NLU insights to the system prompt
+    let enhancedPrompt = basePrompt + '\n\n## Current Analysis:\n';
+
+    // Add intent analysis
+    enhancedPrompt += `**User Intent**: ${nluResult.intentAnalysis.primaryIntent.description}\n`;
+    enhancedPrompt += `**Intent Confidence**: ${(nluResult.intentAnalysis.confidence * 100).toFixed(1)}%\n`;
+
+    if (nluResult.intentAnalysis.secondaryIntents.length > 0) {
+      enhancedPrompt += `**Secondary Intents**: ${nluResult.intentAnalysis.secondaryIntents.map(i => i.description).join(', ')}\n`;
+    }
+
+    // Add emotional context
+    if (nluResult.emotionalContext.primaryEmotion !== 'neutral') {
+      enhancedPrompt += `**User Emotion**: ${nluResult.emotionalContext.primaryEmotion} (intensity: ${nluResult.emotionalContext.emotionIntensity}/10)\n`;
+
+      if (nluResult.emotionalContext.supportNeeded) {
+        enhancedPrompt += `**Support Needed**: User may need emotional support or encouragement\n`;
+      }
+    }
+
+    // Add implicit requests
+    if (nluResult.implicitRequests.length > 0) {
+      enhancedPrompt += `**Implicit Needs**: ${nluResult.implicitRequests.map(r => r.description).join(', ')}\n`;
+    }
+
+    // Add urgency indicators
+    if (nluResult.intentAnalysis.urgencyIndicators.length > 0) {
+      const highUrgency = nluResult.intentAnalysis.urgencyIndicators.filter(
+        u => u.level === 'high' || u.level === 'critical'
+      );
+      if (highUrgency.length > 0) {
+        enhancedPrompt += `**Urgency**: ${highUrgency.map(u => u.description).join(', ')}\n`;
+      }
+    }
+
+    // Add clarification needs
+    if (nluResult.intentAnalysis.requiresClarification) {
+      enhancedPrompt += `**Clarification Needed**: ${nluResult.intentAnalysis.clarificationQuestions.join(', ')}\n`;
+    }
+
+    // Add contextual guidance
+    enhancedPrompt += '\n## Response Guidelines:\n';
+
+    // Emotional response strategy
+    const strategy = nluResult.emotionalContext.recommendedResponse;
+    enhancedPrompt += `**Tone**: Use a ${strategy.tone} tone with a ${strategy.approach} approach\n`;
+
+    if (strategy.suggestBreak) {
+      enhancedPrompt += `**Break Suggestion**: Consider suggesting a break to the user\n`;
+    }
+
+    if (strategy.offerHelp) {
+      enhancedPrompt += `**Help Offer**: Proactively offer assistance and support\n`;
+    }
+
+    if (strategy.providePerspective) {
+      enhancedPrompt += `**Perspective**: Provide helpful perspective on the user's situation\n`;
+    }
+
+    // Add current context
+    enhancedPrompt += `\n## Enhanced Context:\n${JSON.stringify(context, null, 2)}\n`;
+    enhancedPrompt += `\n## System Time:\n${new Date().toISOString()}\n`;
+
+    return enhancedPrompt;
+  }
+
+  /**
+   * Generate enhanced suggestions based on NLU analysis
+   */
+  private async generateEnhancedSuggestions(
+    context: EnhancedAppContext,
+    nluResult: NLUProcessingResult
+  ): Promise<AISuggestion[]> {
+    const suggestions: AISuggestion[] = [];
+    const now = new Date();
+
+    // Add suggestions from implicit requests
+    nluResult.implicitRequests.forEach(request => {
+      if (request.priority === 'high') {
+        suggestions.push({
+          id: `implicit-${request.type}-${now.getTime()}`,
+          type: request.type as any,
+          title: request.description,
+          description: request.suggestedAction,
+          confidence: Math.round(request.confidence * 100),
+          actionable: true,
+          priority:
+            request.priority === 'high'
+              ? Priority.HIGH
+              : request.priority === 'medium'
+                ? Priority.MEDIUM
+                : Priority.LOW,
+          estimatedImpact: Math.round(request.confidence * 100),
+          reasoning: request.reasoning,
+          createdAt: now,
+        });
+      }
+    });
+
+    // Add suggestions based on emotional context
+    if (nluResult.emotionalContext.supportNeeded) {
+      suggestions.push({
+        id: `emotional-support-${now.getTime()}`,
+        type: 'productivity',
+        title: 'Take a Moment',
+        description:
+          'It seems like you might be feeling stressed. Would you like some suggestions for managing your workload?',
+        confidence: Math.round(nluResult.emotionalContext.stressLevel * 10),
+        actionable: true,
+        priority: Priority.MEDIUM,
+        estimatedImpact: 70,
+        reasoning: 'High stress or frustration levels detected',
+        createdAt: now,
+      });
+    }
+
+    // Add suggestions based on workflow state
+    if (context.workflowState?.workloadIntensity === 'overwhelming') {
+      suggestions.push({
+        id: `workload-management-${now.getTime()}`,
+        type: 'productivity',
+        title: 'Prioritize Tasks',
+        description:
+          'Your workload seems overwhelming. Let me help you prioritize and organize your tasks.',
+        confidence: 85,
+        actionable: true,
+        priority: Priority.HIGH,
+        estimatedImpact: 80,
+        reasoning: 'Overwhelming workload detected in context',
+        createdAt: now,
+      });
+    }
+
+    // Add productivity suggestions based on metrics
+    if (context.productivityMetrics?.todayCompletionRate < 0.5) {
+      suggestions.push({
+        id: `productivity-boost-${now.getTime()}`,
+        type: 'productivity',
+        title: 'Productivity Analysis',
+        description:
+          'Your completion rate is lower than usual. Would you like me to analyze your productivity patterns?',
+        confidence: 75,
+        actionable: true,
+        priority: Priority.MEDIUM,
+        estimatedImpact: 65,
+        reasoning: 'Low completion rate detected',
+        createdAt: now,
+      });
+    }
+
+    // Add break suggestions based on work duration
+    if (context.workflowState?.timeInCurrentPhase > 120) {
+      // 2+ hours
+      suggestions.push({
+        id: `break-suggestion-${now.getTime()}`,
+        type: 'break',
+        title: 'Take a Break',
+        description: `You've been working for ${Math.round(context.workflowState.timeInCurrentPhase / 60)} hours. A short break could help refresh your focus.`,
+        confidence: 80,
+        actionable: true,
+        priority: Priority.MEDIUM,
+        estimatedImpact: 70,
+        reasoning: 'Extended work session detected',
+        createdAt: now,
+      });
+    }
+
+    // Add basic suggestions (fallback to original logic)
+    const basicSuggestions = await this.generateSuggestions(context);
+    suggestions.push(...basicSuggestions);
+
+    // Sort by priority and confidence
+    return suggestions
+      .sort((a, b) => {
+        const priorityOrder = {
+          [Priority.HIGH]: 3,
+          [Priority.MEDIUM]: 2,
+          [Priority.LOW]: 1,
+          [Priority.URGENT]: 4,
+        };
+        const priorityDiff =
+          priorityOrder[b.priority] - priorityOrder[a.priority];
+        if (priorityDiff !== 0) {
+          return priorityDiff;
+        }
+        return b.confidence - a.confidence;
+      })
+      .slice(0, 5); // Limit to top 5 suggestions
+  }
+
+  /**
+   * Apply enhanced personality to response based on emotional context
+   */
+  private async applyEnhancedPersonalityToResponse(
+    originalResponse: string,
+    userMessage: string,
+    context: EnhancedAppContext,
+    emotionalContext: EmotionalContext
+  ): Promise<string> {
+    // First apply the original personality logic
+    let enhancedResponse = await this.applyPersonalityToResponse(
+      originalResponse,
+      userMessage,
+      context
+    );
+
+    // Then apply additional enhancements based on emotional context
+    const strategy = emotionalContext.recommendedResponse;
+
+    // Add supportive language if needed
+    if (strategy.approach === 'supportive' && emotionalContext.supportNeeded) {
+      const supportivePrefixes = [
+        'I understand this can be challenging. ',
+        "I can see you're working hard on this. ",
+        "It's completely normal to feel this way. ",
+      ];
+
+      const randomPrefix =
+        supportivePrefixes[
+          Math.floor(Math.random() * supportivePrefixes.length)
+        ];
+      enhancedResponse = randomPrefix + enhancedResponse;
+    }
+
+    // Add celebratory language for positive emotions
+    if (strategy.approach === 'celebratory') {
+      const celebratoryPrefixes = [
+        "That's fantastic! ",
+        'Great work! ',
+        'Excellent progress! ',
+      ];
+
+      const randomPrefix =
+        celebratoryPrefixes[
+          Math.floor(Math.random() * celebratoryPrefixes.length)
+        ];
+      enhancedResponse = randomPrefix + enhancedResponse;
+    }
+
+    // Add break suggestions if recommended
+    if (
+      strategy.suggestBreak &&
+      !enhancedResponse.toLowerCase().includes('break')
+    ) {
+      enhancedResponse +=
+        '\n\nBy the way, you might want to consider taking a short break to recharge.';
+    }
+
+    // Add perspective if recommended
+    if (strategy.providePerspective && emotionalContext.stressLevel > 7) {
+      enhancedResponse +=
+        "\n\nRemember, it's okay to take things one step at a time. You're making progress, even if it doesn't always feel that way.";
+    }
+
+    return enhancedResponse;
   }
 
   /**

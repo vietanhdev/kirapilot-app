@@ -108,3 +108,23 @@ export type {
   ProductivityInsight,
   PersonalizedRecommendation,
 } from './ProductivityInsightsService';
+// Enhanced AI interaction optimization
+export { getEnhancedNLU, EnhancedNLUService } from './EnhancedNLU';
+export { ContextualContextAggregator } from './ContextualContextAggregator';
+export type {
+  IntentAnalysis,
+  ImplicitRequest,
+  EmotionalContext,
+  MessageComplexity,
+  ContextualCue,
+  NLUProcessingResult,
+  NLUConfig,
+} from '../../types/naturalLanguageUnderstanding';
+export type {
+  EnhancedAppContext,
+  WorkflowState,
+  ProductivityMetrics,
+  UserPattern,
+  ContextualInsight,
+  ContextRelevanceScore,
+} from '../../types/enhancedContext';
