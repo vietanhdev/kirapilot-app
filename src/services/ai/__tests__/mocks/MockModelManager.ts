@@ -6,7 +6,6 @@ import {
 } from '../../AIServiceInterface';
 import { AIResponse, AppContext, PatternAnalysis } from '../../../../types';
 import { TranslationFunction } from '../../ToolExecutionEngine';
-import { MockLocalAIService } from './MockLocalAIService';
 
 /**
  * Mock implementation of ModelManager for testing
@@ -22,7 +21,6 @@ export class MockModelManager {
   constructor() {
     // Initialize with mock services
     this._services.set('gemini', new MockGeminiService());
-    this._services.set('local', new MockLocalAIService());
   }
 
   async switchModel(type: ModelType): Promise<void> {
@@ -139,6 +137,13 @@ export class MockModelManager {
     this._shouldFailSwitch = shouldFail;
   }
 
+  setProcessingFailure(shouldFail: boolean): void {
+    const service = this._services.get('gemini') as MockGeminiService;
+    if (service) {
+      service.setProcessingFailure(shouldFail);
+    }
+  }
+
   getService(type: ModelType): AIServiceInterface | undefined {
     return this._services.get(type);
   }
@@ -162,12 +167,17 @@ export class MockModelManager {
  */
 class MockGeminiService implements AIServiceInterface {
   private _isInitialized = true;
+  private _shouldFailProcessing = false;
   // private _translationFunction: TranslationFunction | null = null;
 
   async processMessage(
     message: string,
     context: AppContext
   ): Promise<AIResponse> {
+    if (this._shouldFailProcessing) {
+      throw new Error('Mock processing failure');
+    }
+
     return {
       message: `Gemini response to: ${message}`,
       actions: [],
@@ -223,5 +233,15 @@ class MockGeminiService implements AIServiceInterface {
         focusEfficiency: 0.82,
       },
     };
+  }
+
+  // Mock-specific methods for testing
+  setProcessingFailure(shouldFail: boolean): void {
+    this._shouldFailProcessing = shouldFail;
+  }
+
+  reset(): void {
+    this._isInitialized = true;
+    this._shouldFailProcessing = false;
   }
 }

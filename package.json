@@ -1,7 +1,7 @@
 {
   "name": "kirapilot-app",
   "private": true,
-  "version": "0.0.36",
+  "version": "0.0.43",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -40,9 +40,7 @@
     "docs:start": "cd docs && npm start",
     "docs:build": "cd docs && npm run build",
     "docs:serve": "cd docs && npm run serve",
-    "docs:install": "cd docs && npm install",
-    "test_llm": "cd src-tauri && cargo run --bin llm_chat --release",
-    "test_llm_integration": "node scripts/test-llm-integration.js"
+    "docs:install": "cd docs && npm install"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

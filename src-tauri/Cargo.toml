@@ -1,6 +1,6 @@
 [package]
 name = "kirapilot-app"
-version = "0.0.36"
+version = "0.0.43"
 description = "Navigate your day with precision, powered by intelligent AI assistance!"
 authors = ["Viet-Anh Nguyen (@vietanhdev)"]
 edition = "2021"
@@ -25,9 +25,6 @@ default-run = "kirapilot-app"
 name = "kirapilot_app_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
-[[bin]]
-name = "llm_chat"
-path = "src/bin/llm_chat.rs"
 
 [build-dependencies]
 tauri-build = { version = "2", features = ["codegen"] }
@@ -49,14 +46,6 @@ anyhow = "1.0"
 # File handling and compression for backup/restore
 zip = "2.1"
 tauri-plugin-dialog = "2"
-# Local AI model support
-llama-cpp-2 = "0.1.118"
-candle-core = "0.8"
-candle-nn = "0.8"
-candle-transformers = "0.8"
-hf-hub = "0.3"
-tokenizers = "0.20"
-encoding_rs = "0.8"
 log = "0.4"
 env_logger = "0.11"
 thiserror = "1.0"

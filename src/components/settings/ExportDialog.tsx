@@ -361,9 +361,7 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
                         value: 'text-foreground',
                       }}
                     >
-                      <SelectItem key='local'>
-                        {t('settings.ai.logging.export.localModel')}
-                      </SelectItem>
+                      <SelectItem key='local'>Local Model</SelectItem>
                       <SelectItem key='gemini'>
                         {t('settings.ai.logging.export.geminiModel')}
                       </SelectItem>

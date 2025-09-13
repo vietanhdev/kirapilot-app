@@ -286,7 +286,6 @@ tauri-plugin-notification = "2"
 tauri-plugin-dialog = "2"
 sea-orm = { version = "1.1", features = ["sqlx-sqlite", "runtime-tokio-rustls", "macros", "with-chrono", "with-uuid"] }
 sea-orm-migration = { version = "1.1" }
-llama-cpp-2 = "0.1.118"
 candle-core = "0.8"
 candle-nn = "0.8"
 candle-transformers = "0.8"

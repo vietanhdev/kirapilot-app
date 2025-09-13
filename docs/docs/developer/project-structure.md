@@ -22,8 +22,7 @@ kirapilot-app/
 │   │   │   └── __mocks__/       # Mock implementations for testing
 │   │   ├── ai/                  # AI service implementations
 │   │   │   ├── AIServiceInterface.ts    # Common AI service interface
-│   │   │   ├── LocalAIService.ts        # Local LLM integration
-│   │   │   ├── GeminiAIService.ts       # Google Gemini integration
+│   │   │   ├── ReactAIService.ts        # Google Gemini integration
 │   │   │   ├── ModelManager.ts          # AI model management
 │   │   │   ├── ToolRegistry.ts          # AI tool management
 │   │   │   ├── ToolExecutionEngine.ts   # Tool execution logic
@@ -183,7 +182,6 @@ AI functionality is modularized with clear separation of concerns:
 ```
 src/services/ai/
 ├── AIServiceInterface.ts    # Common AI service interface
-├── LocalAIService.ts        # Local LLM integration
 ├── ReactAIService.ts        # Google Gemini integration
 ├── ToolRegistry.ts          # AI tool management
 ├── ToolExecutionEngine.ts   # Tool execution logic

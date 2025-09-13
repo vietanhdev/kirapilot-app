@@ -142,11 +142,8 @@ export const en = {
   'settings.ai.suggestionFrequency': 'Suggestion Frequency',
   'settings.ai.modelSelection': 'Model Selection',
   'settings.ai.modelType': 'AI Model Type',
-  'settings.ai.localModelDescription':
-    'Run AI locally on your device for privacy and offline use',
   'settings.ai.geminiModelDescription':
     'Use Google Gemini API for advanced AI capabilities',
-  'settings.ai.localModelConfig': 'Local Model Configuration',
   'settings.ai.threads': 'CPU Threads',
   'settings.ai.threadsDescription':
     'Number of CPU threads to use for inference',
@@ -228,7 +225,6 @@ export const en = {
   'settings.ai.logging.export.endDate': 'End date',
   'settings.ai.logging.export.modelType': 'AI Service',
   'settings.ai.logging.export.allModels': 'All Services',
-  'settings.ai.logging.export.localModel': 'Local AI',
   'settings.ai.logging.export.geminiModel': 'Gemini',
   'settings.ai.logging.export.errorFilter': 'Error Filter',
   'settings.ai.logging.export.allLogs': 'All Logs',

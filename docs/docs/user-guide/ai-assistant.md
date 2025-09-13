@@ -33,8 +33,7 @@ The AI assistant can help you:
 2. **Navigate to the AI tab**
 3. **Choose your AI provider**:
    - **Google Gemini**: Gemini Flash model
-   - **Local models**: Coming soon for private processing
-4. **Enter your API key** (if using cloud providers)
+4. **Enter your API key**
 5. **Test the connection** to ensure everything works
 6. **Customize preferences** for response style and features
 
@@ -47,10 +46,6 @@ The AI assistant can help you:
 - **Setup**: Requires Google AI API key
 - **Cost**: Pay-per-use based on tokens
 
-#### Local Models (Coming Soon)
-
-- **Options**: Private AI processing on your device
-- **Strengths**: Complete privacy, no API costs, offline capability
 - **Setup**: Will be integrated directly into KiraPilot
 - **Cost**: No additional costs beyond the application
 

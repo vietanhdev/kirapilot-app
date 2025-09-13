@@ -4,25 +4,17 @@ import {
   CardBody,
   Select,
   SelectItem,
-  Input,
-  Button,
   Progress,
   Chip,
-  Divider,
   Spinner,
 } from '@heroui/react';
 import {
   Bot,
   Cloud,
   HardDrive,
-  Settings as SettingsIcon,
   AlertCircle,
   CheckCircle,
   Loader,
-  Cpu,
-  MemoryStick,
-  Thermometer,
-  Hash,
 } from 'lucide-react';
 
 import { useAI } from '../../contexts/AIContext';
@@ -44,7 +36,6 @@ export const ModelSelectionCard: React.FC<ModelSelectionCardProps> = ({
   const [modelStatus, setModelStatus] = useState<ModelStatus | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showAdvancedConfig, setShowAdvancedConfig] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const updateStatus = useCallback(() => {
@@ -89,7 +80,7 @@ export const ModelSelectionCard: React.FC<ModelSelectionCardProps> = ({
     };
   }, [modelManager, updateStatus]);
 
-  const handleModelTypeChange = async (modelType: 'local' | 'gemini') => {
+  const handleModelTypeChange = async (modelType: 'gemini') => {
     if (!modelManager) {
       return;
     }
@@ -101,21 +92,7 @@ export const ModelSelectionCard: React.FC<ModelSelectionCardProps> = ({
       // Update preferences first
       await updateNestedPreference('aiSettings', 'modelType', modelType);
 
-      // If switching to local model, start auto-loading immediately
-      if (modelType === 'local') {
-        // Start auto-loading in background (non-blocking)
-        // Auto-load functionality removed for Gemini-only setup
-        // TODO: Remove this component when local model support is fully removed
-        console.log('Auto-load not available in Gemini-only mode');
-
-        // Update the UI immediately to show we're switching
-        setIsLoading(false);
-
-        // Reinitialize AI context to pick up the preference change
-        await reinitializeAI();
-
-        return;
-      }
+      // Only Gemini is supported now
 
       // For Gemini or other models, switch normally
       await modelManager.switchModel(modelType, {
@@ -131,12 +108,6 @@ export const ModelSelectionCard: React.FC<ModelSelectionCardProps> = ({
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleLocalConfigChange = async (key: string, value: number) => {
-    const currentConfig = preferences.aiSettings.localModelConfig || {};
-    const newConfig = { ...currentConfig, [key]: value };
-    await updateNestedPreference('aiSettings', 'localModelConfig', newConfig);
   };
 
   const getStatusIcon = (status: ModelStatus | null) => {
@@ -198,7 +169,6 @@ export const ModelSelectionCard: React.FC<ModelSelectionCardProps> = ({
   };
 
   const currentModelType = preferences.aiSettings.modelType || 'gemini';
-  const localConfig = preferences.aiSettings.localModelConfig || {};
 
   // Prevent rendering if essential dependencies are missing
   if (!preferences || !updateNestedPreference) {
@@ -223,7 +193,7 @@ export const ModelSelectionCard: React.FC<ModelSelectionCardProps> = ({
               <Select
                 selectedKeys={[currentModelType]}
                 onSelectionChange={keys => {
-                  const modelType = Array.from(keys)[0] as 'local' | 'gemini';
+                  const modelType = Array.from(keys)[0] as 'gemini';
                   handleModelTypeChange(modelType);
                 }}
                 size='sm'
@@ -249,9 +219,7 @@ export const ModelSelectionCard: React.FC<ModelSelectionCardProps> = ({
                 </SelectItem>
               </Select>
               <p className='text-xs text-foreground-600 mt-1'>
-                {currentModelType === 'local'
-                  ? t('settings.ai.localModelDescription')
-                  : t('settings.ai.geminiModelDescription')}
+                {t('settings.ai.geminiModelDescription')}
               </p>
             </div>
 
@@ -273,9 +241,7 @@ export const ModelSelectionCard: React.FC<ModelSelectionCardProps> = ({
                 color={getStatusColor(modelStatus)}
                 variant='flat'
               >
-                {modelStatus?.type === 'local'
-                  ? t('ai.model.local')
-                  : t('ai.model.gemini')}
+                {t('ai.model.gemini')}
               </Chip>
             </div>
 
@@ -332,227 +298,6 @@ export const ModelSelectionCard: React.FC<ModelSelectionCardProps> = ({
             )}
           </div>
         </div>
-
-        {/* Local Model Configuration */}
-        {currentModelType === 'local' && (
-          <>
-            <Divider className='bg-divider' />
-
-            <div>
-              <div className='flex items-center justify-between mb-4'>
-                <h4 className='text-md font-medium text-foreground flex items-center gap-2'>
-                  <SettingsIcon className='w-4 h-4' />
-                  {t('settings.ai.localModelConfig')}
-                </h4>
-                <Button
-                  variant='light'
-                  size='sm'
-                  onPress={() => setShowAdvancedConfig(!showAdvancedConfig)}
-                >
-                  {showAdvancedConfig ? t('common.hide') : t('common.show')}
-                </Button>
-              </div>
-
-              {showAdvancedConfig && (
-                <div className='space-y-4'>
-                  {/* Thread Count */}
-                  <div>
-                    <label className='text-sm font-medium text-foreground block mb-2 flex items-center gap-2'>
-                      <Cpu className='w-4 h-4' />
-                      {t('settings.ai.threads')}: {localConfig.threads || 4}
-                    </label>
-                    <Input
-                      type='number'
-                      value={(localConfig.threads || 4).toString()}
-                      onChange={e => {
-                        const value = parseInt(e.target.value) || 4;
-                        handleLocalConfigChange(
-                          'threads',
-                          Math.max(1, Math.min(16, value))
-                        );
-                      }}
-                      min={1}
-                      max={16}
-                      size='sm'
-                      className='w-24'
-                      classNames={{
-                        input: 'text-foreground',
-                        inputWrapper:
-                          'bg-content2 border-divider data-[hover=true]:bg-content3 group-data-[focus=true]:bg-content2',
-                      }}
-                    />
-                    <p className='text-xs text-foreground-600 mt-1'>
-                      {t('settings.ai.threadsDescription')}
-                    </p>
-                  </div>
-
-                  {/* Context Size */}
-                  <div>
-                    <label className='text-sm font-medium text-foreground block mb-2 flex items-center gap-2'>
-                      <MemoryStick className='w-4 h-4' />
-                      {t('settings.ai.contextSize')}:{' '}
-                      {localConfig.contextSize || 2048}
-                    </label>
-                    <Select
-                      selectedKeys={[
-                        (localConfig.contextSize || 2048).toString(),
-                      ]}
-                      onSelectionChange={keys => {
-                        const value = parseInt(Array.from(keys)[0] as string);
-                        handleLocalConfigChange('contextSize', value);
-                      }}
-                      size='sm'
-                      aria-label='Context size selection'
-                      classNames={{
-                        trigger:
-                          'bg-content2 border-divider data-[hover=true]:bg-content3',
-                        value: 'text-foreground',
-                      }}
-                    >
-                      <SelectItem key='1024'>1024</SelectItem>
-                      <SelectItem key='2048'>2048</SelectItem>
-                      <SelectItem key='4096'>4096</SelectItem>
-                      <SelectItem key='8192'>8192</SelectItem>
-                    </Select>
-                    <p className='text-xs text-foreground-600 mt-1'>
-                      {t('settings.ai.contextSizeDescription')}
-                    </p>
-                  </div>
-
-                  {/* Temperature */}
-                  <div>
-                    <label className='text-sm font-medium text-foreground block mb-2 flex items-center gap-2'>
-                      <Thermometer className='w-4 h-4' />
-                      {t('settings.ai.temperature')}:{' '}
-                      {localConfig.temperature || 0.7}
-                    </label>
-                    <Input
-                      type='number'
-                      value={(localConfig.temperature || 0.7).toString()}
-                      onChange={e => {
-                        const value = parseFloat(e.target.value) || 0.7;
-                        handleLocalConfigChange(
-                          'temperature',
-                          Math.max(0.1, Math.min(2.0, value))
-                        );
-                      }}
-                      min={0.1}
-                      max={2.0}
-                      step={0.1}
-                      size='sm'
-                      className='w-24'
-                      classNames={{
-                        input: 'text-foreground',
-                        inputWrapper:
-                          'bg-content2 border-divider data-[hover=true]:bg-content3 group-data-[focus=true]:bg-content2',
-                      }}
-                    />
-                    <p className='text-xs text-foreground-600 mt-1'>
-                      {t('settings.ai.temperatureDescription')}
-                    </p>
-                  </div>
-
-                  {/* Max Tokens */}
-                  <div>
-                    <label className='text-sm font-medium text-foreground block mb-2 flex items-center gap-2'>
-                      <Hash className='w-4 h-4' />
-                      {t('settings.ai.maxTokens')}:{' '}
-                      {localConfig.maxTokens || 512}
-                    </label>
-                    <Select
-                      selectedKeys={[(localConfig.maxTokens || 512).toString()]}
-                      onSelectionChange={keys => {
-                        const value = parseInt(Array.from(keys)[0] as string);
-                        handleLocalConfigChange('maxTokens', value);
-                      }}
-                      size='sm'
-                      aria-label='Max tokens selection'
-                      classNames={{
-                        trigger:
-                          'bg-content2 border-divider data-[hover=true]:bg-content3',
-                        value: 'text-foreground',
-                      }}
-                    >
-                      <SelectItem key='256'>256</SelectItem>
-                      <SelectItem key='512'>512</SelectItem>
-                      <SelectItem key='1024'>1024</SelectItem>
-                      <SelectItem key='2048'>2048</SelectItem>
-                    </Select>
-                    <p className='text-xs text-foreground-600 mt-1'>
-                      {t('settings.ai.maxTokensDescription')}
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
-          </>
-        )}
-
-        {/* Model Information */}
-        {modelStatus?.modelInfo && (
-          <>
-            <Divider className='bg-divider' />
-
-            <div>
-              <h4 className='text-md font-medium text-foreground mb-3'>
-                {t('ai.model.information')}
-              </h4>
-
-              <div className='space-y-2 text-sm'>
-                <div className='flex justify-between'>
-                  <span className='text-foreground-600'>
-                    {t('ai.model.name')}
-                  </span>
-                  <span className='text-foreground'>
-                    {modelStatus.modelInfo.name}
-                  </span>
-                </div>
-
-                {modelStatus.modelInfo.version && (
-                  <div className='flex justify-between'>
-                    <span className='text-foreground-600'>
-                      {t('ai.model.version')}
-                    </span>
-                    <span className='text-foreground'>
-                      {modelStatus.modelInfo.version}
-                    </span>
-                  </div>
-                )}
-
-                {modelStatus.modelInfo.size && (
-                  <div className='flex justify-between'>
-                    <span className='text-foreground-600'>
-                      {t('ai.model.size')}
-                    </span>
-                    <span className='text-foreground'>
-                      {modelStatus.modelInfo.size}
-                    </span>
-                  </div>
-                )}
-
-                {modelStatus.modelInfo.contextSize && (
-                  <div className='flex justify-between'>
-                    <span className='text-foreground-600'>
-                      {t('ai.model.contextWindow')}
-                    </span>
-                    <span className='text-foreground'>
-                      {modelStatus.modelInfo.contextSize}
-                    </span>
-                  </div>
-                )}
-
-                <div className='flex justify-between'>
-                  <span className='text-foreground-600'>
-                    {t('ai.model.type')}
-                  </span>
-                  <span className='text-foreground capitalize'>
-                    {modelStatus.modelInfo.type}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </>
-        )}
       </CardBody>
     </Card>
   );

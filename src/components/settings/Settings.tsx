@@ -36,8 +36,6 @@ import { SoundSettings } from './SoundSettings';
 import { useAI } from '../../contexts/AIContext';
 import { BuildInfo } from '../common';
 
-// import { ModelSelectionCardSimple } from './ModelSelectionCardSimple';
-
 interface SettingsProps {
   className?: string;
   initialTab?: string;
@@ -1367,10 +1365,7 @@ export const Settings: React.FC<SettingsProps> = ({
                         {t('system.aiEngine')}
                       </span>
                       <span className='text-foreground'>
-                        {(preferences.aiSettings.modelType || 'gemini') ===
-                        'local'
-                          ? t('ai.model.local')
-                          : t('ai.model.gemini')}
+                        {t('ai.model.gemini')}
                       </span>
                     </div>
                   </div>

@@ -202,14 +202,8 @@ interface UserPreferences {
     responseStyle: 'concise' | 'balanced' | 'detailed';
     suggestionFrequency: 'minimal' | 'moderate' | 'frequent';
     showInteractionLogs: boolean;
-    modelType?: 'local' | 'gemini';
+    modelType?: 'gemini';
     geminiApiKey?: string;
-    localModelConfig?: {
-      threads?: number;
-      contextSize?: number;
-      temperature?: number;
-      maxTokens?: number;
-    };
     logging?: {
       enabled: boolean;
       logLevel: 'minimal' | 'standard' | 'detailed';
