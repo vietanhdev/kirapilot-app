@@ -133,7 +133,7 @@ export function LogDetailView({
                   )
                 }
               >
-                {log.modelType === 'local' ? 'Local AI' : 'Gemini'}
+                Gemini
               </Chip>
 
               {log.error && (

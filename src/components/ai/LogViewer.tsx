@@ -254,7 +254,6 @@ export function LogViewer({
                   }}
                 >
                   <SelectItem key='all'>All Services</SelectItem>
-                  <SelectItem key='local'>Local AI</SelectItem>
                   <SelectItem key='gemini'>Gemini</SelectItem>
                 </Select>
               </div>
@@ -388,7 +387,7 @@ export function LogViewer({
                         )
                       }
                     >
-                      {log.modelType === 'local' ? 'Local AI' : 'Gemini'}
+                      Gemini
                     </Chip>
                   </TableCell>
                   <TableCell>

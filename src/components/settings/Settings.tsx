@@ -10,6 +10,8 @@ import {
   Input,
   Divider,
   Button,
+  Slider,
+  Chip,
 } from '@heroui/react';
 import {
   Settings as SettingsIcon,
@@ -730,489 +732,657 @@ export const Settings: React.FC<SettingsProps> = ({
 
                 <Divider className='bg-divider' />
 
-                {/* AI Personality Settings */}
+                {/* AI Personality & Emotional Intelligence */}
                 <div>
                   <h3 className='text-lg font-semibold text-foreground mb-4 flex items-center gap-2'>
                     <User className='w-5 h-5' />
                     AI Personality & Emotional Intelligence
                   </h3>
 
-                  <div className='space-y-6'>
-                    {/* Personality Sliders */}
-                    <div>
-                      <h4 className='text-sm font-medium text-foreground mb-3'>
-                        Personality Settings
-                      </h4>
-                      <p className='text-xs text-foreground-600 mb-4'>
-                        Adjust how the AI communicates with you. These settings
-                        affect the tone and style of responses.
-                      </p>
-
-                      <div
-                        className='space-y-4'
-                        data-tour='personality-sliders'
-                      >
-                        {/* Warmth Slider */}
-                        <div>
-                          <div className='flex items-center justify-between mb-2'>
-                            <label className='text-sm text-foreground'>
-                              Warmth:{' '}
-                              {preferences.aiSettings.personalitySettings
-                                ?.warmth || 6}
-                              /10
-                            </label>
-                            <span className='text-xs text-foreground-600'>
-                              {(preferences.aiSettings.personalitySettings
-                                ?.warmth || 6) < 4
-                                ? 'Direct'
-                                : (preferences.aiSettings.personalitySettings
-                                      ?.warmth || 6) > 7
-                                  ? 'Very Caring'
-                                  : 'Friendly'}
-                            </span>
-                          </div>
-                          <input
-                            type='range'
-                            min='1'
-                            max='10'
-                            value={
-                              preferences.aiSettings.personalitySettings
-                                ?.warmth || 6
-                            }
-                            onChange={e => {
-                              const currentSettings = preferences.aiSettings
-                                .personalitySettings || {
-                                warmth: 6,
-                                enthusiasm: 5,
-                                supportiveness: 7,
-                                humor: 4,
-                              };
-                              handleNestedPreferenceChange(
-                                'aiSettings',
-                                'personalitySettings',
-                                {
-                                  ...currentSettings,
-                                  warmth: parseInt(e.target.value),
-                                }
-                              );
-                            }}
-                            className='w-full h-2 bg-content2 rounded-lg appearance-none cursor-pointer slider'
-                          />
-                        </div>
-
-                        {/* Enthusiasm Slider */}
-                        <div>
-                          <div className='flex items-center justify-between mb-2'>
-                            <label className='text-sm text-foreground'>
-                              Enthusiasm:{' '}
-                              {preferences.aiSettings.personalitySettings
-                                ?.enthusiasm || 5}
-                              /10
-                            </label>
-                            <span className='text-xs text-foreground-600'>
-                              {(preferences.aiSettings.personalitySettings
-                                ?.enthusiasm || 5) < 4
-                                ? 'Calm'
-                                : (preferences.aiSettings.personalitySettings
-                                      ?.enthusiasm || 5) > 7
-                                  ? 'Very Energetic'
-                                  : 'Balanced'}
-                            </span>
-                          </div>
-                          <input
-                            type='range'
-                            min='1'
-                            max='10'
-                            value={
-                              preferences.aiSettings.personalitySettings
-                                ?.enthusiasm || 5
-                            }
-                            onChange={e => {
-                              const currentSettings = preferences.aiSettings
-                                .personalitySettings || {
-                                warmth: 6,
-                                enthusiasm: 5,
-                                supportiveness: 7,
-                                humor: 4,
-                              };
-                              handleNestedPreferenceChange(
-                                'aiSettings',
-                                'personalitySettings',
-                                {
-                                  ...currentSettings,
-                                  enthusiasm: parseInt(e.target.value),
-                                }
-                              );
-                            }}
-                            className='w-full h-2 bg-content2 rounded-lg appearance-none cursor-pointer slider'
-                          />
-                        </div>
-
-                        {/* Supportiveness Slider */}
-                        <div>
-                          <div className='flex items-center justify-between mb-2'>
-                            <label className='text-sm text-foreground'>
-                              Supportiveness:{' '}
-                              {preferences.aiSettings.personalitySettings
-                                ?.supportiveness || 7}
-                              /10
-                            </label>
-                            <span className='text-xs text-foreground-600'>
-                              {(preferences.aiSettings.personalitySettings
-                                ?.supportiveness || 7) < 4
-                                ? 'Task-Focused'
-                                : (preferences.aiSettings.personalitySettings
-                                      ?.supportiveness || 7) > 7
-                                  ? 'Very Nurturing'
-                                  : 'Encouraging'}
-                            </span>
-                          </div>
-                          <input
-                            type='range'
-                            min='1'
-                            max='10'
-                            value={
-                              preferences.aiSettings.personalitySettings
-                                ?.supportiveness || 7
-                            }
-                            onChange={e => {
-                              const currentSettings = preferences.aiSettings
-                                .personalitySettings || {
-                                warmth: 6,
-                                enthusiasm: 5,
-                                supportiveness: 7,
-                                humor: 4,
-                              };
-                              handleNestedPreferenceChange(
-                                'aiSettings',
-                                'personalitySettings',
-                                {
-                                  ...currentSettings,
-                                  supportiveness: parseInt(e.target.value),
-                                }
-                              );
-                            }}
-                            className='w-full h-2 bg-content2 rounded-lg appearance-none cursor-pointer slider'
-                          />
-                        </div>
-
-                        {/* Humor Slider */}
-                        <div>
-                          <div className='flex items-center justify-between mb-2'>
-                            <label className='text-sm text-foreground'>
-                              Humor:{' '}
-                              {preferences.aiSettings.personalitySettings
-                                ?.humor || 4}
-                              /10
-                            </label>
-                            <span className='text-xs text-foreground-600'>
-                              {(preferences.aiSettings.personalitySettings
-                                ?.humor || 4) < 4
-                                ? 'Serious'
-                                : (preferences.aiSettings.personalitySettings
-                                      ?.humor || 4) > 7
-                                  ? 'Playful'
-                                  : 'Light-hearted'}
-                            </span>
-                          </div>
-                          <input
-                            type='range'
-                            min='1'
-                            max='10'
-                            value={
-                              preferences.aiSettings.personalitySettings
-                                ?.humor || 4
-                            }
-                            onChange={e => {
-                              const currentSettings = preferences.aiSettings
-                                .personalitySettings || {
-                                warmth: 6,
-                                enthusiasm: 5,
-                                supportiveness: 7,
-                                humor: 4,
-                              };
-                              handleNestedPreferenceChange(
-                                'aiSettings',
-                                'personalitySettings',
-                                {
-                                  ...currentSettings,
-                                  humor: parseInt(e.target.value),
-                                }
-                              );
-                            }}
-                            className='w-full h-2 bg-content2 rounded-lg appearance-none cursor-pointer slider'
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Interaction Style */}
-                    <div>
-                      <label className='text-sm font-medium text-foreground block mb-2'>
-                        Interaction Style
-                      </label>
-                      <p className='text-xs text-foreground-600 mb-3'>
-                        Choose how formal or casual you want the AI to be
-                      </p>
-                      <Select
-                        selectedKeys={[
-                          preferences.aiSettings.interactionStyle || 'friendly',
-                        ]}
-                        onSelectionChange={keys => {
-                          const style = Array.from(keys)[0] as
-                            | 'casual'
-                            | 'professional'
-                            | 'friendly';
-                          handleNestedPreferenceChange(
-                            'aiSettings',
-                            'interactionStyle',
-                            style
-                          );
-                        }}
-                        size='sm'
-                        aria-label='Interaction style selection'
-                        classNames={{
-                          trigger:
-                            'bg-content2 border-divider data-[hover=true]:bg-content3',
-                          value: 'text-foreground',
-                        }}
-                      >
-                        <SelectItem key='casual'>
-                          Casual - Relaxed and informal
-                        </SelectItem>
-                        <SelectItem key='friendly'>
-                          Friendly - Warm but professional
-                        </SelectItem>
-                        <SelectItem key='professional'>
-                          Professional - Formal and business-like
-                        </SelectItem>
-                      </Select>
-                    </div>
-
-                    {/* Emoji Usage */}
-                    <div>
-                      <label className='text-sm font-medium text-foreground block mb-2'>
-                        Emoji Usage
-                      </label>
-                      <p className='text-xs text-foreground-600 mb-3'>
-                        Control how often the AI uses emojis in responses
-                      </p>
-                      <Select
-                        selectedKeys={[
-                          preferences.aiSettings.emojiUsage || 'moderate',
-                        ]}
-                        onSelectionChange={keys => {
-                          const usage = Array.from(keys)[0] as
-                            | 'minimal'
-                            | 'moderate'
-                            | 'frequent';
-                          handleNestedPreferenceChange(
-                            'aiSettings',
-                            'emojiUsage',
-                            usage
-                          );
-                        }}
-                        size='sm'
-                        aria-label='Emoji usage selection'
-                        classNames={{
-                          trigger:
-                            'bg-content2 border-divider data-[hover=true]:bg-content3',
-                          value: 'text-foreground',
-                        }}
-                      >
-                        <SelectItem key='minimal'>
-                          Minimal - Rarely uses emojis
-                        </SelectItem>
-                        <SelectItem key='moderate'>
-                          Moderate - Occasional emojis
-                        </SelectItem>
-                        <SelectItem key='frequent'>
-                          Frequent - Uses emojis regularly
-                        </SelectItem>
-                      </Select>
-                    </div>
-
-                    {/* Emotional Features */}
-                    <div>
-                      <h4 className='text-sm font-medium text-foreground mb-3'>
-                        Emotional Intelligence Features
-                      </h4>
-                      <p className='text-xs text-foreground-600 mb-4'>
-                        Enable features that help the AI understand and respond
-                        to your emotional state
-                      </p>
-
-                      <div className='space-y-4' data-tour='emotional-toggles'>
-                        <div className='flex items-center justify-between'>
+                  <Card className='bg-content1 border-divider'>
+                    <CardBody className='p-6 space-y-6'>
+                      {/* Personality Settings */}
+                      <div>
+                        <div className='flex items-center justify-between mb-4'>
                           <div>
-                            <label className='text-sm font-medium text-foreground'>
-                              Daily Mood Tracking
-                            </label>
+                            <h4 className='text-sm font-medium text-foreground'>
+                              Personality Settings
+                            </h4>
                             <p className='text-xs text-foreground-600'>
-                              AI will check in on your mood and energy levels
+                              Adjust how the AI communicates with you
                             </p>
                           </div>
-                          <Switch
-                            isSelected={
-                              preferences.aiSettings.emotionalFeatures
-                                ?.dailyMoodTracking || false
-                            }
-                            onValueChange={checked => {
-                              const currentFeatures = preferences.aiSettings
-                                .emotionalFeatures || {
-                                dailyMoodTracking: false,
-                                stressDetection: true,
-                                encouragementFrequency: 'medium',
-                                celebrationStyle: 'enthusiastic',
-                              };
-                              handleNestedPreferenceChange(
-                                'aiSettings',
-                                'emotionalFeatures',
-                                {
-                                  ...currentFeatures,
-                                  dailyMoodTracking: checked,
-                                }
-                              );
-                            }}
+                          <Chip
                             size='sm'
-                          />
+                            variant='flat'
+                            color='primary'
+                            className='text-xs'
+                          >
+                            Customizable
+                          </Chip>
                         </div>
 
-                        <div className='flex items-center justify-between'>
-                          <div>
-                            <label className='text-sm font-medium text-foreground'>
-                              Stress Detection
-                            </label>
-                            <p className='text-xs text-foreground-600'>
-                              AI will recognize signs of stress and offer
-                              support
-                            </p>
+                        <div
+                          className='grid grid-cols-1 md:grid-cols-2 gap-6'
+                          data-tour='personality-sliders'
+                        >
+                          {/* Warmth Slider */}
+                          <div className='space-y-3'>
+                            <div className='flex items-center justify-between'>
+                              <label className='text-sm font-medium text-foreground'>
+                                Warmth
+                              </label>
+                              <Chip
+                                size='sm'
+                                variant='flat'
+                                color={
+                                  (preferences.aiSettings.personalitySettings
+                                    ?.warmth || 6) < 4
+                                    ? 'default'
+                                    : (preferences.aiSettings
+                                          .personalitySettings?.warmth || 6) > 7
+                                      ? 'success'
+                                      : 'primary'
+                                }
+                                className='text-xs'
+                              >
+                                {(preferences.aiSettings.personalitySettings
+                                  ?.warmth || 6) < 4
+                                  ? 'Direct'
+                                  : (preferences.aiSettings.personalitySettings
+                                        ?.warmth || 6) > 7
+                                    ? 'Very Caring'
+                                    : 'Friendly'}
+                              </Chip>
+                            </div>
+                            <Slider
+                              size='sm'
+                              step={1}
+                              minValue={1}
+                              maxValue={10}
+                              value={
+                                preferences.aiSettings.personalitySettings
+                                  ?.warmth || 6
+                              }
+                              onChange={value => {
+                                const currentSettings = preferences.aiSettings
+                                  .personalitySettings || {
+                                  warmth: 6,
+                                  enthusiasm: 5,
+                                  supportiveness: 7,
+                                  humor: 4,
+                                };
+                                handleNestedPreferenceChange(
+                                  'aiSettings',
+                                  'personalitySettings',
+                                  {
+                                    ...currentSettings,
+                                    warmth: Array.isArray(value)
+                                      ? value[0]
+                                      : value,
+                                  }
+                                );
+                              }}
+                              classNames={{
+                                track: 'border-s-primary-100',
+                                filler:
+                                  'bg-gradient-to-r from-primary-100 to-primary-500',
+                                thumb: [
+                                  'transition-size',
+                                  'bg-gradient-to-r from-primary-100 to-primary-500',
+                                  'data-[dragging=true]:shadow-lg data-[dragging=true]:shadow-black/20',
+                                  'data-[dragging=true]:w-7 data-[dragging=true]:h-7',
+                                ],
+                              }}
+                            />
+                            <div className='flex justify-between text-xs text-foreground-500'>
+                              <span>Direct</span>
+                              <span>Very Caring</span>
+                            </div>
                           </div>
-                          <Switch
-                            isSelected={
-                              preferences.aiSettings.emotionalFeatures
-                                ?.stressDetection !== false
-                            }
-                            onValueChange={checked => {
-                              const currentFeatures = preferences.aiSettings
-                                .emotionalFeatures || {
-                                dailyMoodTracking: false,
-                                stressDetection: true,
-                                encouragementFrequency: 'medium',
-                                celebrationStyle: 'enthusiastic',
-                              };
-                              handleNestedPreferenceChange(
-                                'aiSettings',
-                                'emotionalFeatures',
-                                { ...currentFeatures, stressDetection: checked }
-                              );
-                            }}
-                            size='sm'
-                          />
-                        </div>
 
-                        <div>
-                          <label className='text-sm font-medium text-foreground block mb-2'>
-                            Encouragement Frequency
-                          </label>
-                          <p className='text-xs text-foreground-600 mb-3'>
-                            How often should the AI provide motivational
-                            support?
-                          </p>
-                          <Select
-                            selectedKeys={[
-                              preferences.aiSettings.emotionalFeatures
-                                ?.encouragementFrequency || 'medium',
-                            ]}
-                            onSelectionChange={keys => {
-                              const frequency = Array.from(keys)[0] as
-                                | 'low'
-                                | 'medium'
-                                | 'high';
-                              const currentFeatures = preferences.aiSettings
-                                .emotionalFeatures || {
-                                dailyMoodTracking: false,
-                                stressDetection: true,
-                                encouragementFrequency: 'medium',
-                                celebrationStyle: 'enthusiastic',
-                              };
-                              handleNestedPreferenceChange(
-                                'aiSettings',
-                                'emotionalFeatures',
-                                {
-                                  ...currentFeatures,
-                                  encouragementFrequency: frequency,
+                          {/* Enthusiasm Slider */}
+                          <div className='space-y-3'>
+                            <div className='flex items-center justify-between'>
+                              <label className='text-sm font-medium text-foreground'>
+                                Enthusiasm
+                              </label>
+                              <Chip
+                                size='sm'
+                                variant='flat'
+                                color={
+                                  (preferences.aiSettings.personalitySettings
+                                    ?.enthusiasm || 5) < 4
+                                    ? 'default'
+                                    : (preferences.aiSettings
+                                          .personalitySettings?.enthusiasm ||
+                                          5) > 7
+                                      ? 'warning'
+                                      : 'primary'
                                 }
-                              );
-                            }}
-                            size='sm'
-                            aria-label='Encouragement frequency selection'
-                            classNames={{
-                              trigger:
-                                'bg-content2 border-divider data-[hover=true]:bg-content3',
-                              value: 'text-foreground',
-                            }}
-                          >
-                            <SelectItem key='low'>
-                              Low - Minimal encouragement
-                            </SelectItem>
-                            <SelectItem key='medium'>
-                              Medium - Balanced support
-                            </SelectItem>
-                            <SelectItem key='high'>
-                              High - Frequent motivation
-                            </SelectItem>
-                          </Select>
-                        </div>
+                                className='text-xs'
+                              >
+                                {(preferences.aiSettings.personalitySettings
+                                  ?.enthusiasm || 5) < 4
+                                  ? 'Calm'
+                                  : (preferences.aiSettings.personalitySettings
+                                        ?.enthusiasm || 5) > 7
+                                    ? 'Very Energetic'
+                                    : 'Balanced'}
+                              </Chip>
+                            </div>
+                            <Slider
+                              size='sm'
+                              step={1}
+                              minValue={1}
+                              maxValue={10}
+                              value={
+                                preferences.aiSettings.personalitySettings
+                                  ?.enthusiasm || 5
+                              }
+                              onChange={value => {
+                                const currentSettings = preferences.aiSettings
+                                  .personalitySettings || {
+                                  warmth: 6,
+                                  enthusiasm: 5,
+                                  supportiveness: 7,
+                                  humor: 4,
+                                };
+                                handleNestedPreferenceChange(
+                                  'aiSettings',
+                                  'personalitySettings',
+                                  {
+                                    ...currentSettings,
+                                    enthusiasm: Array.isArray(value)
+                                      ? value[0]
+                                      : value,
+                                  }
+                                );
+                              }}
+                              classNames={{
+                                track: 'border-s-warning-100',
+                                filler:
+                                  'bg-gradient-to-r from-warning-100 to-warning-500',
+                                thumb: [
+                                  'transition-size',
+                                  'bg-gradient-to-r from-warning-100 to-warning-500',
+                                  'data-[dragging=true]:shadow-lg data-[dragging=true]:shadow-black/20',
+                                  'data-[dragging=true]:w-7 data-[dragging=true]:h-7',
+                                ],
+                              }}
+                            />
+                            <div className='flex justify-between text-xs text-foreground-500'>
+                              <span>Calm</span>
+                              <span>Energetic</span>
+                            </div>
+                          </div>
 
-                        <div>
-                          <label className='text-sm font-medium text-foreground block mb-2'>
-                            Celebration Style
-                          </label>
-                          <p className='text-xs text-foreground-600 mb-3'>
-                            How should the AI celebrate your achievements?
-                          </p>
-                          <Select
-                            selectedKeys={[
-                              preferences.aiSettings.emotionalFeatures
-                                ?.celebrationStyle || 'enthusiastic',
-                            ]}
-                            onSelectionChange={keys => {
-                              const style = Array.from(keys)[0] as
-                                | 'subtle'
-                                | 'enthusiastic';
-                              const currentFeatures = preferences.aiSettings
-                                .emotionalFeatures || {
-                                dailyMoodTracking: false,
-                                stressDetection: true,
-                                encouragementFrequency: 'medium',
-                                celebrationStyle: 'enthusiastic',
-                              };
-                              handleNestedPreferenceChange(
-                                'aiSettings',
-                                'emotionalFeatures',
-                                { ...currentFeatures, celebrationStyle: style }
-                              );
-                            }}
-                            size='sm'
-                            aria-label='Celebration style selection'
-                            classNames={{
-                              trigger:
-                                'bg-content2 border-divider data-[hover=true]:bg-content3',
-                              value: 'text-foreground',
-                            }}
-                          >
-                            <SelectItem key='subtle'>
-                              Subtle - Gentle acknowledgment
-                            </SelectItem>
-                            <SelectItem key='enthusiastic'>
-                              Enthusiastic - Energetic celebration
-                            </SelectItem>
-                          </Select>
+                          {/* Supportiveness Slider */}
+                          <div className='space-y-3'>
+                            <div className='flex items-center justify-between'>
+                              <label className='text-sm font-medium text-foreground'>
+                                Supportiveness
+                              </label>
+                              <Chip
+                                size='sm'
+                                variant='flat'
+                                color={
+                                  (preferences.aiSettings.personalitySettings
+                                    ?.supportiveness || 7) < 4
+                                    ? 'default'
+                                    : (preferences.aiSettings
+                                          .personalitySettings
+                                          ?.supportiveness || 7) > 7
+                                      ? 'success'
+                                      : 'secondary'
+                                }
+                                className='text-xs'
+                              >
+                                {(preferences.aiSettings.personalitySettings
+                                  ?.supportiveness || 7) < 4
+                                  ? 'Task-Focused'
+                                  : (preferences.aiSettings.personalitySettings
+                                        ?.supportiveness || 7) > 7
+                                    ? 'Very Nurturing'
+                                    : 'Encouraging'}
+                              </Chip>
+                            </div>
+                            <Slider
+                              size='sm'
+                              step={1}
+                              minValue={1}
+                              maxValue={10}
+                              value={
+                                preferences.aiSettings.personalitySettings
+                                  ?.supportiveness || 7
+                              }
+                              onChange={value => {
+                                const currentSettings = preferences.aiSettings
+                                  .personalitySettings || {
+                                  warmth: 6,
+                                  enthusiasm: 5,
+                                  supportiveness: 7,
+                                  humor: 4,
+                                };
+                                handleNestedPreferenceChange(
+                                  'aiSettings',
+                                  'personalitySettings',
+                                  {
+                                    ...currentSettings,
+                                    supportiveness: Array.isArray(value)
+                                      ? value[0]
+                                      : value,
+                                  }
+                                );
+                              }}
+                              classNames={{
+                                track: 'border-s-success-100',
+                                filler:
+                                  'bg-gradient-to-r from-success-100 to-success-500',
+                                thumb: [
+                                  'transition-size',
+                                  'bg-gradient-to-r from-success-100 to-success-500',
+                                  'data-[dragging=true]:shadow-lg data-[dragging=true]:shadow-black/20',
+                                  'data-[dragging=true]:w-7 data-[dragging=true]:h-7',
+                                ],
+                              }}
+                            />
+                            <div className='flex justify-between text-xs text-foreground-500'>
+                              <span>Task-Focused</span>
+                              <span>Nurturing</span>
+                            </div>
+                          </div>
+
+                          {/* Humor Slider */}
+                          <div className='space-y-3'>
+                            <div className='flex items-center justify-between'>
+                              <label className='text-sm font-medium text-foreground'>
+                                Humor
+                              </label>
+                              <Chip
+                                size='sm'
+                                variant='flat'
+                                color={
+                                  (preferences.aiSettings.personalitySettings
+                                    ?.humor || 4) < 4
+                                    ? 'default'
+                                    : (preferences.aiSettings
+                                          .personalitySettings?.humor || 4) > 7
+                                      ? 'secondary'
+                                      : 'primary'
+                                }
+                                className='text-xs'
+                              >
+                                {(preferences.aiSettings.personalitySettings
+                                  ?.humor || 4) < 4
+                                  ? 'Serious'
+                                  : (preferences.aiSettings.personalitySettings
+                                        ?.humor || 4) > 7
+                                    ? 'Playful'
+                                    : 'Light-hearted'}
+                              </Chip>
+                            </div>
+                            <Slider
+                              size='sm'
+                              step={1}
+                              minValue={1}
+                              maxValue={10}
+                              value={
+                                preferences.aiSettings.personalitySettings
+                                  ?.humor || 4
+                              }
+                              onChange={value => {
+                                const currentSettings = preferences.aiSettings
+                                  .personalitySettings || {
+                                  warmth: 6,
+                                  enthusiasm: 5,
+                                  supportiveness: 7,
+                                  humor: 4,
+                                };
+                                handleNestedPreferenceChange(
+                                  'aiSettings',
+                                  'personalitySettings',
+                                  {
+                                    ...currentSettings,
+                                    humor: Array.isArray(value)
+                                      ? value[0]
+                                      : value,
+                                  }
+                                );
+                              }}
+                              classNames={{
+                                track: 'border-s-secondary-100',
+                                filler:
+                                  'bg-gradient-to-r from-secondary-100 to-secondary-500',
+                                thumb: [
+                                  'transition-size',
+                                  'bg-gradient-to-r from-secondary-100 to-secondary-500',
+                                  'data-[dragging=true]:shadow-lg data-[dragging=true]:shadow-black/20',
+                                  'data-[dragging=true]:w-7 data-[dragging=true]:h-7',
+                                ],
+                              }}
+                            />
+                            <div className='flex justify-between text-xs text-foreground-500'>
+                              <span>Serious</span>
+                              <span>Playful</span>
+                            </div>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </div>
+
+                      <Divider className='bg-divider' />
+
+                      {/* Communication Style */}
+                      <div>
+                        <h4 className='text-sm font-medium text-foreground mb-4'>
+                          Communication Style
+                        </h4>
+                        <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                          {/* Interaction Style */}
+                          <div>
+                            <label className='text-sm font-medium text-foreground block mb-2'>
+                              Interaction Style
+                            </label>
+                            <p className='text-xs text-foreground-600 mb-3'>
+                              Choose how formal or casual you want the AI to be
+                            </p>
+                            <Select
+                              selectedKeys={[
+                                preferences.aiSettings.interactionStyle ||
+                                  'friendly',
+                              ]}
+                              onSelectionChange={keys => {
+                                const style = Array.from(keys)[0] as
+                                  | 'casual'
+                                  | 'professional'
+                                  | 'friendly';
+                                handleNestedPreferenceChange(
+                                  'aiSettings',
+                                  'interactionStyle',
+                                  style
+                                );
+                              }}
+                              size='sm'
+                              aria-label='Interaction style selection'
+                              classNames={{
+                                trigger:
+                                  'bg-content2 border-divider data-[hover=true]:bg-content3',
+                                value: 'text-foreground',
+                              }}
+                            >
+                              <SelectItem key='casual'>
+                                Casual - Relaxed and informal
+                              </SelectItem>
+                              <SelectItem key='friendly'>
+                                Friendly - Warm but professional
+                              </SelectItem>
+                              <SelectItem key='professional'>
+                                Professional - Formal and business-like
+                              </SelectItem>
+                            </Select>
+                          </div>
+
+                          {/* Emoji Usage */}
+                          <div>
+                            <label className='text-sm font-medium text-foreground block mb-2'>
+                              Emoji Usage
+                            </label>
+                            <p className='text-xs text-foreground-600 mb-3'>
+                              Control how often the AI uses emojis in responses
+                            </p>
+                            <Select
+                              selectedKeys={[
+                                preferences.aiSettings.emojiUsage || 'moderate',
+                              ]}
+                              onSelectionChange={keys => {
+                                const usage = Array.from(keys)[0] as
+                                  | 'minimal'
+                                  | 'moderate'
+                                  | 'frequent';
+                                handleNestedPreferenceChange(
+                                  'aiSettings',
+                                  'emojiUsage',
+                                  usage
+                                );
+                              }}
+                              size='sm'
+                              aria-label='Emoji usage selection'
+                              classNames={{
+                                trigger:
+                                  'bg-content2 border-divider data-[hover=true]:bg-content3',
+                                value: 'text-foreground',
+                              }}
+                            >
+                              <SelectItem key='minimal'>
+                                Minimal - Rarely uses emojis
+                              </SelectItem>
+                              <SelectItem key='moderate'>
+                                Moderate - Occasional emojis
+                              </SelectItem>
+                              <SelectItem key='frequent'>
+                                Frequent - Uses emojis regularly
+                              </SelectItem>
+                            </Select>
+                          </div>
+                        </div>
+                      </div>
+
+                      <Divider className='bg-divider' />
+
+                      {/* Emotional Intelligence Features */}
+                      <div>
+                        <div className='flex items-center justify-between mb-4'>
+                          <div>
+                            <h4 className='text-sm font-medium text-foreground'>
+                              Emotional Intelligence Features
+                            </h4>
+                            <p className='text-xs text-foreground-600'>
+                              Enable features that help the AI understand and
+                              respond to your emotional state
+                            </p>
+                          </div>
+                          <Chip
+                            size='sm'
+                            variant='flat'
+                            color='secondary'
+                            className='text-xs'
+                          >
+                            Smart Features
+                          </Chip>
+                        </div>
+
+                        <div
+                          className='space-y-4'
+                          data-tour='emotional-toggles'
+                        >
+                          <Card className='bg-content2 border-divider'>
+                            <CardBody className='p-4'>
+                              <div className='flex items-center justify-between'>
+                                <div>
+                                  <label className='text-sm font-medium text-foreground'>
+                                    Daily Mood Tracking
+                                  </label>
+                                  <p className='text-xs text-foreground-600'>
+                                    AI will check in on your mood and energy
+                                    levels
+                                  </p>
+                                </div>
+                                <Switch
+                                  isSelected={
+                                    preferences.aiSettings.emotionalFeatures
+                                      ?.dailyMoodTracking || false
+                                  }
+                                  onValueChange={checked => {
+                                    const currentFeatures = preferences
+                                      .aiSettings.emotionalFeatures || {
+                                      dailyMoodTracking: false,
+                                      stressDetection: true,
+                                      encouragementFrequency: 'medium',
+                                      celebrationStyle: 'enthusiastic',
+                                    };
+                                    handleNestedPreferenceChange(
+                                      'aiSettings',
+                                      'emotionalFeatures',
+                                      {
+                                        ...currentFeatures,
+                                        dailyMoodTracking: checked,
+                                      }
+                                    );
+                                  }}
+                                  size='sm'
+                                />
+                              </div>
+                            </CardBody>
+                          </Card>
+
+                          <Card className='bg-content2 border-divider'>
+                            <CardBody className='p-4'>
+                              <div className='flex items-center justify-between'>
+                                <div>
+                                  <label className='text-sm font-medium text-foreground'>
+                                    Stress Detection
+                                  </label>
+                                  <p className='text-xs text-foreground-600'>
+                                    AI will recognize signs of stress and offer
+                                    support
+                                  </p>
+                                </div>
+                                <Switch
+                                  isSelected={
+                                    preferences.aiSettings.emotionalFeatures
+                                      ?.stressDetection !== false
+                                  }
+                                  onValueChange={checked => {
+                                    const currentFeatures = preferences
+                                      .aiSettings.emotionalFeatures || {
+                                      dailyMoodTracking: false,
+                                      stressDetection: true,
+                                      encouragementFrequency: 'medium',
+                                      celebrationStyle: 'enthusiastic',
+                                    };
+                                    handleNestedPreferenceChange(
+                                      'aiSettings',
+                                      'emotionalFeatures',
+                                      {
+                                        ...currentFeatures,
+                                        stressDetection: checked,
+                                      }
+                                    );
+                                  }}
+                                  size='sm'
+                                />
+                              </div>
+                            </CardBody>
+                          </Card>
+
+                          <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                            <div>
+                              <label className='text-sm font-medium text-foreground block mb-2'>
+                                Encouragement Frequency
+                              </label>
+                              <p className='text-xs text-foreground-600 mb-3'>
+                                How often should the AI provide motivational
+                                support?
+                              </p>
+                              <Select
+                                selectedKeys={[
+                                  preferences.aiSettings.emotionalFeatures
+                                    ?.encouragementFrequency || 'medium',
+                                ]}
+                                onSelectionChange={keys => {
+                                  const frequency = Array.from(keys)[0] as
+                                    | 'low'
+                                    | 'medium'
+                                    | 'high';
+                                  const currentFeatures = preferences.aiSettings
+                                    .emotionalFeatures || {
+                                    dailyMoodTracking: false,
+                                    stressDetection: true,
+                                    encouragementFrequency: 'medium',
+                                    celebrationStyle: 'enthusiastic',
+                                  };
+                                  handleNestedPreferenceChange(
+                                    'aiSettings',
+                                    'emotionalFeatures',
+                                    {
+                                      ...currentFeatures,
+                                      encouragementFrequency: frequency,
+                                    }
+                                  );
+                                }}
+                                size='sm'
+                                aria-label='Encouragement frequency selection'
+                                classNames={{
+                                  trigger:
+                                    'bg-content2 border-divider data-[hover=true]:bg-content3',
+                                  value: 'text-foreground',
+                                }}
+                              >
+                                <SelectItem key='low'>
+                                  Low - Minimal encouragement
+                                </SelectItem>
+                                <SelectItem key='medium'>
+                                  Medium - Balanced support
+                                </SelectItem>
+                                <SelectItem key='high'>
+                                  High - Frequent motivation
+                                </SelectItem>
+                              </Select>
+                            </div>
+
+                            <div>
+                              <label className='text-sm font-medium text-foreground block mb-2'>
+                                Celebration Style
+                              </label>
+                              <p className='text-xs text-foreground-600 mb-3'>
+                                How should the AI celebrate your achievements?
+                              </p>
+                              <Select
+                                selectedKeys={[
+                                  preferences.aiSettings.emotionalFeatures
+                                    ?.celebrationStyle || 'enthusiastic',
+                                ]}
+                                onSelectionChange={keys => {
+                                  const style = Array.from(keys)[0] as
+                                    | 'subtle'
+                                    | 'enthusiastic';
+                                  const currentFeatures = preferences.aiSettings
+                                    .emotionalFeatures || {
+                                    dailyMoodTracking: false,
+                                    stressDetection: true,
+                                    encouragementFrequency: 'medium',
+                                    celebrationStyle: 'enthusiastic',
+                                  };
+                                  handleNestedPreferenceChange(
+                                    'aiSettings',
+                                    'emotionalFeatures',
+                                    {
+                                      ...currentFeatures,
+                                      celebrationStyle: style,
+                                    }
+                                  );
+                                }}
+                                size='sm'
+                                aria-label='Celebration style selection'
+                                classNames={{
+                                  trigger:
+                                    'bg-content2 border-divider data-[hover=true]:bg-content3',
+                                  value: 'text-foreground',
+                                }}
+                              >
+                                <SelectItem key='subtle'>
+                                  Subtle - Gentle acknowledgment
+                                </SelectItem>
+                                <SelectItem key='enthusiastic'>
+                                  Enthusiastic - Energetic celebration
+                                </SelectItem>
+                              </Select>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </CardBody>
+                  </Card>
                 </div>
 
                 {/* AI Interaction Logging */}

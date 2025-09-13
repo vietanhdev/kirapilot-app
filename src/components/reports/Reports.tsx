@@ -198,6 +198,8 @@ export function Reports({ initialTab = 'analytics' }: ReportsProps = {}) {
               fr: 'fr-FR',
               de: 'de-DE',
               vi: 'vi-VN',
+              ja: 'ja-JP',
+              pt: 'pt-PT',
             }[language] || 'en-US',
             {
               month: 'short',

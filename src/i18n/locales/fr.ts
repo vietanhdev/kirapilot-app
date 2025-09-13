@@ -1,625 +1,1588 @@
 export const fr = {
+  // About
+  'about.appDescription': 'Assistant de Productivité Intelligent',
+  'about.appName': 'KiraPilot',
+  'about.copyright': '© 2025 Viet-Anh Nguyen. Tous droits réservés.',
+  'about.systemInformation': 'Informations Système',
+  'about.version': 'Version 0.0.10',
+
+  // Ai
+  'ai.actions.copied': 'Copié !',
+  'ai.actions.copy': 'Copier le message',
+  'ai.actions.regenerate': 'Régénérer la réponse',
+  'ai.button.openSettings': 'Ouvrir les Paramètres',
+  'ai.button.resumeAutoScroll': 'Reprendre le défilement automatique',
+  'ai.chat': 'Chat avec Kira',
+  'ai.conversation.title': 'Conversation {number} ({count} messages)',
+  'ai.error': 'Erreur IA - Cliquez pour résoudre',
+  'ai.error.apiKeyRequired': 'Clé API requise pour le modèle',
+  'ai.error.insufficientPermissions':
+    'Permissions insuffisantes. Requis : {permissions}',
+  'ai.error.invalidResponse': 'Format de réponse invalide',
+  'ai.error.processingFailed':
+    "Désolé, j'ai rencontré une erreur lors du traitement de votre demande. Veuillez réessayer.",
+  'ai.error.toolFailed': '{toolName} a échoué : {error}',
+  'ai.error.unknownTool': 'Outil inconnu : {toolName}',
+  'ai.feedback.category.accuracy.description':
+    "Quelle était la précision de l'information ?",
+  'ai.feedback.category.accuracy.title': 'Précision',
+  'ai.feedback.category.clarity.description':
+    'Dans quelle mesure était-ce clair et compréhensible ?',
+  'ai.feedback.category.clarity.title': 'Clarté',
+  'ai.feedback.category.helpfulness.description':
+    "Quelle a été l'utilité de cette réponse ?",
+  'ai.feedback.category.helpfulness.title': 'Utile',
+  'ai.feedback.category.personality.description':
+    'Comment était le ton et le style ?',
+  'ai.feedback.category.personality.title': 'Personnalité',
+  'ai.feedback.category.speed.description':
+    'Comment était le temps de réponse ?',
+  'ai.feedback.category.speed.title': 'Rapidité de réponse',
+  'ai.feedback.helpful': 'Utile',
+  'ai.feedback.modal.additionalComments':
+    'Commentaires supplémentaires (facultatif)',
+  'ai.feedback.modal.categoryRatings': 'Évaluations détaillées',
+  'ai.feedback.modal.commentPlaceholder':
+    'Donnez-nous votre avis sur cette réponse…',
+  'ai.feedback.modal.overallRating': 'Évaluation globale',
+  'ai.feedback.modal.quickFeedback': 'Retour rapide',
+  'ai.feedback.modal.submit': 'Soumettre un retour',
+  'ai.feedback.modal.subtitle':
+    'Aidez-nous à améliorer en évaluant cette réponse',
+  'ai.feedback.modal.title': "Évaluer la réponse de l'IA",
+  'ai.feedback.no': 'Non',
+  'ai.feedback.notHelpful': 'Pas utile',
+  'ai.feedback.quick.couldBeImproved': 'Peut être amélioré',
+  'ai.feedback.quick.greatPersonality': 'Superbe personnalité',
+  'ai.feedback.quick.needsMoreDetail': 'Manque de détails',
+  'ai.feedback.quick.perfectTiming': 'Timing parfait',
+  'ai.feedback.quick.tooFormal': 'Trop formel',
+  'ai.feedback.quick.tooSlow': 'Trop lent',
+  'ai.feedback.quick.tooVerbose': 'Trop verbeux',
+  'ai.feedback.quick.veryHelpful': 'Très utile',
+  'ai.feedback.rate': 'Évaluer',
+  'ai.feedback.rateDetailed': 'Évaluer en détail',
+  'ai.feedback.rating.1': 'Très mauvais',
+  'ai.feedback.rating.2': 'Mauvais',
+  'ai.feedback.rating.3': 'Moyen',
+  'ai.feedback.rating.4': 'Bon',
+  'ai.feedback.rating.5': 'Excellent',
+  'ai.feedback.submitted': 'Feedback envoyé',
+  'ai.feedback.thankYou': 'Merci !',
+  'ai.feedback.wasThisHelpful': 'Cela vous a-t-il été utile ?',
+  'ai.feedback.yes': 'Oui',
+  'ai.greeting.description':
+    "Je suis là pour vous aider à gérer les tâches, suivre le temps et améliorer votre productivité. Comment puis-je vous aider aujourd'hui ?",
+  'ai.greeting.suggestion.createTask': 'Créer une nouvelle tâche',
+  'ai.greeting.suggestion.productivity':
+    'Montrer mes informations de productivité',
+  'ai.greeting.suggestion.startTimer':
+    'Démarrer un minuteur pour ma tâche actuelle',
+  'ai.greeting.suggestions':
+    'Voici quelques choses que vous pouvez me demander :',
+  'ai.greeting.title': 'Bonjour ! Je suis Kira, votre assistante IA.',
+  'ai.logging.activeOperations': 'Opérations Actives',
+  'ai.logging.captureError':
+    "Échec de la journalisation de l'interaction : {error}",
+  'ai.logging.captureSuccess': 'Interaction journalisée avec succès',
+  'ai.logging.disabledMessage':
+    'La journalisation des interactions IA est désactivée. Activez-la dans les Paramètres pour suivre les conversations.',
+  'ai.logging.hoursAgo': 'il y a {count}h',
+  'ai.logging.justNow': "À l'instant",
+  'ai.logging.lastCapture': 'Dernière capture',
+  'ai.logging.minutesAgo': 'il y a {count} min',
+  'ai.logging.operationCapture': "Capture d'interaction",
+  'ai.logging.operationCleanup': 'Nettoyage des anciens journaux',
+  'ai.logging.operationClear': 'Effacement des journaux',
+  'ai.logging.operationExport': 'Exportation des journaux',
+  'ai.logging.recentOperations': 'Opérations Récentes',
+  'ai.logging.statusCapturing': 'Capture...',
+  'ai.logging.troubleshooting': 'Dépannage',
+  'ai.logging.troubleshootingTips':
+    "Essayez d'actualiser la page ou vérifiez votre espace de stockage.",
+  'ai.model.contextWindow': 'Fenêtre contextuelle',
+  'ai.model.downloading': 'Téléchargement du modèle',
+  'ai.model.error.modelError': "Erreur d'état du modèle",
+  'ai.model.error.title': 'Erreur du modèle',
+  'ai.model.gemini': 'API Gemini',
+  'ai.model.information': 'Informations sur le modèle',
+  'ai.model.local': 'Modèle Local',
+  'ai.model.name': 'Nom',
+  'ai.model.size': 'Taille',
+  'ai.model.status.downloading': 'Téléchargement en cours… {progress}%',
+  'ai.model.status.error': 'Erreur',
+  'ai.model.status.loading': 'Chargement…',
+  'ai.model.status.notReady': 'Non prêt',
+  'ai.model.status.ready': 'Prêt',
+  'ai.model.status.title': 'État du modèle',
+  'ai.model.status.unknown': 'Inconnu',
+  'ai.model.type': 'Type',
+  'ai.model.version': 'Version',
+  'ai.placeholder': "Demandez n'importe quoi à Kira...",
+  'ai.productivity.analysis': 'Analyse de Productivité :',
+  'ai.productivity.completionRate': 'Taux de completion : {rate}%',
+  'ai.productivity.focusEfficiency':
+    'Efficacité de concentration : {efficiency}%',
+  'ai.productivity.keyInsights': 'Insights clés :',
+  'ai.productivity.mostProductive': 'Plus productif : {start}-{end}',
+  'ai.productivity.recommendations': 'Recommandations :',
+  'ai.send': 'Envoyer',
+  'ai.setup': 'Configurer Kira IA',
+  'ai.status.action': 'Action',
+  'ai.status.analyzing': 'Analyse...',
+  'ai.status.confidence': 'confiance',
+  'ai.status.executing': 'Exécution de {toolName}...',
+  'ai.status.processing': 'Traitement...',
+  'ai.status.ready': 'Prête à aider',
+  'ai.status.reasoning': 'Raisonnement',
+  'ai.status.setupRequired': 'Configuration requise',
+  'ai.status.thinking': 'Réflexion...',
+  'ai.success.toolExecuted': '{toolName} exécuté avec succès',
+  'ai.suggestions': 'suggestions IA',
+  'ai.suggestions.title': 'Suggestions',
+  'ai.taskList.andMore': '...et {count} tâches de plus',
+  'ai.taskList.dueDate': 'Échéance : {date}',
+  'ai.taskList.foundTasks': '{count} tâches trouvées :',
+  'ai.taskList.noTasks': 'Aucune tâche trouvée correspondant à vos critères',
+  'ai.taskList.timeEstimate': 'Estimation : {minutes} minutes',
+  'ai.thinking': 'Kira réfléchit...',
+  'ai.timeData.averageSession': 'Session moyenne : {minutes} minutes',
+  'ai.timeData.sessions': 'Sessions : {count}',
+  'ai.timeData.summary': 'Résumé Temporel :',
+  'ai.timeData.totalTime': 'Temps total : {hours} heures',
+  'ai.timer.started':
+    'Minuteur démarré ! Suivi du temps pour votre tâche en cours.',
+  'ai.timer.stopped':
+    'Minuteur arrêté ! Vous avez travaillé {duration} minutes.',
+  'ai.title': 'Kira IA',
+  'ai.tools.analyze_productivity.description':
+    'Générer des insights et recommandations de productivité',
+  'ai.tools.analyze_productivity.error':
+    "Impossible d'analyser la productivité : {error}",
+  'ai.tools.analyze_productivity.success': 'Analyse de productivité générée',
+  'ai.tools.create_task.description':
+    'Créer une nouvelle tâche dans le système',
+  'ai.tools.create_task.error': 'Impossible de créer la tâche : {error}',
+  'ai.tools.create_task.success': 'Tâche créée : {title}',
+  'ai.tools.displayName.analyze_productivity': 'Analyse de Productivité',
+  'ai.tools.displayName.create_task': 'Créer Tâche',
+  'ai.tools.displayName.get_tasks': 'Rechercher Tâches',
+  'ai.tools.displayName.get_time_data': 'Analyse Temporelle',
+  'ai.tools.displayName.start_timer': 'Démarrer Minuteur',
+  'ai.tools.displayName.stop_timer': 'Arrêter Minuteur',
+  'ai.tools.displayName.update_task': 'Mettre à jour Tâche',
+  'ai.tools.get_tasks.description': 'Récupérer et rechercher des tâches',
+  'ai.tools.get_tasks.error': 'Impossible de récupérer les tâches : {error}',
+  'ai.tools.get_tasks.success': '{count} tâches trouvées',
+  'ai.tools.get_time_data.description':
+    'Voir les données de suivi du temps et les statistiques',
+  'ai.tools.get_time_data.error':
+    "Impossible d'obtenir les données temporelles : {error}",
+  'ai.tools.get_time_data.success':
+    'Données temporelles récupérées pour {sessions} sessions',
+  'ai.tools.start_timer.description':
+    'Démarrer le suivi du temps pour la tâche',
+  'ai.tools.start_timer.error': 'Impossible de démarrer le minuteur : {error}',
+  'ai.tools.start_timer.success': 'Minuteur démarré pour la tâche',
+  'ai.tools.stop_timer.description':
+    'Arrêter la session de suivi du temps actuelle',
+  'ai.tools.stop_timer.error': "Impossible d'arrêter le minuteur : {error}",
+  'ai.tools.stop_timer.success':
+    'Minuteur arrêté. Travaillé {duration} minutes',
+  'ai.tools.update_task.description': 'Modifier une tâche existante',
+  'ai.tools.update_task.error':
+    'Impossible de mettre à jour la tâche : {error}',
+  'ai.tools.update_task.success': 'Tâche mise à jour : {title}',
+  'ai.welcome.description': 'Configurez votre clé API pour commencer.',
+  'ai.welcome.title': 'Bienvenue dans Kira IA !',
+
+  // BuildInfo
+  'buildInfo.architecture': 'Architecture',
+  'buildInfo.buildDate': 'Date de Build',
+  'buildInfo.copied': 'Copié dans le presse-papiers',
+  'buildInfo.copyFailed': 'Échec de la copie',
+  'buildInfo.copyToClipboard': 'Copier dans le Presse-papiers',
+  'buildInfo.environment': 'Environnement',
+  'buildInfo.gitBranch': 'Branche Git',
+  'buildInfo.gitHash': 'Hash Git',
+  'buildInfo.gitTag': 'Tag Git',
+  'buildInfo.nodeVersion': 'Version Node',
+  'buildInfo.npmVersion': 'Version npm',
+  'buildInfo.platform': 'Plateforme',
+  'buildInfo.rustVersion': 'Version Rust',
+  'buildInfo.tauriVersion': 'Version Tauri',
+  'buildInfo.title': 'Informations de Build',
+  'buildInfo.version': 'Version',
+
   // Common
-  'common.save': 'Enregistrer',
-  'common.cancel': 'Annuler',
-  'common.delete': 'Supprimer',
-  'common.edit': 'Modifier',
   'common.add': 'Ajouter',
-  'common.remove': 'Retirer',
-  'common.confirm': 'Confirmer',
-  'common.loading': 'Chargement...',
-  'common.error': 'Erreur',
-  'common.success': 'Succès',
-  'common.warning': 'Avertissement',
-  'common.info': 'Information',
+  'common.cancel': 'Annuler',
   'common.clearDatabase': 'Effacer la Base de Données (Dev Seulement)',
   'common.clearDatabaseConfirm':
     'Êtes-vous sûr de vouloir effacer toutes les données de la base de données ? Cette action ne peut pas être annulée.',
-
-  // Navigation
-  'nav.week': 'Semaine',
-  'nav.day': 'Jour',
-  'nav.reports': 'Rapports',
-  'nav.settings': 'Paramètres',
-
-  // Settings
-  'settings.title': 'Paramètres',
-  'settings.subtitle': 'Personnalisez votre expérience KiraPilot',
-  'settings.resetToDefaults': 'Rétablir les valeurs par défaut',
-  'settings.resetConfirm':
-    'Êtes-vous sûr de vouloir rétablir tous les paramètres aux valeurs par défaut ? Cette action ne peut pas être annulée.',
-  'settings.saving': 'Enregistrement...',
-
-  // Settings - General
-  'settings.general': 'Général',
-  'settings.general.appPreferences': "Préférences de l'application",
-  'settings.general.theme': 'Thème',
-  'settings.general.themeDescription':
-    'Choisissez votre schéma de couleurs préféré',
-  'settings.general.language': 'Langue',
-  'settings.general.languageDescription': 'Sélectionnez votre langue préférée',
-  'settings.general.workingHours': 'Heures de travail',
-  'settings.general.startTime': 'Heure de début',
-  'settings.general.endTime': 'Heure de fin',
-  'settings.general.notifications': 'Notifications',
-
-  // Settings - AI Assistant
-  'settings.ai': 'Assistant IA',
-  'settings.ai.kiraSettings': 'Paramètres de Kira IA',
-  'settings.ai.conversationHistory': 'Historique des conversations',
-  'settings.ai.conversationHistoryDescription':
-    "Conserver l'historique du chat pour le contexte",
-  'settings.ai.autoSuggestions': 'Suggestions automatiques',
-  'settings.ai.autoSuggestionsDescription':
-    'Recevoir des suggestions proactives de productivité',
-  'settings.ai.toolPermissions': 'Permissions des outils',
-  'settings.ai.toolPermissionsDescription':
-    "Permettre à l'IA de modifier les tâches et les minuteurs",
-  'settings.ai.responsePreferences': 'Préférences de réponse',
-  'settings.ai.responseStyle': 'Style de réponse',
-  'settings.ai.suggestionFrequency': 'Fréquence des suggestions',
-
-  // Settings - Time Tracking
-  'settings.time': 'Suivi du temps',
-  'settings.time.timerPreferences': 'Préférences du minuteur',
-  'settings.time.defaultSessionLength': 'Durée de session par défaut',
-  'settings.time.breakInterval': 'Intervalle de pause',
-  'settings.time.shortBreakDuration': 'Durée de pause courte',
-  'settings.time.longBreakDuration': 'Durée de pause longue',
-  'settings.time.focusSettings': 'Paramètres de concentration',
-  'settings.time.distractionLevel': 'Niveau de distraction',
-  'settings.time.backgroundAudioVolume': 'Volume audio de fond',
-
-  // Settings - Task Management
-  'settings.tasks': 'Gestion des tâches',
-  'settings.tasks.defaultSettings': 'Paramètres par défaut',
-  'settings.tasks.defaultPriority': 'Priorité par défaut',
-  'settings.tasks.defaultPriorityDescription':
-    'Niveau de priorité pour les nouvelles tâches',
-  'settings.tasks.autoScheduling': 'Planification automatique',
-  'settings.tasks.autoSchedulingDescription':
-    'Planifier automatiquement les tâches selon la priorité',
-  'settings.tasks.smartDependencies': 'Dépendances intelligentes',
-  'settings.tasks.smartDependenciesDescription':
-    'Suggérer automatiquement les dépendances des tâches',
-  'settings.tasks.planningPreferences': 'Préférences de planification',
-  'settings.tasks.weekStartDay': 'Jour de début de semaine',
-  'settings.tasks.weekStartDayDescription':
-    'Premier jour de la semaine dans la vue de planification',
-  'settings.tasks.showCompletedTasks': 'Afficher les tâches terminées',
-  'settings.tasks.showCompletedTasksDescription':
-    'Afficher les tâches terminées dans la vue de planification',
-  'settings.tasks.compactView': 'Vue compacte',
-  'settings.tasks.compactViewDescription':
-    'Utiliser une mise en page compacte pour les cartes de tâches',
-
-  // Settings - Privacy & Security
-  'settings.privacy': 'Confidentialité et sécurité',
-
-  // Settings - About
-  'settings.about': 'À propos',
-  'settings.about.appName': 'KiraPilot',
-  'settings.about.appDescription': 'Assistant intelligent de productivité',
-  'settings.about.version': 'Version',
-  'settings.about.systemInformation': 'Informations système',
-  'settings.about.platform': 'Plateforme',
-  'settings.about.database': 'Base de données',
-  'settings.about.aiEngine': 'Moteur IA',
-  'settings.about.build': 'Build',
-  'settings.about.credits': 'Crédits',
-  'settings.about.builtWith': 'Construit avec React, TypeScript et Tauri',
-  'settings.about.uiComponents': 'Composants UI par HeroUI',
-  'settings.about.icons': 'Icônes par Lucide React',
-  'settings.about.copyright': '© 2024 KiraPilot. Tous droits réservés.',
-
-  // Theme options
-  'theme.light': 'Clair',
-  'theme.dark': 'Sombre',
-  'theme.auto': 'Automatique',
-
-  // Priority levels
-  'priority.low': 'Faible',
-  'priority.medium': 'Moyenne',
-  'priority.high': 'Élevée',
-  'priority.urgent': 'Urgente',
-
-  // Response styles
-  'responseStyle.concise': 'Concis',
-  'responseStyle.balanced': 'Équilibré',
-  'responseStyle.detailed': 'Détaillé',
-
-  // Suggestion frequencies
-  'suggestionFrequency.minimal': 'Minimale',
-  'suggestionFrequency.moderate': 'Modérée',
-  'suggestionFrequency.frequent': 'Fréquente',
-
-  // Distraction levels
-  'distractionLevel.none': 'Aucune',
-  'distractionLevel.minimal': 'Minimale',
-  'distractionLevel.moderate': 'Modérée',
-  'distractionLevel.full': 'Complète',
-
-  // Days of week
-  'day.sunday': 'Dimanche',
-  'day.monday': 'Lundi',
-
-  // Notification types
-  'notifications.breakReminders': 'Rappels de pause',
-  'notifications.taskDeadlines': 'Échéances des tâches',
-  'notifications.dailySummary': 'Résumé quotidien',
-  'notifications.weeklyReview': 'Révision hebdomadaire',
-
-  // Time units
-  'time.minutes': 'minutes',
-  'time.hours': 'heures',
-
-  // Tasks
-  'tasks.title': 'Tâches',
-  'tasks.create': 'Créer une tâche',
-  'tasks.edit': 'Modifier la tâche',
-  'tasks.delete': 'Supprimer la tâche',
-  'tasks.complete': 'Terminer la tâche',
-  'tasks.priority': 'Priorité',
-  'tasks.dueDate': "Date d'échéance",
-  'tasks.description': 'Description',
-  'tasks.notes': 'Notes',
-  'tasks.addNotes': 'Ajouter des notes',
-  'tasks.addNotesPlaceholder': 'Ajouter des notes pour cette tâche...',
-  'tasks.viewEditNotes': 'Voir/Modifier les notes',
-  'tasks.sessionLogs': 'Journaux de session',
-  'tasks.sessionLogsWithTime': 'Journaux de session ({time}min total)',
-  'tasks.expandDescription': 'Développer la description',
-  'tasks.collapseDescription': 'Réduire la description',
-  'tasks.markComplete': 'Cliquer pour marquer comme terminée',
-  'tasks.markIncomplete': 'Cliquer pour marquer comme incomplète',
-  'tasks.updatingStatus': 'Mise à jour du statut...',
-  'tasks.deleteConfirmTitle': 'Supprimer la Tâche',
-  'tasks.deleteConfirmMessage':
-    'Êtes-vous sûr de vouloir supprimer "{title}" ? Cette action ne peut pas être annulée.',
-  'tasks.deleteConfirmButton': 'Supprimer',
-  'tasks.cancelButton': 'Annuler',
-
-  // Timer
-  'timer.start': 'Démarrer',
-  'timer.pause': 'Pause',
-  'timer.stop': 'Arrêter',
-  'timer.reset': 'Réinitialiser',
-  'timer.session': 'Session',
-  'timer.break': 'Pause',
-  'timer.sessionHistory': 'Historique des Sessions',
-  'timer.startTimer': 'Démarrer le minuteur pour cette tâche',
-  'timer.pauseTimer': 'Mettre en pause le minuteur',
-  'timer.resumeTimer': 'Reprendre le minuteur',
-  'timer.stopTimer': 'Arrêter le minuteur',
-  'timer.processing': 'Traitement...',
-  'timer.recording': 'Enregistrement',
-  'timer.paused': 'En pause',
-  'timer.active': 'Actif',
-
-  // Reports
-  'reports.title': 'Analyse du Temps',
-  'reports.subtitle': 'Aperçus de vos habitudes de productivité',
-  'reports.loading': 'Chargement des analyses...',
-  'reports.totalTime': 'Temps Total',
-  'reports.focusTime': 'Temps de Concentration',
-  'reports.sessions': 'Sessions',
-  'reports.productivity': 'Productivité',
-  'reports.dailyActivity': 'Activité Quotidienne',
-  'reports.week': 'Semaine',
-  'reports.month': 'Mois',
-  'reports.quarter': 'Trimestre',
-  'reports.hourlyPatterns': 'Modèles Horaires',
-  'reports.taskPerformance': 'Performance des Tâches',
-  'reports.noTaskData': 'Aucune donnée de tâche disponible',
-  'reports.startWorkingTasks':
-    'Commencez à travailler sur des tâches pour voir les informations de performance',
-  'reports.activeTasks': 'Tâches Actives',
-  'reports.avgFocus': 'Concentration Moy',
-  'reports.topPerformingTasks': 'Tâches les Plus Performantes',
-  'reports.viewAllTasks': 'Voir toutes les {count} tâches →',
-  'reports.productivityTrends': 'Tendances de Productivité',
-  'reports.dailyFocus': 'Concentration Quotidienne',
-  'reports.noProductivityData': 'Aucune donnée de productivité',
-  'reports.completeWorkSessions':
-    'Terminez quelques sessions de travail pour voir les tendances',
-  'reports.bestDay': 'Meilleur Jour',
-  'reports.average': 'Moyenne',
-  'reports.highDays': 'Jours Élevés',
-  'reports.recentPerformance': 'Performance Récente',
-  'reports.taskBreakdown': 'Répartition des Tâches',
-  'reports.task': 'Tâche',
-  'reports.time': 'Temps',
-  'reports.session': 'session',
-  'reports.sessionsPlural': 'sessions',
-  'reports.focusScore': 'Score de Concentration',
-  'reports.dateLabel': 'Date : {date}',
-
-  // Planning
-  'planning.previousWeek': 'Semaine précédente',
-  'planning.nextWeek': 'Semaine suivante',
-  'planning.total': 'total',
-  'planning.done': 'terminées',
-  'planning.active': 'actives',
-  'planning.overdue': 'en retard',
-  'planning.previousDay': 'Jour précédent',
-  'planning.nextDay': 'Jour suivant',
-  'planning.goToToday': "Aller à aujourd'hui",
-  'planning.goToCurrentWeek': 'Aller à la semaine actuelle',
-  'planning.thisWeek': 'Cette Semaine',
-  'planning.backlog': 'En attente',
-  'planning.today': "Aujourd'hui",
-  'planning.nextTasks': 'Prochaines Tâches',
-  'planning.addTask': 'Ajouter une tâche',
-  'planning.dropTaskHere': 'Déposer la tâche ici',
-  'planning.noTasks': 'Aucune tâche',
-  'planning.dragTasksHere':
-    'Glissez les tâches ici ou cliquez sur + pour ajouter',
-
-  // AI Chat
-  'ai.chat': 'Discuter avec Kira',
-  'ai.placeholder': "Demandez n'importe quoi à Kira...",
-  'ai.send': 'Envoyer',
-  'ai.thinking': 'Kira réfléchit...',
-  'ai.error': 'Erreur IA - Cliquez pour résoudre',
-  'ai.setup': 'Configurer Kira IA',
-  'ai.suggestions': 'suggestions IA',
-  'ai.title': 'Kira IA',
-  'ai.status.ready': 'Prêt à aider',
-  'ai.status.setupRequired': 'Configuration requise',
-  'ai.status.reasoning': 'Raisonnement',
-  'ai.status.action': 'Action',
-  'ai.status.confidence': 'confiance',
-  'ai.welcome.title': 'Bienvenue dans Kira IA !',
-  'ai.welcome.description': 'Configurez votre clé API pour commencer.',
-  'ai.greeting.title': 'Bonjour ! Je suis Kira, votre assistant IA.',
-  'ai.greeting.description':
-    "Je suis là pour vous aider à gérer les tâches, suivre le temps et améliorer votre productivité. Comment puis-je vous aider aujourd'hui ?",
-  'ai.greeting.suggestions':
-    'Voici quelques choses que vous pouvez me demander :',
-  'ai.greeting.suggestion.createTask': 'Créer une nouvelle tâche',
-  'ai.greeting.suggestion.startTimer':
-    'Démarrer un minuteur pour ma tâche actuelle',
-  'ai.greeting.suggestion.productivity':
-    'Montrer mes informations de productivité',
-  'ai.button.openSettings': 'Ouvrir les Paramètres',
-  'ai.button.resumeAutoScroll': 'Reprendre le défilement automatique',
-  'ai.suggestions.title': 'Suggestions',
-  'ai.conversation.title': 'Conversation {number} ({count} messages)',
-  'ai.actions.copy': 'Copier le message',
-  'ai.actions.copied': 'Copié !',
-  'ai.actions.regenerate': 'Régénérer la réponse',
-
-  // Task Modal
-  'task.modal.title.create': 'Créer une Nouvelle Tâche',
-  'task.modal.title.edit': 'Modifier la Tâche',
-  'task.modal.placeholder.title': 'Que faut-il faire ?',
-  'task.modal.placeholder.description':
-    'Ajouter des détails sur cette tâche...',
-  'task.modal.label.title': 'Titre',
-  'task.modal.label.description': 'Description',
-  'task.modal.label.priority': 'Priorité',
-  'task.modal.label.timeEstimate': 'Temps (min)',
-  'task.modal.label.dueDate': "Date d'échéance",
-  'task.modal.label.scheduled': 'Programmé',
-  'task.modal.placeholder.priority': 'Sélectionner la priorité',
-  'task.modal.placeholder.timeEstimate': '60',
-  'task.modal.placeholder.tag': 'Ajouter une étiquette...',
-  'task.modal.label.taskList': 'Liste de Tâches',
-  'task.modal.placeholder.taskList': 'Sélectionner la liste de tâches',
-  'task.modal.button.saveChanges': 'Enregistrer les Modifications',
-  'task.modal.button.createTask': 'Créer la Tâche',
-
-  // Settings - Additional
-  'settings.appearance': 'Apparence',
-  'settings.apiConfiguration': 'Configuration API',
-  'settings.aiBehavior': 'Comportement IA',
-  'settings.timerSettings': 'Paramètres du Minuteur',
-  'settings.systemInformation': 'Informations Système',
-  'settings.geminiApiKey': 'Clé API Gemini',
-  'settings.geminiApiKeyDescription':
-    'Entrez votre clé API Google Gemini pour activer les fonctionnalités IA. Obtenez votre clé depuis',
-  'settings.geminiApiKeyPlaceholder': 'Entrez votre clé API Gemini...',
-  'settings.apiKeyConfigured': '✓ Clé API configurée',
-  'settings.defaultSessionLength': 'Durée de Session par Défaut',
-  'settings.breakInterval': 'Intervalle de Pause',
-  'settings.platform': 'Plateforme',
-  'settings.database': 'Base de données',
-  'settings.aiEngine': 'Moteur IA',
-  'settings.platformValue': 'Bureau (Tauri)',
-  'settings.databaseValue': 'SQLite (Local)',
-  'settings.aiEngineValue': 'Google Gemini',
-  'settings.version': (() => {
-    try {
-      const { getFormattedVersion } = require('../../utils/version');
-      return getFormattedVersion();
-    } catch {
-      return 'Version 0.0.10'; // Fallback
-    }
-  })(),
-
-  // Data Management
-  'dataManagement.title': 'Gestion des Données',
-  'dataManagement.subtitle':
-    'Gérez vos données KiraPilot, y compris la sauvegarde, la restauration et les contrôles de confidentialité.',
-  'dataManagement.backupRestore': 'Sauvegarde et Restauration',
-  'dataManagement.backupRestoreDescription':
-    "Exportez vos données pour la sauvegarde ou importez des données d'une sauvegarde précédente.",
-  'dataManagement.exportData': 'Exporter les Données',
-  'dataManagement.importData': 'Importer les Données',
-  'dataManagement.sampleData': "Données d'Exemple",
-  'dataManagement.sampleDataDescription':
-    "Générez des données d'exemple sophistiquées avec des modèles de travail réalistes, des catégories de tâches diverses, des sessions de suivi du temps intelligentes et un contexte saisonnier s'étendant sur plus de 6 mois.",
-  'dataManagement.generateSampleData': "Générer des Données d'Exemple",
-  'dataManagement.generating': 'Génération...',
-  'dataManagement.privacyControls': 'Contrôles de Confidentialité',
-  'dataManagement.showAILogs': "Afficher les Journaux d'Interaction IA",
-  'dataManagement.showAILogsDescription':
-    'Afficher les journaux détaillés des interactions IA pour la transparence',
-  'dataManagement.viewPrivacySettings':
-    'Voir les Paramètres de Confidentialité',
-  'dataManagement.dangerZone': 'Zone de Danger',
-  'dataManagement.dangerZoneDescription':
-    'Supprimer définitivement toutes vos données. Cette action ne peut pas être annulée.',
-  'dataManagement.clearAllData': 'Effacer Toutes les Données',
-
-  // Export Modal
-  'export.title': 'Exporter les Données',
-  'export.description':
-    'Cela exportera toutes vos tâches, sessions de temps et paramètres dans un fichier JSON.',
-  'export.exporting': 'Exportation de vos données...',
-  'export.export': 'Exporter',
-
-  // Import Modal
-  'import.title': 'Importer les Données',
-  'import.description':
-    "Cela remplacera toutes vos données actuelles par les données importées. Assurez-vous d'exporter vos données actuelles d'abord si vous voulez les conserver.",
-  'import.importing': 'Importation de vos données...',
-
-  // Reset Modal
-  'reset.title': 'Effacer Toutes les Données',
-  'reset.warning': 'Attention : Cette action ne peut pas être annulée !',
-  'reset.warningDescription':
-    'Toutes vos tâches, sessions de temps, paramètres et conversations IA seront supprimées définitivement.',
-  'reset.willDelete': 'Cela supprimera définitivement :',
-  'reset.allTasks': 'Toutes les tâches et projets',
-  'reset.timerSessions': 'Sessions de minuteur et historique',
-  'reset.aiHistory': 'Historique des conversations IA',
-  'reset.userPreferences': 'Préférences et paramètres utilisateur',
-  'reset.allData': "Toutes les autres données de l'application",
-  'reset.considerBackup':
-    "Considérez exporter vos données d'abord si vous voulez garder une sauvegarde.",
-  'reset.finalConfirmation': 'CONFIRMATION FINALE',
-  'reset.lastChance': "C'est votre dernière chance d'annuler !",
-  'reset.absolutelySure':
-    'Êtes-vous absolument sûr de vouloir supprimer TOUTES les données ?',
-  'reset.appWillRestart':
-    "L'application redémarrera après avoir effacé toutes les données.",
-  'reset.clearingData': 'Effacement de toutes les données...',
-  'reset.continueToFinal': 'Continuer vers la Confirmation Finale',
-  'reset.yesDeleteAll': 'OUI, SUPPRIMER TOUTES LES DONNÉES',
-  'reset.clearingDataProgress': 'Effacement des Données...',
-
-  // Privacy Settings Modal
-  'privacy.title': 'Paramètres de Confidentialité',
-  'privacy.dataStorage': 'Stockage des Données',
-  'privacy.localStorageOnly': 'Stockage Local Uniquement',
-  'privacy.localStorageDescription':
-    'Toutes vos données sont stockées localement sur votre appareil et ne sont jamais envoyées à des serveurs externes.',
-  'privacy.aiInteractions': 'Interactions IA',
-  'privacy.aiDataUsage': 'Utilisation des Données IA',
-  'privacy.aiDataUsageDescription':
-    "Les interactions IA sont traitées via des APIs externes mais l'historique des conversations est stocké localement.",
-  'privacy.close': 'Fermer',
-
-  // System Information
-  'system.platform': 'Plateforme',
-  'system.database': 'Base de Données',
-  'system.aiEngine': 'Moteur IA',
-  'system.platformValue': 'Bureau (Tauri)',
-  'system.databaseValue': 'SQLite (Local)',
-  'system.aiEngineValue': 'Google Gemini',
-
-  // About Section
-  'about.appName': 'KiraPilot',
-  'about.appDescription': 'Assistant de Productivité Intelligent',
-  'about.version': (() => {
-    try {
-      const { getFormattedVersion } = require('../../utils/version');
-      return getFormattedVersion();
-    } catch {
-      return 'Version 0.0.10'; // Fallback
-    }
-  })(),
-  'about.systemInformation': 'Informations Système',
-  'about.copyright': '© 2025 Viet-Anh Nguyen. Tous droits réservés.',
-
-  // Time History Modal
-  'timeHistory.title': 'Historique du Temps',
-  'timeHistory.sessions': 'Sessions',
-  'timeHistory.totalTime': 'Temps Total',
-  'timeHistory.recorded': 'Enregistré',
-  'timeHistory.loading': 'Chargement...',
-  'timeHistory.noSessionsYet': 'Aucune session pour le moment',
-  'timeHistory.startTimerToTrack':
-    'Démarrez un minuteur pour suivre le travail sur cette tâche',
-  'timeHistory.today': "Aujourd'hui",
-  'timeHistory.yesterday': 'Hier',
-  'timeHistory.daysAgo': 'il y a {days} jours',
-  'timeHistory.active': 'Actif',
-
-  // Common Components
-  'common.confirmDialog.confirm': 'Confirmer',
+  'common.confirm': 'Confirmer',
   'common.confirmDialog.cancel': 'Annuler',
-  'common.tagInput.placeholder': 'Ajouter des étiquettes...',
-  'common.tagInput.addTag': 'Ajouter une étiquette',
-  'common.tagInput.removeTag': "Supprimer l'étiquette {tag}",
-  'common.tagInput.tagCount': '{count} / {max} étiquettes',
-  'common.datePicker.placeholder': 'Sélectionner une date...',
+  'common.confirmDialog.confirm': 'Confirmer',
+  'common.creating': 'Création...',
   'common.datePicker.clearDate': 'Effacer la date',
-  'common.datePicker.monthNames.january': 'Janvier',
-  'common.datePicker.monthNames.february': 'Février',
-  'common.datePicker.monthNames.march': 'Mars',
-  'common.datePicker.monthNames.april': 'Avril',
-  'common.datePicker.monthNames.may': 'Mai',
-  'common.datePicker.monthNames.june': 'Juin',
-  'common.datePicker.monthNames.july': 'Juillet',
-  'common.datePicker.monthNames.august': 'Août',
-  'common.datePicker.monthNames.september': 'Septembre',
-  'common.datePicker.monthNames.october': 'Octobre',
-  'common.datePicker.monthNames.november': 'Novembre',
-  'common.datePicker.monthNames.december': 'Décembre',
-  'common.datePicker.dayNames.sun': 'Dim',
+  'common.datePicker.dayNames.fri': 'Ven',
   'common.datePicker.dayNames.mon': 'Lun',
+  'common.datePicker.dayNames.sat': 'Sam',
+  'common.datePicker.dayNames.sun': 'Dim',
+  'common.datePicker.dayNames.thu': 'Jeu',
   'common.datePicker.dayNames.tue': 'Mar',
   'common.datePicker.dayNames.wed': 'Mer',
-  'common.datePicker.dayNames.thu': 'Jeu',
-  'common.datePicker.dayNames.fri': 'Ven',
-  'common.datePicker.dayNames.sat': 'Sam',
+  'common.datePicker.monthNames.april': 'Avril',
+  'common.datePicker.monthNames.august': 'Août',
+  'common.datePicker.monthNames.december': 'Décembre',
+  'common.datePicker.monthNames.february': 'Février',
+  'common.datePicker.monthNames.january': 'Janvier',
+  'common.datePicker.monthNames.july': 'Juillet',
+  'common.datePicker.monthNames.june': 'Juin',
+  'common.datePicker.monthNames.march': 'Mars',
+  'common.datePicker.monthNames.may': 'Mai',
+  'common.datePicker.monthNames.november': 'Novembre',
+  'common.datePicker.monthNames.october': 'Octobre',
+  'common.datePicker.monthNames.september': 'Septembre',
+  'common.datePicker.placeholder': 'Sélectionner une date...',
+  'common.delete': 'Supprimer',
+  'common.deleting': 'Suppression...',
+  'common.dismiss': 'Ignorer',
+  'common.done': 'Terminé',
+  'common.edit': 'Modifier',
+  'common.error': 'Erreur',
+  'common.hide': 'Masquer',
+  'common.info': 'Information',
+  'common.loading': 'Chargement...',
+  'common.markdownRenderer.code': 'code',
+  'common.prioritySelector.high': 'Élevée',
   'common.prioritySelector.low': 'Faible',
   'common.prioritySelector.medium': 'Moyenne',
-  'common.prioritySelector.high': 'Élevée',
   'common.prioritySelector.urgent': 'Urgente',
-  'common.richTextEditor.placeholder': 'Commencer à taper...',
+  'common.refresh': 'Actualiser',
+  'common.remove': 'Retirer',
   'common.richTextEditor.bold': 'Gras',
-  'common.richTextEditor.italic': 'Italique',
+  'common.richTextEditor.bulletList': 'Liste à puces',
   'common.richTextEditor.heading1': 'Titre 1',
   'common.richTextEditor.heading2': 'Titre 2',
-  'common.richTextEditor.paragraph': 'Paragraphe',
-  'common.richTextEditor.bulletList': 'Liste à puces',
+  'common.richTextEditor.italic': 'Italique',
   'common.richTextEditor.numberedList': 'Liste numérotée',
+  'common.richTextEditor.paragraph': 'Paragraphe',
+  'common.richTextEditor.placeholder': 'Commencer à taper...',
   'common.richTextEditor.quote': 'Citation',
-  'common.richTextEditor.undo': 'Annuler',
   'common.richTextEditor.redo': 'Refaire',
-  'common.markdownRenderer.code': 'code',
+  'common.richTextEditor.undo': 'Annuler',
+  'common.save': 'Enregistrer',
+  'common.saveAndExit': 'Enregistrer et quitter',
+  'common.saved': 'Enregistré',
+  'common.saving': 'Enregistrement...',
+  'common.sending': 'Envoi...',
+  'common.show': 'Afficher',
+  'common.showLess': 'Afficher moins',
+  'common.showMoreActions': "Afficher plus d'actions",
+  'common.success': 'Succès',
+  'common.tagInput.addTag': 'Ajouter une étiquette',
+  'common.tagInput.placeholder': 'Ajouter des étiquettes...',
+  'common.tagInput.removeTag': "Supprimer l'étiquette {tag}",
+  'common.tagInput.tagCount': '{count} / {max} étiquettes',
+  'common.unsavedChanges': 'Modifications non enregistrées',
+  'common.updating': 'Mise à jour...',
+  'common.viewDetails': 'Voir les détails',
+  'common.warning': 'Avertissement',
 
-  // Notification Messages - Additional
-  'notifications.browserNotSupported':
-    'Ce navigateur ne prend pas en charge les notifications',
-  'notifications.fallbackToWeb':
-    'Notifications Tauri non disponibles, basculement vers les notifications web',
-  'notifications.showFailed': "Échec de l'affichage de la notification",
-
-  // Database Error Messages
-  'database.error.initFailed':
-    "Échec de l'initialisation de la base de données",
+  // Database
+  'database.error.dependencyNotFound':
+    'Tâche de dépendance {taskId} introuvable',
   'database.error.healthCheckFailed':
     "Échec de la vérification de l'état de la base de données",
+  'database.error.initFailed':
+    "Échec de l'initialisation de la base de données",
   'database.error.sessionNotFound': "Session avec l'id {sessionId} introuvable",
   'database.error.taskNotFound': "Tâche avec l'id {taskId} introuvable",
   'database.error.validationFailed': 'Échec de la validation',
-  'database.error.dependencyNotFound':
-    'Tâche de dépendance {taskId} introuvable',
 
-  // Time Tracking Error Messages
-  'timeTracking.error.startFailed': 'Échec du démarrage de la session',
-  'timeTracking.error.createHistoricalFailed':
-    'Échec de la création de la session historique',
-  'timeTracking.error.pauseFailed': 'Échec de la pause de la session',
-  'timeTracking.error.resumeFailed': 'Échec de la reprise de la session',
-  'timeTracking.error.stopFailed': "Échec de l'arrêt de la session",
-  'timeTracking.error.addBreakFailed': "Échec de l'ajout de la pause",
-  'timeTracking.error.getActiveFailed':
-    "Échec de l'obtention de la session active",
-  'timeTracking.error.findFailed': 'Échec de la recherche de session',
-  'timeTracking.error.getByTaskFailed':
-    "Échec de l'obtention des sessions par tâche",
-  'timeTracking.error.getByDateRangeFailed':
-    "Échec de l'obtention des sessions par plage de dates",
-  'timeTracking.error.deleteFailed': 'Échec de la suppression de la session',
-  'timeTracking.error.getIncompleteFailed':
-    "Échec de l'obtention des sessions incomplètes",
-  'timeTracking.error.checkStateFailed':
-    "Échec de la vérification de l'état de la session",
+  // DataManagement
+  'dataManagement.backupRestore': 'Sauvegarde et Restauration',
+  'dataManagement.backupRestoreDescription':
+    "Exportez vos données pour la sauvegarde ou importez des données d'une sauvegarde précédente.",
+  'dataManagement.clearAllData': 'Effacer Toutes les Données',
+  'dataManagement.dangerZone': 'Zone de Danger',
+  'dataManagement.dangerZoneDescription':
+    'Supprimer définitivement toutes vos données. Cette action ne peut pas être annulée.',
+  'dataManagement.exportData': 'Exporter les Données',
+  'dataManagement.generateSampleData': "Générer des Données d'Exemple",
+  'dataManagement.generating': 'Génération...',
+  'dataManagement.importData': 'Importer les Données',
+  'dataManagement.privacyControls': 'Contrôles de Confidentialité',
+  'dataManagement.sampleData': "Données d'Exemple",
+  'dataManagement.sampleDataDescription':
+    "Générez des données d'exemple sophistiquées avec des modèles de travail réalistes, des catégories de tâches diverses, des sessions de suivi du temps intelligentes et un contexte saisonnier s'étendant sur plus de 6 mois.",
+  'dataManagement.showAILogs': "Afficher les Journaux d'Interaction IA",
+  'dataManagement.showAILogsDescription':
+    'Afficher les journaux détaillés des interactions IA pour la transparence',
+  'dataManagement.subtitle':
+    'Gérez vos données KiraPilot, y compris la sauvegarde, la restauration et les contrôles de confidentialité.',
+  'dataManagement.title': 'Gestion des Données',
+  'dataManagement.viewPrivacySettings':
+    'Voir les Paramètres de Confidentialité',
 
-  // Task Service Error Messages
-  'taskService.error.createFailed': 'Échec de la création de la tâche',
-  'taskService.error.findFailed': 'Échec de la recherche de tâche',
-  'taskService.error.findWithDependenciesFailed':
-    'Échec de la recherche de tâche avec dépendances',
-  'taskService.error.findAllFailed': 'Échec de la recherche de tâches',
-  'taskService.error.findScheduledFailed':
-    'Échec de la recherche de tâches programmées',
-  'taskService.error.findBacklogFailed':
-    'Échec de la recherche de tâches en attente',
-  'taskService.error.updateFailed': 'Échec de la mise à jour de la tâche',
-  'taskService.error.deleteFailed': 'Échec de la suppression de la tâche',
-  'taskService.error.addDependencyFailed': "Échec de l'ajout de dépendance",
-  'taskService.error.removeDependencyFailed':
-    'Échec de la suppression de dépendance',
-  'taskService.error.getDependenciesFailed':
-    "Échec de l'obtention des dépendances",
-  'taskService.error.getDependentsFailed':
-    "Échec de l'obtention des dépendants",
-  'taskService.error.searchFailed': 'Échec de la recherche de tâches',
-  'taskService.error.getStatisticsFailed':
-    "Échec de l'obtention des statistiques",
+  // Day
+  'day.friday': 'Vendredi',
+  'day.monday': 'Lundi',
+  'day.saturday': 'Samedi',
+  'day.sunday': 'Dimanche',
+  'day.thursday': 'Jeudi',
+  'day.tuesday': 'Mardi',
+  'day.wednesday': 'Mercredi',
 
-  // Focus Service Error Messages
+  // DistractionLevel
+  'distractionLevel.full': 'Complète',
+  'distractionLevel.minimal': 'Minimale',
+  'distractionLevel.moderate': 'Modérée',
+  'distractionLevel.none': 'Aucune',
+
+  // Export
+  'export.description':
+    'Cela exportera toutes vos tâches, sessions de temps et paramètres dans un fichier JSON.',
+  'export.export': 'Exporter',
+  'export.exporting': 'Exportation de vos données...',
+  'export.title': 'Exporter les Données',
+
+  // Features
+  'features.discover.description':
+    'Débloquez tout le potentiel de votre assistant IA',
+  'features.discover.title': 'Découvrir de Nouvelles Fonctionnalités',
+  'features.moodTracking.description':
+    "Commencez votre journée en partageant comment vous vous sentez. L'IA adaptera ses réponses pour mieux vous soutenir.",
+  'features.moodTracking.title': "Vérifications d'Humeur Quotidiennes",
+  'features.naturalCommands.description':
+    'Dites "terminer ma tâche de présentation" au lieu d\'utiliser des IDs techniques. L\'IA trouvera la bonne tâche.',
+  'features.naturalCommands.title': 'Commandes de Tâches Naturelles',
+  'features.progress': 'Progrès',
+  'features.smartConfirmations.description':
+    "Avant de faire des changements, l'IA vous montre exactement ce qui va se passer avec des aperçus clairs.",
+  'features.smartConfirmations.title': 'Dialogues de Confirmation Intelligents',
+
+  // Filters
+  'filters.active': 'actif',
+  'filters.clear': 'Effacer',
+  'filters.periodic.all': 'Toutes les tâches',
+  'filters.periodic.instancesOnly': 'Recurrence uniquement',
+  'filters.periodic.label': 'Type de tâche',
+  'filters.periodic.regularOnly': 'Régulier seulement',
+  'filters.priority': 'Priorité',
+  'filters.searchPlaceholder': 'Rechercher des tâches…',
+  'filters.status': 'Statut',
+
+  // Focus
+  'focus.start': 'Concentration',
+  'focus.startFocusSession':
+    'Démarrer une session de concentration pour cette tâche',
+  'focus.startSession': 'Démarrer la Concentration',
+
+  // FocusService
+  'focusService.error.addDistractionFailed': "Échec de l'ajout de distraction",
+  'focusService.error.addPlannedBreakFailed':
+    "Échec de l'ajout de pause planifiée",
+  'focusService.error.completeFailed':
+    'Échec de la finalisation de la session de concentration',
+  'focusService.error.deleteFailed':
+    'Échec de la suppression de la session de concentration',
+  'focusService.error.findFailed':
+    'Échec de la recherche de session de concentration',
+  'focusService.error.getActiveFailed':
+    "Échec de l'obtention de la session de concentration active",
+  'focusService.error.getByDateRangeFailed':
+    "Échec de l'obtention des sessions de concentration par plage de dates",
+  'focusService.error.getByTaskFailed':
+    "Échec de l'obtention des sessions de concentration par tâche",
+  'focusService.error.getIncompleteFailed':
+    "Échec de l'obtention des sessions de concentration incomplètes",
+  'focusService.error.getStatisticsFailed':
+    "Échec de l'obtention des statistiques de concentration",
+  'focusService.error.getSummaryFailed':
+    "Échec de l'obtention du résumé de concentration",
   'focusService.error.notImplemented':
     'Sessions de concentration pas encore implémentées dans le backend SeaORM',
   'focusService.error.startFailed':
     'Échec du démarrage de la session de concentration',
-  'focusService.error.completeFailed':
-    'Échec de la finalisation de la session de concentration',
-  'focusService.error.addDistractionFailed': "Échec de l'ajout de distraction",
-  'focusService.error.addPlannedBreakFailed':
-    "Échec de l'ajout de pause planifiée",
   'focusService.error.updateEnergyFailed':
     "Échec de la mise à jour du niveau d'énergie",
-  'focusService.error.getActiveFailed':
-    "Échec de l'obtention de la session de concentration active",
-  'focusService.error.findFailed':
-    'Échec de la recherche de session de concentration',
-  'focusService.error.getByTaskFailed':
-    "Échec de l'obtention des sessions de concentration par tâche",
-  'focusService.error.getByDateRangeFailed':
-    "Échec de l'obtention des sessions de concentration par plage de dates",
-  'focusService.error.getStatisticsFailed':
-    "Échec de l'obtention des statistiques de concentration",
-  'focusService.error.deleteFailed':
-    'Échec de la suppression de la session de concentration',
-  'focusService.error.getIncompleteFailed':
-    "Échec de l'obtention des sessions de concentration incomplètes",
-  'focusService.error.getSummaryFailed':
-    "Échec de l'obtention du résumé de concentration",
 
-  // Pattern Service Error Messages
-  'patternService.error.notImplemented':
-    'Modèles de productivité pas encore implémentés dans le backend SeaORM',
-  'patternService.error.recordFailed': "Échec de l'enregistrement du modèle",
-  'patternService.error.getByTypeFailed':
-    "Échec de l'obtention des modèles par type",
-  'patternService.error.getByTimeSlotFailed':
-    "Échec de l'obtention des modèles par créneau horaire",
-  'patternService.error.getByDateRangeFailed':
-    "Échec de l'obtention des modèles par plage de dates",
-  'patternService.error.analyzeFailed': "Échec de l'analyse des modèles",
+  // Help
+  'help.actionButtons.description':
+    "Recherchez les boutons d'action dans les réponses IA pour terminer rapidement les tâches, démarrer les minuteurs ou créer de nouveaux éléments.",
+  'help.actionButtons.title': "Boutons d'Action Rapide",
+  'help.interactionDetails.description':
+    "Cliquez sur l'icône d'information (ℹ️) à côté des messages IA pour voir les journaux détaillés de ce que l'IA a fait.",
+  'help.interactionDetails.title': "Détails d'Interaction",
+  'help.moodCheckin.description':
+    'Essayez de demander "Comment vous sentez-vous aujourd\'hui ?" pour commencer une vérification d\'humeur et obtenir un soutien personnalisé.',
+  'help.moodCheckin.title': "Vérifications d'Humeur Quotidiennes",
+  'help.naturalLanguage.description':
+    'Vous pouvez référencer les tâches naturellement, comme "terminer ma tâche de présentation" au lieu d\'utiliser des IDs techniques.',
+  'help.naturalLanguage.title': 'Commandes en Langage Naturel',
 
-  // Security Error Messages
-  'security.error.initEncryptionFailed':
-    "Échec de l'initialisation du chiffrement",
-  'security.error.encryptionKeyNotAvailable':
-    'Clé de chiffrement non disponible',
-  'security.error.encryptFailed': 'Échec du chiffrement des données',
-  'security.error.decryptFailed': 'Échec du déchiffrement des données',
-  'security.error.secureStoreFailed': 'Échec du stockage sécurisé des données',
-  'security.error.generateHashFailed': 'Échec de la génération du hash',
+  // Import
+  'import.description':
+    "Cela remplacera toutes vos données actuelles par les données importées. Assurez-vous d'exporter vos données actuelles d'abord si vous voulez les conserver.",
+  'import.importing': 'Importation de vos données...',
+  'import.title': 'Importer les Données',
 
-  // AI Model Types
-  'ai.model.local': 'Modèle Local',
-  'ai.model.gemini': 'API Gemini',
-
-  // Kira thread keys
-  'kira.thread.found': 'Conversation Trouvée',
-  'kira.thread.navigatedToExisting':
-    'Accédé à la conversation existante pour "{title}"',
+  // Kira
+  'kira.assignment.current.title': 'Attribution Actuelle',
+  'kira.assignment.day.badge': 'Programmée',
+  'kira.assignment.day.contextInfo':
+    "L'IA aura accès aux tâches programmées pour ce jour",
+  'kira.assignment.day.description':
+    "Se concentrer sur les tâches et l'horaire pour un jour spécifique",
+  'kira.assignment.day.selectLabel': 'Choisir une date',
+  'kira.assignment.day.selectTitle': 'Sélectionner une Date',
+  'kira.assignment.day.title': 'Planification du Jour',
+  'kira.assignment.general.badge': 'Par défaut',
+  'kira.assignment.general.description':
+    'Une conversation générale sans contexte spécifique',
+  'kira.assignment.general.title': 'Conversation Générale',
+  'kira.assignment.modal.assign': 'Assigner la Conversation',
+  'kira.assignment.modal.subtitle':
+    'Assigner "{title}" pour fournir du contexte',
+  'kira.assignment.modal.title': 'Assigner la Conversation',
+  'kira.assignment.modal.update': "Mettre à jour l'Attribution",
+  'kira.assignment.task.badge': 'Ciblée',
+  'kira.assignment.task.createFirst':
+    "Créez d'abord une tâche pour assigner cette conversation",
+  'kira.assignment.task.description':
+    "Obtenir de l'aide avec une tâche spécifique et ses détails",
+  'kira.assignment.task.noTasks': 'Aucune tâche active disponible',
+  'kira.assignment.task.selectPlaceholder': 'Choisir une tâche...',
+  'kira.assignment.task.selectTitle': 'Sélectionner une Tâche',
+  'kira.assignment.task.title': 'Spécifique à une Tâche',
+  'kira.assignment.type.title': "Type d'Attribution",
+  'kira.chat.aiThinking': 'Kira réfléchit...',
+  'kira.chat.aiTyping': 'Kira tape...',
+  'kira.chat.assignedToDay': 'Assignée au jour',
+  'kira.chat.assignedToTask': 'Assignée à la tâche',
+  'kira.chat.characterCount': '{current} sur {max} caractères',
+  'kira.chat.connectionLost': 'Connexion perdue',
+  'kira.chat.conversationStarted': 'Conversation démarrée',
+  'kira.chat.copyMessage': 'Copier le message',
+  'kira.chat.deleteMessage': 'Supprimer le message',
+  'kira.chat.editedIndicator': 'modifié',
+  'kira.chat.editMessage': 'Modifier le message',
+  'kira.chat.emptyThread': 'Cette conversation est vide',
+  'kira.chat.enterToSend':
+    'Appuyez sur Entrée pour envoyer, Maj+Entrée pour nouvelle ligne',
+  'kira.chat.errorMessage': "Message d'erreur",
+  'kira.chat.feedbackThankYou': 'Merci pour votre retour !',
+  'kira.chat.generalThread': 'Conversation générale',
+  'kira.chat.loadingPreviousMessages': 'Chargement des messages précédents...',
+  'kira.chat.messageDelivered': 'Livré',
+  'kira.chat.messageFailedToSend': "Échec de l'envoi du message",
+  'kira.chat.messageHistory': 'Historique des messages',
+  'kira.chat.messageInputLabel': 'Champ de saisie de message',
+  'kira.chat.messageOptions': 'Options de message',
+  'kira.chat.messagePending': 'En attente',
+  'kira.chat.messagePlaceholder': 'Tapez votre message...',
+  'kira.chat.messageSeen': 'Vu',
+  'kira.chat.messageTimestamp': 'Envoyé à {time}',
+  'kira.chat.newMessagesBelow': 'Nouveaux messages en bas',
+  'kira.chat.noMessages':
+    'Commencez la conversation en envoyant un message ci-dessous.',
+  'kira.chat.noMoreMessages': 'Plus de messages',
+  'kira.chat.noThreadSelected': 'Aucune Conversation Sélectionnée',
+  'kira.chat.reconnecting': 'Reconnexion...',
+  'kira.chat.regenerateResponse': 'Régénérer la réponse',
+  'kira.chat.reportIssue': 'Signaler un problème',
+  'kira.chat.retryConnection': 'Réessayer la connexion',
+  'kira.chat.retryMessage': 'Réessayer',
+  'kira.chat.scrollToBottom': 'Faire défiler vers le bas',
+  'kira.chat.selectThreadToStart':
+    'Sélectionnez une conversation dans la barre latérale pour commencer à discuter avec Kira IA.',
+  'kira.chat.sendButtonHint':
+    'Cliquez pour envoyer le message ou appuyez sur Entrée',
+  'kira.chat.sending': 'Envoi...',
+  'kira.chat.sendMessage': 'Envoyer le message',
+  'kira.chat.startConversation': 'Commencez en tapant un message ci-dessous',
+  'kira.chat.systemMessage': 'Message système',
+  'kira.chat.threadCreatedOn': 'Conversation créée le {date}',
+  'kira.chat.thumbsDown': "Je n'aime pas",
+  'kira.chat.thumbsUp': "J'aime",
+  'kira.chat.typing': 'Kira tape...',
+  'kira.chat.validation.messageEmpty': 'Le message ne peut pas être vide',
+  'kira.chat.validation.messageInvalid':
+    'Le message contient des caractères invalides',
+  'kira.chat.validation.messageTooLong':
+    'Le message est trop long (maximum 10 000 caractères)',
+  'kira.chat.welcomeToThread': 'Bienvenue dans cette conversation',
+  'kira.errors.aiServiceUnavailable': 'Service IA temporairement indisponible',
+  'kira.errors.databaseConnection': 'Erreur de connexion à la base de données',
+  'kira.errors.messageFeedback': "Échec de l'envoi du feedback",
+  'kira.errors.messageLoad': 'Échec du chargement des messages',
+  'kira.errors.messageRegenerate': 'Échec de la régénération de la réponse',
+  'kira.errors.messageSend': "Échec de l'envoi du message",
+  'kira.errors.networkError': 'Erreur de connexion réseau',
+  'kira.errors.noThreadSelected': 'Aucun thread sélectionné',
+  'kira.errors.retryFailed': 'Échec de la tentative de réparation',
+  'kira.errors.threadAssign': "Échec de l'attribution du thread",
+  'kira.errors.threadCreate': 'Échec de la création du thread',
+  'kira.errors.threadDelete': 'Échec de la suppression du thread',
+  'kira.errors.threadLoad': 'Échec du chargement des threads',
+  'kira.shortcuts.delete': 'Touche Suppr pour supprimer la conversation',
+  'kira.shortcuts.navigation':
+    'Touches fléchées pour naviguer dans les conversations',
+  'kira.shortcuts.newThread': 'Ctrl/Cmd+N pour créer une nouvelle conversation',
+  'kira.shortcuts.sidebar':
+    'Utilisez les touches fléchées pour naviguer, Suppr pour supprimer, Ctrl/Cmd+N pour nouvelle conversation',
+  'kira.sidebar.empty.createFirst': 'Créer la Première Conversation',
+  'kira.sidebar.empty.description':
+    'Créez votre première conversation pour commencer à discuter avec Kira IA.',
+  'kira.sidebar.empty.title': 'Démarrer une Conversation',
+  'kira.sidebar.newThread': 'Nouvelle Conversation',
+  'kira.sidebar.noThreads': 'Aucune conversation pour le moment',
+  'kira.sidebar.threadCount': '{count} conversations',
+  'kira.sidebar.title': 'Conversations',
+  'kira.success.feedbackSubmitted': 'Feedback envoyé avec succès',
+  'kira.success.messageSent': 'Message envoyé avec succès',
+  'kira.success.responseRegenerated': 'Réponse régénérée avec succès',
+  'kira.success.threadAssigned': 'Fil assigné avec succès',
+  'kira.success.threadCreated': 'Fil créé avec succès',
+  'kira.success.threadDeleted': 'Fil supprimé avec succès',
+  'kira.thread.actions': 'Actions de conversation',
+  'kira.thread.assign': 'Assigner la Conversation',
+  'kira.thread.assigned': 'Assignée',
   'kira.thread.created': 'Conversation Créée',
   'kira.thread.createdForTask': 'Nouvelle conversation créée pour "{title}"',
+  'kira.thread.createdOn': 'Créée le',
   'kira.thread.createFailed': 'Échec de Création de Conversation',
   'kira.thread.createFailedMessage':
     'Impossible de créer la conversation. Veuillez réessayer.',
+  'kira.thread.delete': 'Supprimer la Conversation',
+  'kira.thread.deleteModal.message':
+    'Êtes-vous sûr de vouloir supprimer "{title}" ?',
+  'kira.thread.deleteModal.title': 'Supprimer la Conversation',
+  'kira.thread.deleteModal.warning':
+    'Cette action ne peut pas être annulée et supprimera tous les messages de cette conversation.',
   'kira.thread.error': 'Erreur de Conversation',
   'kira.thread.errorMessage':
     'Impossible de démarrer la conversation. Veuillez réessayer.',
+  'kira.thread.found': 'Conversation Trouvée',
+  'kira.thread.general': 'Général',
   'kira.thread.initialMessage': 'Permettez-moi de vous aider avec "{title}"',
+  'kira.thread.lastUpdated': 'Dernière mise à jour',
+  'kira.thread.messageCount': '{count} messages',
+  'kira.thread.navigatedToExisting':
+    'Accédé à la conversation existante pour "{title}"',
+  'kira.thread.noActivity': 'Aucune activité récente',
+  'kira.thread.untitled': 'Conversation Sans Titre',
+
+  // LogDetail
+  'logDetail.actions': 'Actions',
+  'logDetail.actionsAndSuggestions': "Actions et suggestions de l'IA",
+  'logDetail.aiReasoning': "Raisonnement de l'IA",
+  'logDetail.aiResponse': "Réponse de l'IA",
+  'logDetail.basicInfo': 'Informations de base',
+  'logDetail.classification': 'Classification',
+  'logDetail.close': 'Fermer',
+  'logDetail.containsSensitiveData':
+    'Ce journal contient des données sensibles',
+  'logDetail.contextInfo': 'Informations contextuelles',
+  'logDetail.conversation': 'Conversation',
+  'logDetail.createdAt': 'Créé le',
+  'logDetail.delete': 'Supprimer',
+  'logDetail.errorCode': "Code d'erreur",
+  'logDetail.errorInfo': "Informations sur l'erreur",
+  'logDetail.errorMessage': "Message d'erreur",
+  'logDetail.export': 'Exporter',
+  'logDetail.hideSensitiveData': 'Masquer les données sensibles',
+  'logDetail.metadata': 'Métadonnées',
+  'logDetail.modelInfo': 'Informations sur le modèle',
+  'logDetail.modelName': 'Nom',
+  'logDetail.modelProvider': 'Fournisseur',
+  'logDetail.modelVersion': 'Version',
+  'logDetail.privacyInfo': 'Informations sur la confidentialité',
+  'logDetail.redactData': 'Supprimer les données',
+  'logDetail.responseTime': 'Temps de réponse',
+  'logDetail.sessionId': 'ID de session',
+  'logDetail.showSensitiveData': 'Afficher les données sensibles',
+  'logDetail.suggestions': 'Suggestions',
+  'logDetail.systemPrompt': 'Invite système',
+  'logDetail.tokenCount': 'Nombre de jetons',
+  'logDetail.toolArguments': 'Arguments',
+  'logDetail.toolError': 'Erreur',
+  'logDetail.toolExecutions': "Exécutions d'outils",
+  'logDetail.toolResult': 'Résultat',
+  'logDetail.updatedAt': 'Mis à jour le',
+  'logDetail.userMessage': 'Message utilisateur',
+
+  // Logs
+  'logs.autoScroll': 'Défilement Automatique',
+  'logs.clear': 'Effacer les Journaux',
+  'logs.export': 'Exporter les Journaux',
+  'logs.filter': 'Filtrer',
+  'logs.level': 'Niveau',
+  'logs.level.debug': 'Débogage',
+  'logs.level.error': 'Erreur',
+  'logs.level.info': 'Information',
+  'logs.level.trace': 'Trace',
+  'logs.level.warn': 'Avertissement',
+  'logs.maxLines': 'Lignes Maximum',
+  'logs.message': 'Message',
+  'logs.noLogs': 'Aucun journal disponible',
+  'logs.refreshRate': 'Taux de Rafraîchissement',
+  'logs.refreshRate.10s': '10 secondes',
+  'logs.refreshRate.1s': '1 seconde',
+  'logs.refreshRate.5s': '5 secondes',
+  'logs.refreshRate.manual': 'Manuel',
+  'logs.refreshRate.realtime': 'Temps Réel',
+  'logs.search': 'Rechercher dans les journaux...',
+  'logs.showTimestamps': 'Afficher les Horodatages',
+  'logs.source': 'Source',
+  'logs.subtitle': "Voir les journaux d'application et événements système",
+  'logs.timestamp': 'Horodatage',
+  'logs.title': 'Journaux',
+  'logs.wordWrap': 'Retour à la Ligne',
+
+  // LogStorageService
+  'logStorageService.error.getConfigFailed':
+    'Échec de la récupération de la configuration de journalisation',
+  'logStorageService.error.getStatsFailed':
+    'Échec de la récupération des statistiques de stockage des journaux',
+
+  // LogViewer
+  'logViewer.error': 'Erreur',
+  'logViewer.filters': 'Filtres',
+  'logViewer.filters.aiService': 'Service IA',
+  'logViewer.filters.allInteractions': 'Toutes les interactions',
+  'logViewer.filters.allServices': 'Tous les services',
+  'logViewer.filters.clearAll': 'Tout effacer',
+  'logViewer.filters.dateRange': 'Plage de dates',
+  'logViewer.filters.endDate': 'Date de fin',
+  'logViewer.filters.errorsOnly': 'Erreurs uniquement',
+  'logViewer.filters.gemini': 'Gemini',
+  'logViewer.filters.interactionType': "Type d'interaction",
+  'logViewer.filters.startDate': 'Date de début',
+  'logViewer.filters.withToolCalls': "Avec appels d'outils",
+  'logViewer.loadMore': 'Charger plus',
+  'logViewer.noLogs': 'Aucun journal trouvé',
+  'logViewer.noLogsDescription':
+    "Essayez d'ajuster vos filtres ou vérifiez si la journalisation est activée",
+  'logViewer.notifications.deleteError': 'Échec de la suppression du journal',
+  'logViewer.notifications.deleteSuccess': 'Journal supprimé avec succès',
+  'logViewer.notifications.exportError': "Échec de l'exportation du journal",
+  'logViewer.notifications.exportSuccess': 'Journal exporté avec succès',
+  'logViewer.notifications.loadDetailsError':
+    'Échec du chargement des détails du journal',
+  'logViewer.notifications.loadError':
+    "Échec du chargement des journaux d'interaction IA",
+  'logViewer.notifications.redactError':
+    'Échec de la suppression des données sensibles',
+  'logViewer.notifications.redactSuccess':
+    'Données sensibles supprimées avec succès',
+  'logViewer.refresh': 'Actualiser',
+  'logViewer.search.placeholder': 'Rechercher les journaux…',
+  'logViewer.title': "Journaux d'interaction IA",
+  'logViewer.tokens': 'jetons',
+  'logViewer.toolCall': "appel d'outil",
+  'logViewer.toolCalls': "appels d'outils",
+  'logViewer.totalLogs': 'total des journaux',
+
+  // Nav
+  'nav.day': 'Jour',
+  'nav.logs': 'Journaux',
+  'nav.recurring': 'Tâches Récurrentes',
+  'nav.reports': 'Rapports',
+  'nav.settings': 'Paramètres',
+  'nav.week': 'Semaine',
+
+  // Notifications
+  'notifications.break.over': 'Pause Terminée',
+  'notifications.break.readyToWork': 'Prêt à reprendre le travail ?',
+  'notifications.break.reminder': 'Rappel de Pause',
+  'notifications.break.reminderMessage':
+    'Vous travaillez sur "{taskTitle}" depuis {minutes} minutes. Considérez une pause !',
+  'notifications.break.takeBreak':
+    'Prenez une pause de {duration} minutes pour recharger',
+  'notifications.break.time': 'Temps de Pause !',
+  'notifications.breakReminders': 'Rappels de pause',
+  'notifications.browserNotSupported':
+    'Ce navigateur ne prend pas en charge les notifications',
+  'notifications.daily.summary': 'Résumé Quotidien',
+  'notifications.daily.summaryMessage':
+    "Aujourd'hui : {time} en {sessions} sessions, {tasks} tâches terminées",
+  'notifications.dailySummary': 'Résumé quotidien',
+  'notifications.fallbackToWeb':
+    'Notifications Tauri non disponibles, basculement vers les notifications web',
+  'notifications.productivity.milestone': '{milestone}',
+  'notifications.session.completed': 'Session Terminée',
+  'notifications.session.completedTask': '{taskTitle} terminé en {duration}',
+  'notifications.showFailed': "Échec de l'affichage de la notification",
+  'notifications.taskDeadlines': 'Échéances des tâches',
+  'notifications.timer.paused': 'Minuteur En Pause',
+  'notifications.timer.pausedWork': 'Travail sur {taskTitle} mis en pause',
+  'notifications.timer.resumed': 'Minuteur Repris',
+  'notifications.timer.resumedWork': 'Travail sur {taskTitle} repris',
+  'notifications.timer.started': 'Minuteur Démarré',
+  'notifications.timer.workingOn': 'Travaille sur : {taskTitle}',
+  'notifications.weeklyReview': 'Révision hebdomadaire',
+
+  // Onboarding
+  'onboarding.complete': 'Terminer',
+  'onboarding.complete.description':
+    'Commencez à profiter de votre expérience IA améliorée',
+  'onboarding.complete.title': 'Vous êtes prêt !',
+  'onboarding.emotional.description':
+    "Apprenez comment l'IA peut soutenir votre bien-être et votre motivation",
+  'onboarding.emotional.title': "Fonctionnalités d'Intelligence Émotionnelle",
+  'onboarding.getStarted': 'Commencer',
+  'onboarding.next': 'Suivant',
+  'onboarding.personality.description':
+    "Faites en sorte que l'assistant IA vous convienne",
+  'onboarding.personality.title': "Personnaliser la Personnalité de l'IA",
+  'onboarding.previous': 'Précédent',
+  'onboarding.skip': 'Ignorer la Visite',
+  'onboarding.smartTools.description':
+    "Découvrez des façons intuitives d'interagir avec vos tâches",
+  'onboarding.smartTools.title': 'Gestion Intelligente des Tâches',
+  'onboarding.welcome.description':
+    "Découvrez comment l'IA de KiraPilot peut devenir votre compagnon de productivité de soutien",
+  'onboarding.welcome.title': "Bienvenue dans l'Expérience IA Améliorée",
+
+  // PatternService
+  'patternService.error.analyzeFailed': "Échec de l'analyse des modèles",
+  'patternService.error.getByDateRangeFailed':
+    "Échec de l'obtention des modèles par plage de dates",
+  'patternService.error.getByTimeSlotFailed':
+    "Échec de l'obtention des modèles par créneau horaire",
+  'patternService.error.getByTypeFailed':
+    "Échec de l'obtention des modèles par type",
+  'patternService.error.notImplemented':
+    'Modèles de productivité pas encore implémentés dans le backend SeaORM',
+  'patternService.error.recordFailed': "Échec de l'enregistrement du modèle",
+
+  // PeriodicTask
+  'periodicTask.modal.button.createTemplate': 'Créer un modèle',
+  'periodicTask.modal.button.saveChanges': 'Enregistrer les modifications',
+  'periodicTask.modal.label.description': 'Description',
+  'periodicTask.modal.label.priority': 'Priorité',
+  'periodicTask.modal.label.startDate': 'Date de début',
+  'periodicTask.modal.label.status': 'Statut du modèle',
+  'periodicTask.modal.label.taskList': 'Liste des tâches',
+  'periodicTask.modal.label.timeEstimate': 'Estimation du temps (minutes)',
+  'periodicTask.modal.label.title': 'Titre de la tâche',
+  'periodicTask.modal.placeholder.description': 'Décrivez la tâche…',
+  'periodicTask.modal.placeholder.priority': 'Sélectionner la priorité',
+  'periodicTask.modal.placeholder.tag': 'Ajouter un tag…',
+  'periodicTask.modal.placeholder.taskList': 'Sélectionner une liste de tâches',
+  'periodicTask.modal.placeholder.timeEstimate':
+    "Entrez l'estimation du temps…",
+  'periodicTask.modal.placeholder.title': 'Entrez le titre de la tâche…',
+  'periodicTask.modal.status.active.description':
+    'Le modèle générera de nouvelles instances de tâches',
+  'periodicTask.modal.status.paused.description':
+    "Le modèle est en pause et ne générera pas d'instances",
+  'periodicTask.modal.title.create': 'Créer un modèle de tâche périodique',
+  'periodicTask.modal.title.edit': 'Modifier un modèle de tâche périodique',
+
+  // PeriodicTasks
+  'periodicTasks.completedInstances': 'Instances Terminées',
+  'periodicTasks.createFirst': 'Créez votre premier modèle pour commencer',
+  'periodicTasks.createInstance': 'Créer une Instance',
+  'periodicTasks.createTemplate': 'Créer un Modèle',
+  'periodicTasks.deleteTemplate': 'Supprimer le Modèle',
+  'periodicTasks.description':
+    'Gérer les modèles pour les tâches récurrentes automatiques',
+  'periodicTasks.editTemplate': 'Modifier le Modèle',
+  'periodicTasks.instanceHistory': 'Historique des Instances',
+  'periodicTasks.instances': 'Instances',
+  'periodicTasks.lastInstance': 'Dernière instance',
+  'periodicTasks.nextInstance': 'Prochaine instance',
+  'periodicTasks.noTemplates': 'Aucun modèle de tâche récurrente',
+  'periodicTasks.overdueInstances': 'Instances en Retard',
+  'periodicTasks.pauseTemplate': 'Suspendre le Modèle',
+  'periodicTasks.resumeTemplate': 'Reprendre le Modèle',
+  'periodicTasks.template': 'Modèle',
+  'periodicTasks.templateActive': 'Modèle actif',
+  'periodicTasks.templatePaused': 'Modèle suspendu',
+  'periodicTasks.templateSettings': 'Paramètres du Modèle',
+  'periodicTasks.title': 'Tâches Récurrentes',
+  'periodicTasks.upcomingInstances': 'Instances à Venir',
+  'periodicTasks.viewInstances': 'Voir les Instances',
+
+  // Planning
+  'planning.active': 'actif',
+  'planning.addTask': 'Ajouter une tâche',
+  'planning.backlog': 'En attente',
+  'planning.done': 'terminé',
+  'planning.dragTasksHere':
+    'Glissez les tâches ici ou cliquez sur + pour ajouter',
+  'planning.dropTaskHere': 'Déposer la tâche ici',
+  'planning.goToCurrentWeek': 'Aller à la semaine actuelle',
+  'planning.goToToday': "Aller à aujourd'hui",
+  'planning.nextDay': 'Jour suivant',
+  'planning.nextTasks': 'Prochaines Tâches',
+  'planning.nextWeek': 'Semaine suivante',
+  'planning.noTasks': 'Aucune tâche',
+  'planning.overdue': 'en retard',
+  'planning.previousDay': 'Jour précédent',
+  'planning.previousWeek': 'Semaine précédente',
+  'planning.thisWeek': 'Cette Semaine',
+  'planning.today': "Aujourd'hui",
+  'planning.total': 'total',
+
+  // Priority
+  'priority.high': 'Élevée',
+  'priority.low': 'Faible',
+  'priority.medium': 'Moyenne',
+  'priority.urgent': 'Urgente',
+
+  // Privacy
+  'privacy.aiDataUsage': 'Utilisation des Données IA',
+  'privacy.aiDataUsageDescription':
+    "Les interactions IA sont traitées via des APIs externes mais l'historique des conversations est stocké localement.",
+  'privacy.aiInteractions': 'Interactions IA',
+  'privacy.close': 'Fermer',
+  'privacy.dataStorage': 'Stockage des Données',
+  'privacy.localStorageDescription':
+    'Toutes vos données sont stockées localement sur votre appareil et ne sont jamais envoyées à des serveurs externes.',
+  'privacy.localStorageOnly': 'Stockage Local Uniquement',
+  'privacy.title': 'Paramètres de Confidentialité',
+
+  // Productivity
+  'productivity.advice.available': 'disponible',
+  'productivity.advice.moreTips': "plus d'astuce",
+  'productivity.advice.moreTipsPlural': "plus d'astuces",
+  'productivity.advice.priority.high': 'Haute',
+  'productivity.advice.priority.label': 'Priorité',
+  'productivity.advice.priority.low': 'Basse',
+  'productivity.advice.priority.medium': 'Moyenne',
+  'productivity.advice.title': 'Astuce de productivité',
+  'productivity.adviceType.break': 'Pause',
+  'productivity.adviceType.energy': 'Énergie',
+  'productivity.adviceType.focus': 'Concentration',
+  'productivity.adviceType.productivity': 'Productivité',
+  'productivity.adviceType.schedule': 'Planning',
+  'productivity.adviceType.task': 'Tâche',
+  'productivity.category.energyOptimization': "Optimisation de l'Énergie",
+  'productivity.category.focusImprovement': 'Amélioration de la Concentration',
+  'productivity.category.scheduling': 'Planification',
+  'productivity.category.taskManagement': 'Gestion des Tâches',
+  'productivity.currentEnergy.high':
+    'Moment idéal pour les tâches difficiles !',
+  'productivity.currentEnergy.low':
+    'Envisagez des tâches plus légères ou une pause.',
+  'productivity.currentEnergy.medium':
+    'Bon moment pour les tâches routinières.',
+  'productivity.currentEnergy.title': "Niveau d'Énergie Actuel",
+  'productivity.insights.analyzing': 'Analyse de vos schémas de productivité…',
+  'productivity.insights.error': 'Impossible de charger les informations',
+  'productivity.insights.generatingTips':
+    'Génération de recommandations personnalisées…',
+  'productivity.insights.noData': 'Aucune donnée disponible',
+  'productivity.insights.noDataDescription':
+    'Nous avons besoin de plus de données pour générer des informations. Continuez à utiliser KiraPilot pour construire votre profil de productivité.',
+  'productivity.insights.overview': "Vue d'ensemble",
+  'productivity.insights.patterns': 'Schémas',
+  'productivity.insights.recommendations': 'Recommandations',
+  'productivity.insights.refresh': 'Actualiser',
+  'productivity.insights.subtitle':
+    'Comprenez vos schémas de travail et optimisez votre productivité',
+  'productivity.insights.title': 'Informations sur la productivité',
+  'productivity.insights.tryAgain': 'Réessayer',
+  'productivity.metrics.averageTaskDuration': 'Durée moyenne des tâches',
+  'productivity.metrics.completionRate': "Taux d'achèvement",
+  'productivity.metrics.energy': 'Énergie',
+  'productivity.metrics.focusEfficiency': 'Efficacité de la concentration',
+  'productivity.patterns.confidence': 'confiance',
+  'productivity.patterns.dailyPattern': 'Schéma quotidien',
+  'productivity.patterns.energyBasedPattern': "Schéma basé sur l'énergie",
+  'productivity.patterns.energyLevel': "niveau d'énergie",
+  'productivity.patterns.energyPatterns': 'Schémas énergétiques trouvés',
+  'productivity.patterns.productivity': 'productivité',
+  'productivity.patterns.productivityPatterns':
+    'Schémas de productivité trouvés',
+  'productivity.patterns.taskBasedPattern': 'Schéma basé sur les tâches',
+  'productivity.patterns.title': 'Schémas de productivité',
+  'productivity.patterns.weeklyPattern': 'Schéma hebdomadaire',
+  'productivity.recommendations.additionalActions': 'Actions supplémentaires :',
+  'productivity.recommendations.confidence': 'Confiance',
+  'productivity.recommendations.difficulty.easy': 'Facile',
+  'productivity.recommendations.difficulty.hard': 'Difficile',
+  'productivity.recommendations.difficulty.medium': 'Moyen',
+  'productivity.recommendations.dismiss': 'Ignorer',
+  'productivity.recommendations.generate': 'Générer des recommandations',
+  'productivity.recommendations.impact': 'Impact',
+  'productivity.recommendations.noRecommendations':
+    'Aucune recommandation pour le moment',
+  'productivity.recommendations.noRecommendationsDescription':
+    'Nous avons besoin de plus de données pour générer des recommandations personnalisées.',
+  'productivity.recommendations.recommendedAction': 'Action recommandée :',
+  'productivity.recommendations.showLess': 'Afficher moins',
+  'productivity.recommendations.showMore': 'Afficher plus de détails',
+  'productivity.recommendations.timeToImplement': 'min pour implémenter',
+  'productivity.recommendations.title': 'Recommandations personnalisées',
+  'productivity.recommendations.whyThisHelps': 'Pourquoi cela aide :',
+  'productivity.workingHours.noData':
+    "Aucune plage horaire de travail préférée n'a encore été identifiée",
+  'productivity.workingHours.title': 'Vos meilleures heures de travail',
+  'productivity.workingStyle.averageTaskDuration': 'Durée moyenne des tâches',
+  'productivity.workingStyle.breakFrequency': 'Fréquence des pauses',
+  'productivity.workingStyle.completionStyle.batch': 'Traitement par lots',
+  'productivity.workingStyle.completionStyle.deadlineDriven': 'Délai serré',
+  'productivity.workingStyle.completionStyle.distributed': 'Distribué',
+  'productivity.workingStyle.focusPattern': 'Modèle de concentration',
+  'productivity.workingStyle.focusPattern.afternoon': 'Après-midi',
+  'productivity.workingStyle.focusPattern.evening': 'Soirée',
+  'productivity.workingStyle.focusPattern.flexible': 'Flexible',
+  'productivity.workingStyle.focusPattern.morning': 'Matin',
+  'productivity.workingStyle.taskCompletionStyle':
+    "Style d'achèvement des tâches",
+  'productivity.workingStyle.title': 'Votre style de travail',
+
+  // Recurrence
+  'recurrence.biweekly': 'Bihebdomadaire',
+  'recurrence.biweekly.description': 'Se répète toutes les 2 semaines',
+  'recurrence.custom': 'Personnalisé',
+  'recurrence.custom.description': 'Intervalle personnalisé',
+  'recurrence.daily': 'Quotidien',
+  'recurrence.daily.description': 'Se répète tous les jours',
+  'recurrence.every': 'Chaque',
+  'recurrence.everyThreeWeeks': 'Toutes les 3 semaines',
+  'recurrence.everyThreeWeeks.description': 'Se répète toutes les 3 semaines',
+  'recurrence.interval': 'Intervalle',
+  'recurrence.monthly': 'Mensuel',
+  'recurrence.monthly.description': 'Se répète chaque mois',
+  'recurrence.nextDates': 'Prochaines dates',
+  'recurrence.pattern': 'Modèle de Récurrence',
+  'recurrence.selectPattern': 'Sélectionner le modèle de récurrence',
+  'recurrence.selectUnit': "Sélectionner l'unité",
+  'recurrence.summary': 'Résumé',
+  'recurrence.unit': 'Unité',
+  'recurrence.unit.day': 'Jour',
+  'recurrence.unit.days': 'Jours',
+  'recurrence.unit.month': 'Mois',
+  'recurrence.unit.months': 'Mois',
+  'recurrence.unit.week': 'Semaine',
+  'recurrence.unit.weeks': 'Semaines',
+  'recurrence.weekly': 'Hebdomadaire',
+  'recurrence.weekly.description': 'Se répète chaque semaine',
+
+  // Reports
+  'reports.activeTasks': 'Tâches Actives',
+  'reports.average': 'Moyenne',
+  'reports.avgFocus': 'Concentration Moy',
+  'reports.bestDay': 'Meilleur Jour',
+  'reports.completeWorkSessions':
+    'Terminez quelques sessions de travail pour voir les tendances',
+  'reports.dailyActivity': 'Activité Quotidienne',
+  'reports.dailyFocus': 'Concentration Quotidienne',
+  'reports.dateLabel': 'Date : {date}',
+  'reports.focusScore': 'Score de Concentration',
+  'reports.focusTime': 'Temps de concentration',
+  'reports.highDays': 'Jours Élevés',
+  'reports.hourlyPatterns': 'Modèles Horaires',
+  'reports.loading': "Chargement de l'analyse...",
+  'reports.month': 'Mois',
+  'reports.noProductivityData': 'Aucune donnée de productivité',
+  'reports.noTaskData': 'Aucune donnée de tâche disponible',
+  'reports.productivity': 'Productivité',
+  'reports.productivityTrends': 'Tendances de Productivité',
+  'reports.quarter': 'Trimestre',
+  'reports.recentPerformance': 'Performance Récente',
+  'reports.session': 'session',
+  'reports.sessions': 'Sessions',
+  'reports.sessionsPlural': 'sessions',
+  'reports.startWorkingTasks':
+    'Commencez à travailler sur des tâches pour voir les informations de performance',
+  'reports.subtitle': 'Aperçus de vos habitudes de productivité',
+  'reports.task': 'Tâche',
+  'reports.taskBreakdown': 'Répartition des Tâches',
+  'reports.taskPerformance': 'Performance des Tâches',
+  'reports.time': 'Temps',
+  'reports.title': 'Analyse du temps',
+  'reports.topPerformingTasks': 'Tâches les Plus Performantes',
+  'reports.totalTime': 'Temps total',
+  'reports.viewAllTasks': 'Voir toutes les {count} tâches →',
+  'reports.week': 'Semaine',
+
+  // Reset
+  'reset.absolutelySure':
+    'Êtes-vous absolument sûr de vouloir supprimer TOUTES les données ?',
+  'reset.aiHistory': 'Historique des conversations IA',
+  'reset.allData': "Toutes les autres données de l'application",
+  'reset.allTasks': 'Toutes les tâches et projets',
+  'reset.appWillRestart':
+    "L'application redémarrera après avoir effacé toutes les données.",
+  'reset.clearingData': 'Effacement de toutes les données...',
+  'reset.clearingDataProgress': 'Effacement des Données...',
+  'reset.considerBackup':
+    "Considérez exporter vos données d'abord si vous voulez garder une sauvegarde.",
+  'reset.continueToFinal': 'Continuer vers la Confirmation Finale',
+  'reset.finalConfirmation': 'CONFIRMATION FINALE',
+  'reset.lastChance': "C'est votre dernière chance d'annuler !",
+  'reset.timerSessions': 'Sessions de minuteur et historique',
+  'reset.title': 'Effacer Toutes les Données',
+  'reset.userPreferences': 'Préférences et paramètres utilisateur',
+  'reset.warning': 'Attention : Cette action ne peut pas être annulée !',
+  'reset.warningDescription':
+    'Toutes vos tâches, sessions de temps, paramètres et conversations IA seront supprimées définitivement.',
+  'reset.willDelete': 'Cela supprimera définitivement :',
+  'reset.yesDeleteAll': 'OUI, SUPPRIMER TOUTES LES DONNÉES',
+
+  // ResponseStyle
+  'responseStyle.balanced': 'Équilibré',
+  'responseStyle.concise': 'Concis',
+  'responseStyle.detailed': 'Détaillé',
+
+  // Security
+  'security.error.decryptFailed': 'Échec du déchiffrement des données',
+  'security.error.encryptFailed': 'Échec du chiffrement des données',
+  'security.error.encryptionKeyNotAvailable':
+    'Clé de chiffrement non disponible',
+  'security.error.generateHashFailed': 'Échec de la génération du hash',
+  'security.error.initEncryptionFailed':
+    "Échec de l'initialisation du chiffrement",
+  'security.error.secureStoreFailed': 'Échec du stockage sécurisé des données',
+
+  // Settings
+  'settings.about': 'À propos',
+  'settings.about.aiEngine': 'Moteur IA',
+  'settings.about.appDescription': 'Assistant intelligent de productivité',
+  'settings.about.appName': 'KiraPilot',
+  'settings.about.build': 'Build',
+  'settings.about.builtWith': 'Construit avec React, TypeScript et Tauri',
+  'settings.about.copyright': '© 2024 KiraPilot. Tous droits réservés.',
+  'settings.about.credits': 'Crédits',
+  'settings.about.database': 'Base de données',
+  'settings.about.icons': 'Icônes par Lucide React',
+  'settings.about.platform': 'Plateforme',
+  'settings.about.systemInformation': 'Informations système',
+  'settings.about.uiComponents': 'Composants UI par HeroUI',
+  'settings.about.version': 'Version',
+  'settings.ai': 'Assistant IA',
+  'settings.ai.activeRequests': 'Requêtes Actives',
+  'settings.ai.autoSuggestions': 'Suggestions automatiques',
+  'settings.ai.autoSuggestionsDescription':
+    'Recevoir des suggestions proactives de productivité',
+  'settings.ai.avgProcessingTime': 'Temps de Traitement Moyen',
+  'settings.ai.contextSize': 'Taille du Contexte',
+  'settings.ai.contextSizeDescription':
+    'Taille maximale de la fenêtre de contexte en tokens',
+  'settings.ai.conversationHistory': 'Historique des conversations',
+  'settings.ai.conversationHistoryDescription':
+    "Conserver l'historique des discussions pour le contexte",
+  'settings.ai.cpuUsage': 'Utilisation CPU',
+  'settings.ai.geminiModelDescription':
+    "Utiliser l'API Google Gemini pour des capacités IA avancées",
+  'settings.ai.getStarted': "Commencer avec l'assistant IA",
+  'settings.ai.invalidApiKey': 'Format de clé API invalide',
+  'settings.ai.kiraSettings': 'Paramètres de Kira IA',
+  'settings.ai.logging.actions': 'Actions',
+  'settings.ai.logging.advancedSettings': 'Paramètres Avancés',
+  'settings.ai.logging.autoCleanup': 'Nettoyage Automatique',
+  'settings.ai.logging.autoCleanupDescription':
+    'Supprimer automatiquement les anciens journaux basé sur la période de rétention',
+  'settings.ai.logging.averageResponseTime': 'Temps de Réponse Moyen',
+  'settings.ai.logging.cleanup.success':
+    'Nettoyage terminé : {deletedCount} journaux supprimés, {freedSpace} libéré',
+  'settings.ai.logging.cleanupProgress': 'Progrès du Nettoyage',
+  'settings.ai.logging.cleanupRunning': 'En cours...',
+  'settings.ai.logging.clearAllLogs': 'Effacer Tous les Journaux',
+  'settings.ai.logging.clearLogsConfirm': 'Effacer les Journaux',
+  'settings.ai.logging.clearLogsConfirmMessage':
+    "Cela supprimera définitivement tous les journaux d'interactions IA. Cette action ne peut pas être annulée.",
+  'settings.ai.logging.clearLogsConfirmTitle': 'Effacer Tous les Journaux',
+  'settings.ai.logging.configLoadError':
+    'Échec du chargement de la configuration de journalisation',
+  'settings.ai.logging.deletedLogs': 'Journaux Supprimés',
+  'settings.ai.logging.enabled': 'Activer la Journalisation',
+  'settings.ai.logging.enabledDescription':
+    "Journaliser toutes les interactions IA pour le débogage et l'analyse",
+  'settings.ai.logging.export.allLogs': 'Tous les Journaux',
+  'settings.ai.logging.export.allModels': 'Tous les Services',
+  'settings.ai.logging.export.anonymizeData':
+    'Anonymiser les informations personnelles',
+  'settings.ai.logging.export.anonymizeDataDescription':
+    "Remplacer les noms, emails et autres informations d'identification par des marqueurs génériques",
+  'settings.ai.logging.export.csvDescription':
+    "Format tabulaire adapté pour l'analyse en feuille de calcul",
+  'settings.ai.logging.export.dateRange': 'Plage de Dates',
+  'settings.ai.logging.export.downloadStarting': 'Début du téléchargement...',
+  'settings.ai.logging.export.endDate': 'Date de fin',
+  'settings.ai.logging.export.errorFilter': "Filtre d'Erreurs",
+  'settings.ai.logging.export.estimatedSize': 'Taille Estimée',
+  'settings.ai.logging.export.export': 'Exporter',
+  'settings.ai.logging.export.exporting': 'Exportation...',
+  'settings.ai.logging.export.filters': "Filtres d'Exportation",
+  'settings.ai.logging.export.format': "Format d'Exportation",
+  'settings.ai.logging.export.geminiModel': 'Gemini',
+  'settings.ai.logging.export.includeSensitiveData':
+    'Inclure les données sensibles',
+  'settings.ai.logging.export.includeSensitiveDataDescription':
+    'Exporter les journaux contenant des informations personnelles, clés API ou données confidentielles',
+  'settings.ai.logging.export.jsonDescription':
+    'Données complètes avec structure complète et métadonnées',
+  'settings.ai.logging.export.modelBreakdown': 'Répartition par Modèle',
+  'settings.ai.logging.export.modelType': 'Service IA',
+  'settings.ai.logging.export.noData': 'Aucune donnée dans la plage',
+  'settings.ai.logging.export.noPreview': 'Aucune donnée à prévisualiser',
+  'settings.ai.logging.export.onlyErrors': 'Seulement les Erreurs',
+  'settings.ai.logging.export.onlySuccess': 'Seulement les Réussites',
+  'settings.ai.logging.export.preparingData':
+    "Préparation des données d'exportation...",
+  'settings.ai.logging.export.preview': "Aperçu d'Exportation",
+  'settings.ai.logging.export.privacyOptions':
+    'Confidentialité et Protection des Données',
+  'settings.ai.logging.export.privacyWarning':
+    'Avertissement de Confidentialité',
+  'settings.ai.logging.export.privacyWarningDescription':
+    'Cette exportation contient des journaux marqués comme données sensibles. Veuillez les manipuler avec soin et assurer la conformité avec vos politiques de confidentialité.',
+  'settings.ai.logging.export.privacyWarningMessage':
+    'Cette exportation peut contenir des informations personnelles sensibles. Assurez-vous de manipuler les données exportées de manière sécurisée et en conformité avec les réglementations de confidentialité.',
+  'settings.ai.logging.export.privacyWarningTitle':
+    'Avertissement de Confidentialité',
+  'settings.ai.logging.export.startDate': 'Date de début',
+  'settings.ai.logging.export.success':
+    'Exportation terminée avec succès : {filename}',
+  'settings.ai.logging.export.title': "Exporter les Journaux d'Interactions IA",
+  'settings.ai.logging.export.toolCallsFilter': "Filtre d'Appels d'Outils",
+  'settings.ai.logging.export.totalLogs': 'Total des Journaux',
+  'settings.ai.logging.export.withoutToolCalls': "Sans Appels d'Outils",
+  'settings.ai.logging.export.withToolCalls': "Avec Appels d'Outils",
+  'settings.ai.logging.exportFormat': "Format d'Exportation",
+  'settings.ai.logging.exportLogs': 'Exporter les Journaux',
+  'settings.ai.logging.freedSpace': 'Espace Libéré',
+  'settings.ai.logging.includePerformanceMetrics':
+    'Inclure les Métriques de Performance',
+  'settings.ai.logging.includePerformanceMetricsDescription':
+    'Journaliser les temps de réponse et comptages de tokens',
+  'settings.ai.logging.includeSystemPrompts': 'Inclure les Prompts Système',
+  'settings.ai.logging.includeSystemPromptsDescription':
+    'Journaliser les prompts système et informations de contexte',
+  'settings.ai.logging.includeToolExecutions':
+    "Inclure les Exécutions d'Outils",
+  'settings.ai.logging.includeToolExecutionsDescription':
+    "Journaliser tous les appels d'outils et leurs résultats",
+  'settings.ai.logging.logLevel': 'Niveau de Détail du Journal',
+  'settings.ai.logging.logLevel.detailed': 'Détaillé',
+  'settings.ai.logging.logLevel.detailedDescription':
+    "Journaliser tout y compris les prompts système et exécutions d'outils",
+  'settings.ai.logging.logLevel.minimal': 'Minimal',
+  'settings.ai.logging.logLevel.minimalDescription':
+    'Journaliser seulement les données de base requête/réponse',
+  'settings.ai.logging.logLevel.standard': 'Standard',
+  'settings.ai.logging.logLevel.standardDescription':
+    'Journaliser les requêtes, réponses et métriques de performance',
+  'settings.ai.logging.manualCleanup': 'Nettoyage Manuel',
+  'settings.ai.logging.manualCleanupDescription':
+    'Exécuter le nettoyage maintenant pour supprimer les anciens journaux basé sur les politiques de rétention',
+  'settings.ai.logging.maxCount.1000': '1 000 journaux',
+  'settings.ai.logging.maxCount.10000': '10 000 journaux',
+  'settings.ai.logging.maxCount.25000': '25 000 journaux',
+  'settings.ai.logging.maxCount.5000': '5 000 journaux',
+  'settings.ai.logging.maxCount.50000': '50 000 journaux',
+  'settings.ai.logging.maxLogCount': 'Nombre Maximum de Journaux',
+  'settings.ai.logging.maxLogCountDescription':
+    'Nombre maximum de journaux à conserver avant le nettoyage',
+  'settings.ai.logging.newestLog': 'Journal le Plus Récent',
+  'settings.ai.logging.oldestLog': 'Journal le Plus Ancien',
+  'settings.ai.logging.retention.14days': '14 jours',
+  'settings.ai.logging.retention.1year': '1 an',
+  'settings.ai.logging.retention.30days': '30 jours',
+  'settings.ai.logging.retention.60days': '60 jours',
+  'settings.ai.logging.retention.7days': '7 jours',
+  'settings.ai.logging.retention.90days': '90 jours',
+  'settings.ai.logging.retentionDescription':
+    'Supprimer automatiquement les journaux plus anciens que cette période',
+  'settings.ai.logging.retentionPeriod': 'Période de Rétention des Journaux',
+  'settings.ai.logging.runCleanup': 'Exécuter le Nettoyage',
+  'settings.ai.logging.statusActive': 'Actif',
+  'settings.ai.logging.statusDisabled': 'Désactivé',
+  'settings.ai.logging.statusError': 'Erreur',
+  'settings.ai.logging.statusLoading': 'Chargement...',
+  'settings.ai.logging.storageManagement': 'Gestion du Stockage',
+  'settings.ai.logging.storageUsage': 'Utilisation du Stockage',
+  'settings.ai.logging.storageWarnings': 'Avertissements de Stockage',
+  'settings.ai.logging.title': 'Journalisation des Interactions IA',
+  'settings.ai.logging.totalLogs': 'Total des Journaux',
+  'settings.ai.logging.warning.age': "Avertissement d'Âge des Journaux",
+  'settings.ai.logging.warning.count': 'Avertissement de Nombre de Journaux',
+  'settings.ai.logging.warning.size': 'Avertissement de Taille de Stockage',
+  'settings.ai.maxTokens': 'Tokens Maximum',
+  'settings.ai.maxTokensDescription':
+    'Nombre maximum de tokens à générer dans la réponse',
+  'settings.ai.memoryUsage': 'Utilisation Mémoire',
+  'settings.ai.modelSelection': 'Sélection de Modèle',
+  'settings.ai.modelType': 'Type de Modèle IA',
+  'settings.ai.performanceRecommendations': 'Recommandations de Performance',
+  'settings.ai.resourceConfiguration': 'Configuration des Ressources',
+  'settings.ai.resourceDataUnavailable':
+    'Données de ressources non disponibles',
+  'settings.ai.resourceManagement': 'Gestion des Ressources',
+  'settings.ai.resourceUsage': 'Utilisation Actuelle des Ressources',
+  'settings.ai.responsePreferences': 'Préférences de réponse',
+  'settings.ai.responseStyle': 'Style de réponse',
+  'settings.ai.setupInstructions': "Instructions d'installation",
+  'settings.ai.suggestionFrequency': 'Fréquence des suggestions',
+  'settings.ai.temperature': 'Température',
+  'settings.ai.temperatureDescription':
+    "Contrôle l'aléatoire dans les réponses (0.1-2.0)",
+  'settings.ai.threadCount': 'Nombre de Threads',
+  'settings.ai.threadCountDescription':
+    "Nombre de threads CPU à utiliser pour l'inférence de modèle local",
+  'settings.ai.threadPlural': 'threads',
+  'settings.ai.threads': 'Threads CPU',
+  'settings.ai.threadsDescription':
+    "Nombre de threads CPU à utiliser pour l'inférence",
+  'settings.ai.threadSingular': 'thread',
+  'settings.ai.toolPermissions': 'Permissions des outils',
+  'settings.ai.toolPermissionsDescription':
+    "Permettre à l'IA de modifier les tâches et minuteurs",
+  'settings.ai.validApiKey': "✓ La clé API est valide et prête à l'emploi",
+  'settings.aiBehavior': "Comportement de l'IA",
+  'settings.aiEngine': 'Moteur IA',
+  'settings.aiEngineValue': 'Google Gemini',
+  'settings.apiConfiguration': 'Configuration API',
+  'settings.apiKeyConfigured': 'Clé API configurée correctement',
+  'settings.appearance': 'Apparence',
+  'settings.breakInterval': 'Intervalle de Pause',
+  'settings.database': 'Base de données',
+  'settings.databaseValue': 'SQLite (Local)',
+  'settings.defaultSessionLength': 'Durée de Session par Défaut',
+  'settings.geminiApiKey': 'Clé API Gemini',
+  'settings.geminiApiKeyDescription': 'Obtenez votre clé API gratuite depuis',
+  'settings.geminiApiKeyPlaceholder': 'Collez votre clé API Gemini ici...',
+  'settings.general': 'Général',
+  'settings.general.appPreferences': "Préférences de l'application",
+  'settings.general.dateFormat': 'Format de Date',
+  'settings.general.dateFormatDescription':
+    "Choisissez comment les dates sont affichées dans toute l'application",
+  'settings.general.endTime': 'Heure de fin',
+  'settings.general.language': 'Langue',
+  'settings.general.languageDescription': 'Sélectionnez votre langue préférée',
+  'settings.general.notifications': 'Notifications',
+  'settings.general.startTime': 'Heure de début',
+  'settings.general.theme': 'Thème',
+  'settings.general.themeDescription':
+    'Choisissez votre schéma de couleurs préféré',
+  'settings.general.workingHours': 'Heures de travail',
+  'settings.platform': 'Plateforme',
+  'settings.platformValue': 'Bureau (Tauri)',
+  'settings.privacy': 'Confidentialité et sécurité',
+  'settings.resetConfirm':
+    'Êtes-vous sûr de vouloir rétablir tous les paramètres aux valeurs par défaut ? Cette action ne peut pas être annulée.',
+  'settings.resetToDefaults': 'Rétablir les valeurs par défaut',
+  'settings.saving': 'Enregistrement...',
+  'settings.sound': 'Son',
+  'settings.sound.breakReminder': 'Rappel de Pause',
+  'settings.sound.enableSounds': 'Activer les Sons',
+  'settings.sound.enableSoundsDescription':
+    'Jouer des sons pour les notifications et événements',
+  'settings.sound.newMessage': 'Nouveau Message',
+  'settings.sound.notificationSounds': 'Sons de Notification',
+  'settings.sound.soundPack': 'Pack de Sons',
+  'settings.sound.soundPack.default': 'Par défaut',
+  'settings.sound.soundPack.electronic': 'Électronique',
+  'settings.sound.soundPack.minimal': 'Minimal',
+  'settings.sound.soundPack.nature': 'Nature',
+  'settings.sound.soundSettings': 'Paramètres Audio',
+  'settings.sound.taskComplete': 'Tâche Terminée',
+  'settings.sound.testSound': 'Tester le Son',
+  'settings.sound.timerPause': 'Pause du Minuteur',
+  'settings.sound.timerStart': 'Démarrage du Minuteur',
+  'settings.sound.timerStop': 'Arrêt du Minuteur',
+  'settings.sound.volume': 'Volume',
+  'settings.sound.volumeDescription': 'Volume général pour tous les sons',
+  'settings.subtitle': 'Personnalisez votre expérience KiraPilot',
+  'settings.systemInformation': 'Informations Système',
+  'settings.tasks': 'Gestion des tâches',
+  'settings.tasks.autoScheduling': 'Planification automatique',
+  'settings.tasks.autoSchedulingDescription':
+    'Planifier automatiquement les tâches selon la priorité',
+  'settings.tasks.compactView': 'Vue compacte',
+  'settings.tasks.compactViewDescription':
+    'Utiliser une mise en page compacte pour les cartes de tâches',
+  'settings.tasks.defaultPriority': 'Priorité par défaut',
+  'settings.tasks.defaultPriorityDescription':
+    'Niveau de priorité pour les nouvelles tâches',
+  'settings.tasks.defaultSettings': 'Paramètres par défaut',
+  'settings.tasks.planningPreferences': 'Préférences de planification',
+  'settings.tasks.showCompletedTasks': 'Afficher les tâches terminées',
+  'settings.tasks.showCompletedTasksDescription':
+    'Afficher les tâches terminées dans la vue de planification',
+  'settings.tasks.smartDependencies': 'Dépendances intelligentes',
+  'settings.tasks.smartDependenciesDescription':
+    'Suggérer automatiquement les dépendances des tâches',
+  'settings.tasks.weekStartDay': 'Jour de début de semaine',
+  'settings.tasks.weekStartDayDescription':
+    'Premier jour de la semaine dans la vue de planification',
+  'settings.time': 'Suivi du temps',
+  'settings.time.backgroundAudioVolume': 'Volume audio de fond',
+  'settings.time.breakInterval': 'Intervalle de pause',
+  'settings.time.defaultSessionLength': 'Durée de session par défaut',
+  'settings.time.distractionLevel': 'Niveau de distraction',
+  'settings.time.focusSettings': 'Paramètres de concentration',
+  'settings.time.longBreakDuration': 'Durée de pause longue',
+  'settings.time.shortBreakDuration': 'Durée de pause courte',
+  'settings.time.timerPreferences': 'Préférences du minuteur',
+  'settings.timerSettings': 'Paramètres du Minuteur',
+  'settings.title': 'Paramètres',
+  'settings.version': 'Version 0.0.10',
+
+  // Status
+  'status.cancelled': 'Annulé',
+  'status.completed': 'Terminé',
+  'status.inProgress': 'En cours',
+  'status.pending': 'En attente',
+
+  // SuggestionFrequency
+  'suggestionFrequency.frequent': 'Fréquente',
+  'suggestionFrequency.minimal': 'Minimale',
+  'suggestionFrequency.moderate': 'Modérée',
+
+  // System
+  'system.aiEngine': 'Moteur IA',
+  'system.aiEngineValue': 'Google Gemini',
+  'system.database': 'Base de Données',
+  'system.databaseValue': 'SQLite (Local)',
+  'system.platform': 'Plateforme',
+  'system.platformValue': 'Bureau (Tauri)',
+
+  // Task
+  'task.complete': 'Terminer',
+  'task.createNew': 'Créer Nouvelle',
+  'task.createNewTask': 'Créer une nouvelle tâche',
+  'task.markComplete': 'Marquer comme Terminée',
+  'task.markTaskComplete': 'Marquer cette tâche comme terminée',
+  'task.modal.button.createTask': 'Créer la Tâche',
+  'task.modal.button.saveChanges': 'Enregistrer les Modifications',
+  'task.modal.label.customTime': 'Durée personnalisée (minutes)',
+  'task.modal.label.description': 'Description',
+  'task.modal.label.dueDate': "Date d'échéance",
+  'task.modal.label.priority': 'Priorité',
+  'task.modal.label.scheduled': 'Programmé',
+  'task.modal.label.taskList': 'Liste de Tâches',
+  'task.modal.label.timeEstimate': 'Temps (min)',
+  'task.modal.label.timePreset': 'Estimation du temps',
+  'task.modal.label.title': 'Titre',
+  'task.modal.placeholder.customTime': 'Entrez les minutes',
+  'task.modal.placeholder.description':
+    'Ajouter des détails sur cette tâche...',
+  'task.modal.placeholder.priority': 'Sélectionner la priorité',
+  'task.modal.placeholder.tag': 'Ajouter une étiquette...',
+  'task.modal.placeholder.taskList': 'Sélectionner la liste de tâches',
+  'task.modal.placeholder.timeEstimate': '60',
+  'task.modal.placeholder.timePreset': "Sélectionnez l'estimation du temps",
+  'task.modal.placeholder.title': 'Que faut-il faire ?',
+  'task.modal.title.create': 'Créer une Nouvelle Tâche',
+  'task.modal.title.edit': 'Modifier la Tâche',
+  'task.new': 'Nouvelle',
+  'task.periodicInstance': 'Récurrente',
+  'task.schedule': 'Programmer',
+  'task.scheduleTask': 'Programmer la Tâche',
+  'task.scheduleTaskForLater': 'Programmer cette tâche pour plus tard',
+
+  // TaskList
+  'taskList.all': 'Toutes les tâches',
+  'taskList.createNew': 'Créer une nouvelle liste...',
+  'taskList.createPlaceholder': 'Saisissez le nom de la liste…',
+  'taskList.default': 'Par défaut',
+  'taskList.deleteConfirmMessage':
+    'Êtes-vous sûr de vouloir supprimer « {name} » ? Toutes les tâches de cette liste seront déplacées vers la liste Par défaut.',
+  'taskList.deleteConfirmTitle': 'Supprimer la liste de tâches',
+  'taskList.editCurrent': 'Modifier la liste actuelle',
+  'taskList.editPlaceholder': 'Modifier le nom de la liste…',
+  'taskList.error.cannotDeleteDefault':
+    'Impossible de supprimer la liste de tâches par défaut',
+  'taskList.error.cannotEditDefault':
+    'Impossible de modifier le nom de la liste de tâches par défaut',
+  'taskList.error.databaseError':
+    "Une erreur de base de données s'est produite",
+  'taskList.error.networkError': "Une erreur réseau s'est produite",
+  'taskList.error.notFound': 'Liste de tâches introuvable',
+  'taskList.error.operationFailed':
+    "Échec de l'opération sur la liste de tâches",
+  'taskList.error.unknownError': "Une erreur inconnue s'est produite",
+  'taskList.selectTaskList': 'Sélectionner une liste de tâches',
+  'taskList.success.created': 'Liste de tâches créée avec succès',
+  'taskList.success.deleted': 'Liste de tâches supprimée avec succès',
+  'taskList.success.taskMoved': 'Tâche déplacée avec succès',
+  'taskList.success.updated': 'Liste de tâches mise à jour avec succès',
+  'taskList.validation.nameDuplicate':
+    'Une liste de tâches portant ce nom existe déjà',
+  'taskList.validation.nameEmpty':
+    'Le nom de la liste de tâches ne peut pas être vide',
+  'taskList.validation.nameInvalidChars':
+    'Le nom de la liste de tâches contient des caractères invalides',
+  'taskList.validation.nameInvalidDots':
+    'Le nom de la liste de tâches ne peut ni commencer ni se terminer par un point',
+  'taskList.validation.nameInvalidFormat':
+    'Le format du nom de la liste de tâches est invalide',
+  'taskList.validation.nameRequired': 'Le nom de la liste de tâches est requis',
+  'taskList.validation.nameReserved':
+    'Le nom de la liste de tâches ne peut pas être "Tous" (réservé)',
+  'taskList.validation.nameTooLong':
+    'Le nom de la liste de tâches est trop long (max 255 caractères)',
+
+  // TaskListService
+  'taskListService.error.createFailed':
+    'Échec de la création de la liste de tâches',
+  'taskListService.error.deleteFailed':
+    'Échec de la suppression de la liste de tâches',
+  'taskListService.error.getAllFailed':
+    'Échec du chargement des listes de tâches',
+  'taskListService.error.getDefaultFailed':
+    "Échec de l'obtention de la liste de tâches par défaut",
+  'taskListService.error.getTasksFailed': 'Échec de la récupération des tâches',
+  'taskListService.error.moveTaskFailed': 'Échec du déplacement de la tâche',
+  'taskListService.error.updateFailed':
+    'Échec de la mise à jour de la liste de tâches',
+
+  // Tasks
+  'tasks.addNotes': 'Ajouter des notes',
+  'tasks.addNotesPlaceholder': 'Ajouter des notes pour cette tâche...',
+  'tasks.cancelButton': 'Annuler',
+  'tasks.chatWithKira': 'Discuter avec Kira de cette tâche',
+  'tasks.collapseDescription': 'Réduire la description',
+  'tasks.collapseEditor': "Réduire l'éditeur",
+  'tasks.complete': 'Terminer la tâche',
+  'tasks.create': 'Créer une tâche',
+  'tasks.delete': 'Supprimer la tâche',
+  'tasks.deleteConfirmButton': 'Supprimer',
+  'tasks.deleteConfirmMessage':
+    'Êtes-vous sûr de vouloir supprimer "{title}" ? Cette action ne peut pas être annulée.',
+  'tasks.deleteConfirmTitle': 'Supprimer la tâche',
+  'tasks.description': 'Description',
+  'tasks.dueDate': "Date d'échéance",
+  'tasks.edit': 'Modifier la tâche',
+  'tasks.editingNotes': 'Modification des notes',
+  'tasks.expandDescription': 'Développer la description',
+  'tasks.expandEditor': "Développer l'éditeur",
+  'tasks.fromTemplate': 'Depuis le modèle',
+  'tasks.generated': 'Générée',
+  'tasks.markComplete': 'Cliquer pour marquer comme terminée',
+  'tasks.markIncomplete': 'Cliquer pour marquer comme incomplète',
+  'tasks.notes': 'Notes',
+  'tasks.periodicInstance': 'Tâche récurrente',
+  'tasks.priority': 'Priorité',
+  'tasks.sessionLogs': 'Journaux de session',
+  'tasks.sessionLogsWithTime': 'Journaux de session ({time}min total)',
+  'tasks.sort.ascending': 'Trier croissant',
+  'tasks.sort.createdAt': 'Créé',
+  'tasks.sort.descending': 'Trier décroissant',
+  'tasks.sort.dueDate': "Date d'Échéance",
+  'tasks.sort.priority': 'Priorité',
+  'tasks.sort.title': 'Titre',
+  'tasks.sort.updatedAt': 'Mis à jour',
+  'tasks.title': 'Tâches',
+  'tasks.updatingStatus': 'Mise à jour du statut...',
+  'tasks.viewEditNotes': 'Voir/Modifier les notes',
+  'tasks.viewTemplate': 'Voir le modèle',
+
+  // TaskService
+  'taskService.error.addDependencyFailed': "Échec de l'ajout de dépendance",
+  'taskService.error.createFailed': 'Échec de la création de la tâche',
+  'taskService.error.deleteFailed': 'Échec de la suppression de la tâche',
+  'taskService.error.findAllFailed': 'Échec de la recherche de tâches',
+  'taskService.error.findBacklogFailed':
+    'Échec de la recherche de tâches en attente',
+  'taskService.error.findFailed': 'Échec de la recherche de tâche',
+  'taskService.error.findScheduledFailed':
+    'Échec de la recherche de tâches programmées',
+  'taskService.error.findWithDependenciesFailed':
+    'Échec de la recherche de tâche avec dépendances',
+  'taskService.error.getDependenciesFailed':
+    "Échec de l'obtention des dépendances",
+  'taskService.error.getDependentsFailed':
+    "Échec de l'obtention des dépendants",
+  'taskService.error.getStatisticsFailed':
+    "Échec de l'obtention des statistiques",
+  'taskService.error.removeDependencyFailed':
+    'Échec de la suppression de dépendance',
+  'taskService.error.searchFailed': 'Échec de la recherche de tâches',
+  'taskService.error.updateFailed': 'Échec de la mise à jour de la tâche',
+
+  // Theme
+  'theme.auto': 'Automatique',
+  'theme.dark': 'Sombre',
+  'theme.light': 'Clair',
+
+  // Time
+  'time.hours': 'heures',
+  'time.minutes': 'minutes',
+
+  // TimeHistory
+  'timeHistory.active': 'Actif',
+  'timeHistory.daysAgo': 'il y a {days} jours',
+  'timeHistory.loading': 'Chargement...',
+  'timeHistory.noSessionsYet': 'Aucune session pour le moment',
+  'timeHistory.recorded': 'Enregistré',
+  'timeHistory.sessions': 'Sessions',
+  'timeHistory.startTimerToTrack':
+    'Démarrez un minuteur pour suivre le travail sur cette tâche',
+  'timeHistory.title': 'Historique du Temps',
+  'timeHistory.today': "Aujourd'hui",
+  'timeHistory.totalTime': 'Temps Total',
+  'timeHistory.yesterday': 'Hier',
+
+  // TimePreset
+  'timePreset.custom': 'Personnalisé',
+  'timePreset.fifteenMin': '15 min',
+  'timePreset.notApplicable': 'N/A',
+  'timePreset.sixtyMin': '60 min',
+  'timePreset.thirtyMin': '30 min',
+
+  // Timer
+  'timer.active': 'Actif',
+  'timer.break': 'Pause',
+  'timer.pause': 'Pause',
+  'timer.pauseCurrentTimer': 'Mettre en pause le minuteur actuel',
+  'timer.paused': 'En pause',
+  'timer.pauseTimer': 'Mettre en pause le minuteur',
+  'timer.processing': 'Traitement...',
+  'timer.recording': 'Enregistrement',
+  'timer.reset': 'Réinitialiser',
+  'timer.resumeTimer': 'Reprendre le minuteur',
+  'timer.session': 'Session',
+  'timer.sessionHistory': 'Historique des Sessions',
+  'timer.start': 'Démarrer',
+  'timer.startTimer': 'Démarrer le minuteur pour cette tâche',
+  'timer.startTimerForTask': 'Démarrer le minuteur pour {task}',
+  'timer.stop': 'Arrêter',
+  'timer.stopCurrentTimer': 'Arrêter le minuteur actuel',
+  'timer.stopTimer': 'Arrêter le minuteur',
+
+  // TimeTracking
+  'timeTracking.error.addBreakFailed': "Échec de l'ajout de la pause",
+  'timeTracking.error.checkStateFailed':
+    "Échec de la vérification de l'état de la session",
+  'timeTracking.error.createHistoricalFailed':
+    'Échec de la création de la session historique',
+  'timeTracking.error.deleteFailed': 'Échec de la suppression de la session',
+  'timeTracking.error.findFailed': 'Échec de la recherche de session',
+  'timeTracking.error.getActiveFailed':
+    "Échec de l'obtention de la session active",
+  'timeTracking.error.getByDateRangeFailed':
+    "Échec de l'obtention des sessions par plage de dates",
+  'timeTracking.error.getByTaskFailed':
+    "Échec de l'obtention des sessions par tâche",
+  'timeTracking.error.getIncompleteFailed':
+    "Échec de l'obtention des sessions incomplètes",
+  'timeTracking.error.pauseFailed': 'Échec de la pause de la session',
+  'timeTracking.error.resumeFailed': 'Échec de la reprise de la session',
+  'timeTracking.error.startFailed': 'Échec du démarrage de la session',
+  'timeTracking.error.stopFailed': "Échec de l'arrêt de la session",
+
+  // Tour
+  'tour.actionButtons.description':
+    'Recherchez ces boutons dans les réponses IA pour des actions rapides comme terminer des tâches ou démarrer des minuteurs.',
+  'tour.actionButtons.title': "Boutons d'Action Rapide",
+  'tour.chatInput.description':
+    'Tapez naturellement ici. Essayez "terminer ma tâche de présentation" ou "comment vous sentez-vous aujourd\'hui ?"',
+  'tour.chatInput.title': 'Saisie en Langage Naturel',
+  'tour.feedbackButtons.description':
+    'Évaluez les réponses IA pour aider à améliorer les futures interactions.',
+  'tour.feedbackButtons.title': 'Système de Retour',
+  'tour.interactionDetails.description':
+    "Cliquez sur cette icône pour voir les journaux détaillés de ce que l'IA a fait en arrière-plan.",
+  'tour.interactionDetails.title': "Détails d'Interaction",
 };

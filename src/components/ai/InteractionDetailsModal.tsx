@@ -150,7 +150,7 @@ export function InteractionDetailsModal({
                   )
                 }
               >
-                {interaction.modelType === 'local' ? 'Local AI' : 'Gemini'}
+                Gemini
               </Chip>
 
               {interaction.error && (

@@ -3,10 +3,12 @@ import { es } from './locales/es';
 import { fr } from './locales/fr';
 import { de } from './locales/de';
 import { vi } from './locales/vi';
+import { ja } from './locales/ja';
+import { pt } from './locales/pt';
 import { logMissingTranslationWarning } from '../utils/translationValidation';
 import { validateKeyOnAccess } from '../utils/translationConsistency';
 
-export type Language = 'en' | 'es' | 'fr' | 'de' | 'vi';
+export type Language = 'en' | 'es' | 'fr' | 'de' | 'vi' | 'ja' | 'pt';
 
 export const languages: Record<Language, string> = {
   en: 'English',
@@ -14,6 +16,8 @@ export const languages: Record<Language, string> = {
   fr: 'Français',
   de: 'Deutsch',
   vi: 'Tiếng Việt',
+  ja: '日本語',
+  pt: 'Português',
 };
 
 export const translations = {
@@ -22,6 +26,8 @@ export const translations = {
   fr,
   de,
   vi,
+  ja,
+  pt,
 };
 
 export type TranslationKey = keyof typeof en;

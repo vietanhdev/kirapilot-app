@@ -7,11 +7,14 @@ import {
   TranslationKey,
   Language,
   isValidLanguage,
+  translations,
 } from '../i18n';
 import { initializeServiceLocalization } from '../services/ServiceLocalization';
+import { useDevTranslationMonitor } from './useTranslationValidation';
 
 export const useTranslation = () => {
   const { language } = useUserPreferences();
+  const { reportIssue } = useDevTranslationMonitor();
 
   // Ensure the language is valid, fallback to English if not
   const validLanguage: Language = isValidLanguage(language) ? language : 'en';
@@ -20,6 +23,40 @@ export const useTranslation = () => {
     key: TranslationKey,
     variables?: Record<string, string | number>
   ): string => {
+    // Track key usage and validate in development
+    if (process.env.NODE_ENV === 'development') {
+      try {
+        const translation = getTranslation(validLanguage, key, variables);
+
+        // Report if falling back to English
+        if (validLanguage !== 'en') {
+          const languageTranslations = translations[validLanguage] as Record<
+            string,
+            string
+          >;
+
+          if (!languageTranslations[key]) {
+            reportIssue(
+              'missing',
+              key,
+              `Missing translation for language "${validLanguage}", falling back to English`,
+              validLanguage
+            );
+          }
+        }
+
+        return translation;
+      } catch {
+        reportIssue(
+          'missing',
+          key,
+          `Translation key "${key}" not found in any language`,
+          validLanguage
+        );
+        return key; // Return key as fallback
+      }
+    }
+
     return getTranslation(validLanguage, key, variables);
   };
 
