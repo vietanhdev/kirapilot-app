@@ -119,19 +119,6 @@ jobs:
           # Ensure git context is available for build info
           GIT_DISCOVERY_ACROSS_FILESYSTEMS: "1"
           GIT_CEILING_DIRECTORIES: "/"
-          # CMake configuration
-          CMAKE_BUILD_PARALLEL_LEVEL: "2"
-          CMAKE_C_COMPILER: "${{ matrix.platform == 'macos-latest' && 'clang' || '' }}"
-          CMAKE_CXX_COMPILER: "${{ matrix.platform == 'macos-latest' && 'clang++' || '' }}"
-          # macOS OpenMP support (when using Homebrew libomp)
-          LDFLAGS: "${{ matrix.platform == 'macos-latest' && '-L/opt/homebrew/lib -L/usr/local/lib' || '' }}"
-          CPPFLAGS: "${{ matrix.platform == 'macos-latest' && '-I/opt/homebrew/include -I/usr/local/include' || '' }}"
-          CMAKE_PREFIX_PATH: "${{ matrix.platform == 'macos-latest' && '/opt/homebrew:/usr/local' || '' }}"
-          OpenMP_C_FLAGS: "${{ matrix.platform == 'macos-latest' && '-Xpreprocessor -fopenmp' || '' }}"
-          OpenMP_CXX_FLAGS: "${{ matrix.platform == 'macos-latest' && '-Xpreprocessor -fopenmp' || '' }}"
-          OpenMP_C_LIB_NAMES: "${{ matrix.platform == 'macos-latest' && 'omp' || '' }}"
-          OpenMP_CXX_LIB_NAMES: "${{ matrix.platform == 'macos-latest' && 'omp' || '' }}"
-          OpenMP_omp_LIBRARY: "${{ matrix.platform == 'macos-latest' && '/opt/homebrew/lib/libomp.dylib' || '' }}"
         with:
           releaseId: ${{ needs.create-release.outputs.release_id }}
           args: ${{ matrix.args }}
