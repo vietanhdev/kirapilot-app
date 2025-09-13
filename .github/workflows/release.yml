@@ -104,14 +104,6 @@ jobs:
       - name: install frontend dependencies
         run: npm ci # Using npm ci for more reliable builds
 
-      - name: verify git repository status
-        run: |
-          echo "Git repository status:"
-          pwd
-          git status --porcelain || echo "Git status failed"
-          git log --oneline -1 || echo "Git log failed"
-          echo "Git directory: $(git rev-parse --show-toplevel 2>/dev/null || echo 'Not found')"
-
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
