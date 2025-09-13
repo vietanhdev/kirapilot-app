@@ -26,3 +26,5 @@ src-tauri/kirapilot.db
 
 # Generated build info
 src/build-info.json
+
+*.ts.backup*

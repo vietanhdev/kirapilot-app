@@ -5,6 +5,10 @@ import { UserFeedback } from '../../types/aiLogging';
 import { useTranslation } from '../../hooks/useTranslation';
 import { MessageList } from './MessageList';
 import { MessageInput } from './MessageInput';
+import { InitialTaskMessage } from './InitialTaskMessage';
+import { useState, useEffect } from 'react';
+import { Task } from '../../types';
+import { TaskService } from '../../services/database/repositories/TaskService';
 
 interface ChatAreaProps {
   thread: Thread | null;
@@ -41,6 +45,27 @@ export function ChatArea({
   isRegenerating = false,
 }: ChatAreaProps) {
   const { t } = useTranslation();
+  const [assignedTask, setAssignedTask] = useState<Task | null>(null);
+
+  // Load task details when thread is assigned to a task
+  useEffect(() => {
+    const loadTaskDetails = async () => {
+      if (thread?.assignment?.type === 'task' && thread.assignment.taskId) {
+        try {
+          const taskService = new TaskService();
+          const task = await taskService.findById(thread.assignment.taskId);
+          setAssignedTask(task);
+        } catch (error) {
+          console.warn('Failed to load task details:', error);
+          setAssignedTask(null);
+        }
+      } else {
+        setAssignedTask(null);
+      }
+    };
+
+    loadTaskDetails();
+  }, [thread?.assignment]);
 
   // Empty state when no thread is selected
   if (!thread) {
@@ -81,16 +106,28 @@ export function ChatArea({
         )}
       </div>
 
-      {/* Message List */}
-      <MessageList
-        messages={messages}
-        isLoading={isLoading}
-        threadAssignment={thread.assignment}
-        _onFeedbackSubmit={onFeedbackSubmit}
-        onRegenerateResponse={onRegenerateResponse}
-        isRegenerating={isRegenerating}
-        className='flex-1 min-h-0'
-      />
+      {/* Message List or Initial Task Message */}
+      {messages.length === 0 &&
+      thread?.assignment?.type === 'task' &&
+      assignedTask &&
+      !isLoading ? (
+        <div className='flex-1 overflow-y-auto min-h-0 p-6'>
+          <InitialTaskMessage
+            task={assignedTask}
+            onSendMessage={onSendMessage}
+          />
+        </div>
+      ) : (
+        <MessageList
+          messages={messages}
+          isLoading={isLoading}
+          threadAssignment={thread.assignment}
+          _onFeedbackSubmit={onFeedbackSubmit}
+          onRegenerateResponse={onRegenerateResponse}
+          isRegenerating={isRegenerating}
+          className='flex-1 min-h-0'
+        />
+      )}
 
       {/* Message Input */}
       <MessageInput

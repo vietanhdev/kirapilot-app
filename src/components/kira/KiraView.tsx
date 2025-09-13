@@ -5,7 +5,6 @@ import { useThreadMessages } from '../../hooks/useThreadMessages';
 import { useToastContext } from '../../contexts/ToastContext';
 import { useAI } from '../../contexts/AIContext';
 import { useNavigation } from '../../contexts/NavigationContext';
-import { useTranslation } from '../../hooks/useTranslation';
 import { ThreadSidebar } from './ThreadSidebar';
 import { ChatArea } from './ChatArea';
 import { ThreadAssignmentModal } from './ThreadAssignmentModal';
@@ -82,7 +81,6 @@ export function KiraView() {
   } = useThreadMessages(selectedThread?.id);
 
   const { showSuccess, showError, showWarning } = useToastContext();
-  const { t } = useTranslation();
 
   // Refs to avoid useEffect dependency issues
   const threadsRef = useRef(threads);
@@ -659,21 +657,17 @@ export function KiraView() {
   };
 
   // Handle pending auto-start after everything is loaded
+  // Note: We no longer send an initial user message since the bot will initiate
+  // the conversation through the InitialTaskMessage component
   useEffect(() => {
     if (
       pendingAutoStart &&
       selectedThread &&
       selectedThread.id === pendingAutoStart.threadId
     ) {
-      // Small delay to ensure the UI is ready
-      const timer = setTimeout(() => {
-        handleSendMessage(
-          t('kira.thread.initialMessage', { title: pendingAutoStart.taskTitle })
-        );
-        setPendingAutoStart(null);
-      }, 1000);
-
-      return () => clearTimeout(timer);
+      // Clear the pending auto-start since the InitialTaskMessage component
+      // will handle the initial interaction
+      setPendingAutoStart(null);
     }
   }, [pendingAutoStart, selectedThread]);
 

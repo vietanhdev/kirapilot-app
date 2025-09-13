@@ -442,7 +442,7 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
       size='2xl'
       classNames={{
         backdrop:
-          'bg-gradient-to-t from-zinc-900 to-zinc-900/10 backdrop-opacity-20',
+          'bg-gradient-to-t from-zinc-900 to-zinc-900/10 backdrop-opacity-90',
         base: 'border-[#292f46] bg-content1 dark:bg-content1 text-foreground',
         header: 'border-b-[1px] border-divider',
         footer: 'border-t-[1px] border-divider',
