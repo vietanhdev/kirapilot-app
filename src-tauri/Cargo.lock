@@ -3062,7 +3062,7 @@ dependencies = [
 
 [[package]]
 name = "kirapilot-app"
-version = "0.0.40"
+version = "0.0.41"
 dependencies = [
  "anyhow",
  "candle-core",
@@ -3206,9 +3206,9 @@ checksum = "241eaef5fd12c88705a01fc1066c48c4b36e0dd4377dcdc7ec3942cea7a69956"
 
 [[package]]
 name = "llama-cpp-2"
-version = "0.1.118"
+version = "0.1.121"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "108004dde2928f96a3e515c8d8870f4fdef6a283fde6385bf0991993c7dde14b"
+checksum = "fd4349398c631eef9824111bf523f0d2c500f8d786e109d7d5c6c673451b35a1"
 dependencies = [
  "enumflags2",
  "llama-cpp-sys-2",

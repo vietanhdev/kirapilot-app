@@ -1,6 +1,6 @@
 [package]
 name = "kirapilot-app"
-version = "0.0.40"
+version = "0.0.41"
 description = "Navigate your day with precision, powered by intelligent AI assistance!"
 authors = ["Viet-Anh Nguyen (@vietanhdev)"]
 edition = "2021"
@@ -50,7 +50,7 @@ anyhow = "1.0"
 zip = "2.1"
 tauri-plugin-dialog = "2"
 # Local AI model support
-llama-cpp-2 = "0.1.118"
+llama-cpp-2 = "0.1.121"
 candle-core = "0.8"
 candle-nn = "0.8"
 candle-transformers = "0.8"
