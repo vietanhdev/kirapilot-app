@@ -34,7 +34,7 @@ export default function TitleBar() {
   return (
     <div
       className={`title-bar flex items-center justify-between h-8 bg-content2 border-b border-divider select-none shadow-sm relative z-[9999] ${
-        isMaximized ? 'maximized-title-bar' : 'rounded-t-xl'
+        isMaximized ? 'maximized-title-bar' : 'rounded-t-md'
       }`}
     >
       {/* Draggable area */}

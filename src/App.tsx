@@ -89,7 +89,7 @@ function AppContent() {
       <OnboardingManager currentPage={getCurrentPageContext()}>
         <div
           className={`${resolvedTheme} text-foreground bg-background app-content ${
-            isMaximized ? 'maximized-window' : 'rounded-lg overflow-hidden'
+            isMaximized ? 'maximized-window' : 'rounded-md overflow-hidden'
           }`}
         >
           {/* Custom Title Bar */}
