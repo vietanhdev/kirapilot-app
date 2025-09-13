@@ -65,6 +65,8 @@ jobs:
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch full git history for build info generation
 
       - name: setup node
         uses: actions/setup-node@v4
@@ -87,9 +89,15 @@ jobs:
         if: matrix.platform == 'ubuntu-22.04' # This must match the platform value defined above.
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev librsvg2-dev patchelf build-essential curl wget file libssl-dev pkg-config libgtk-3-dev libayatana-appindicator3-dev
+          sudo apt-get install -y libwebkit2gtk-4.1-dev librsvg2-dev patchelf build-essential curl wget file libssl-dev pkg-config libgtk-3-dev libayatana-appindicator3-dev libomp-dev
         # webkitgtk 4.1 is for Tauri v2 - removed 4.0 to avoid conflicts
         # Added build-essential and other essential dev tools for proc-macro compilation
+
+      - name: install dependencies (macOS only)
+        if: matrix.platform == 'macos-latest'
+        run: |
+          brew install libomp
+        # Install OpenMP for better performance on macOS builds
 
       - name: install frontend dependencies
         run: npm ci # Using npm ci for more reliable builds
@@ -106,6 +114,13 @@ jobs:
           MACOSX_DEPLOYMENT_TARGET: "10.13"
           CARGO_TARGET_AARCH64_APPLE_DARWIN_LINKER: "clang"
           CARGO_TARGET_X86_64_APPLE_DARWIN_LINKER: "clang"
+          # Ensure git context is available for build info
+          GIT_DISCOVERY_ACROSS_FILESYSTEMS: "1"
+          # CMake parallel build optimization
+          CMAKE_BUILD_PARALLEL_LEVEL: "2"
+          # macOS OpenMP support (when using Homebrew libomp)
+          LDFLAGS: "${{ matrix.platform == 'macos-latest' && '-L/opt/homebrew/lib' || '' }}"
+          CPPFLAGS: "${{ matrix.platform == 'macos-latest' && '-I/opt/homebrew/include' || '' }}"
         with:
           releaseId: ${{ needs.create-release.outputs.release_id }}
           args: ${{ matrix.args }}
