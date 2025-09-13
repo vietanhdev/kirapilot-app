@@ -1,16 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Avatar, Button } from '@heroui/react';
-import { Bot, User, Check, Info, Clock } from 'lucide-react';
+import { Bot, User, Check, Info } from 'lucide-react';
 import { ThreadMessage, ThreadAssignment } from '../../types/thread';
-import { Task } from '../../types';
 import { UserFeedback } from '../../types/aiLogging';
 import { MarkdownRenderer, MessageSkeleton } from '../common';
-import { ContextualActionButtons } from '../ai/ContextualActionButtons';
 import { MessageActions } from '../ai/MessageActions';
-import { FeedbackRatingButtons } from '../ai/FeedbackRatingButtons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAutoScroll } from '../../hooks/useAutoScroll';
-import { TaskService } from '../../services/database/repositories/TaskService';
 
 interface MessageListProps {
   messages: ThreadMessage[];
@@ -18,7 +14,7 @@ interface MessageListProps {
   threadAssignment?: ThreadAssignment;
   className?: string;
   // Callback functions for AI integration
-  onFeedbackSubmit?: (
+  _onFeedbackSubmit?: (
     messageId: string,
     feedback: UserFeedback
   ) => Promise<void>;
@@ -36,7 +32,7 @@ export function MessageList({
   isLoading,
   threadAssignment,
   className = '',
-  onFeedbackSubmit,
+  _onFeedbackSubmit,
   onRegenerateResponse,
   isRegenerating,
 }: MessageListProps) {
@@ -82,7 +78,7 @@ export function MessageList({
             key={message.id}
             message={message}
             threadAssignment={threadAssignment}
-            onFeedbackSubmit={onFeedbackSubmit}
+            onFeedbackSubmit={_onFeedbackSubmit}
             onRegenerateResponse={onRegenerateResponse}
             isRegenerating={isRegenerating}
           />
@@ -112,17 +108,22 @@ interface MessageItemProps {
  */
 function MessageItem({
   message,
-  threadAssignment,
-  onFeedbackSubmit,
+  onFeedbackSubmit: _onFeedbackSubmit,
   onRegenerateResponse,
   isRegenerating,
 }: MessageItemProps) {
   const { t } = useTranslation();
   const [showDetails, setShowDetails] = useState(false);
 
+  // Memoize the regenerate handler to prevent unnecessary re-renders
+  const handleRegenerate = useCallback(() => {
+    if (onRegenerateResponse) {
+      onRegenerateResponse(message.id);
+    }
+  }, [onRegenerateResponse, message.id]);
+
   // Note: threadAssignment could be used to fetch task details from database
   // and pass to ContextualActionButtons for better context
-  const hasAssignment = threadAssignment && threadAssignment.type !== 'general';
 
   if (message.type === 'user') {
     return (
@@ -133,12 +134,6 @@ function MessageItem({
               content={message.content}
               className='[&_*]:text-white [&_h1]:text-white [&_h2]:text-white [&_h3]:text-white [&_p]:text-white [&_li]:text-white [&_ul]:text-white [&_ol]:text-white [&_code]:bg-primary-600 [&_pre]:bg-primary-600'
             />
-
-            {/* Message timestamp for user messages */}
-            <div className='flex items-center justify-end gap-1 text-xs text-primary-100 mt-1 opacity-70'>
-              <Clock className='w-3 h-3' />
-              <span>{new Date(message.timestamp).toLocaleTimeString()}</span>
-            </div>
           </div>
           <Avatar
             icon={<User className='w-4 h-4' />}
@@ -260,9 +255,7 @@ function MessageItem({
               <MessageActions
                 content={message.content}
                 onRegenerate={
-                  onRegenerateResponse
-                    ? () => onRegenerateResponse(message.id)
-                    : undefined
+                  onRegenerateResponse ? handleRegenerate : undefined
                 }
                 isRegenerating={isRegenerating}
                 className='absolute top-2 right-2'
@@ -284,156 +277,8 @@ function MessageItem({
               </Button>
             </div>
           </div>
-
-          {/* Contextual Action Buttons - only show for assistant messages */}
-          {message.type === 'assistant' && (
-            <ThreadContextualActions
-              message={message}
-              threadAssignment={threadAssignment}
-              onActionPerformed={(action, data) => {
-                console.log('Action performed in thread:', action, data);
-                // Handle action performed - could emit events or call callbacks
-              }}
-            />
-          )}
-
-          {/* Feedback Rating Buttons - only show for assistant messages */}
-          {message.type === 'assistant' &&
-            onFeedbackSubmit &&
-            !message.userFeedback && (
-              <div className='mt-2'>
-                <FeedbackRatingButtons
-                  conversationId={message.id}
-                  onFeedbackSubmit={async (messageId, rating, feedback) => {
-                    const userFeedback: UserFeedback = {
-                      rating,
-                      comment: feedback,
-                      timestamp: new Date(),
-                      categories: [
-                        {
-                          category: 'helpfulness',
-                          rating,
-                        },
-                      ],
-                    };
-                    if (onFeedbackSubmit) {
-                      await onFeedbackSubmit(messageId, userFeedback);
-                    }
-                  }}
-                  compact={true}
-                />
-              </div>
-            )}
-
-          {/* Show submitted feedback */}
-          {message.type === 'assistant' && message.userFeedback && (
-            <div className='mt-2 text-xs text-success-600 flex items-center gap-1'>
-              <Check className='w-3 h-3' />
-              <span>
-                {t('ai.feedback.submitted')} ({message.userFeedback.rating}/5)
-                {message.userFeedback.comment &&
-                  ` - ${message.userFeedback.comment}`}
-              </span>
-            </div>
-          )}
-
-          {/* Message timestamp and details */}
-          <div className='flex items-center gap-2 text-xs text-default-400 mt-1'>
-            <Clock className='w-3 h-3' />
-            <span>{new Date(message.timestamp).toLocaleTimeString()}</span>
-            {showDetails && (
-              <div className='flex items-center gap-2 text-xs text-default-500'>
-                <span>•</span>
-                <span>ID: {message.id.slice(0, 8)}</span>
-                {hasAssignment && (
-                  <>
-                    <span>•</span>
-                    <span>Assigned to {threadAssignment?.type}</span>
-                  </>
-                )}
-                {message.reasoning && (
-                  <>
-                    <span>•</span>
-                    <span>Has reasoning</span>
-                  </>
-                )}
-                {message.actions && message.actions.length > 0 && (
-                  <>
-                    <span>•</span>
-                    <span>{message.actions.length} actions</span>
-                  </>
-                )}
-                {message.toolExecutions &&
-                  message.toolExecutions.length > 0 && (
-                    <>
-                      <span>•</span>
-                      <span>{message.toolExecutions.length} tools</span>
-                    </>
-                  )}
-              </div>
-            )}
-          </div>
         </div>
       </div>
     </div>
-  );
-}
-
-interface ThreadContextualActionsProps {
-  message: ThreadMessage;
-  threadAssignment?: ThreadAssignment;
-  onActionPerformed?: (action: string, data?: unknown) => void;
-}
-
-/**
- * Component that provides contextual actions for thread messages
- * Fetches task context when thread is assigned to a task
- */
-function ThreadContextualActions({
-  message,
-  threadAssignment,
-  onActionPerformed,
-}: ThreadContextualActionsProps) {
-  const [currentTask, setCurrentTask] = useState<Task | undefined>(undefined);
-  const [isLoading, setIsLoading] = useState(false);
-  const taskService = new TaskService();
-
-  // Load task context when thread is assigned to a task
-  useEffect(() => {
-    if (threadAssignment?.type === 'task' && threadAssignment.taskId) {
-      setIsLoading(true);
-      taskService
-        .findById(threadAssignment.taskId)
-        .then(task => {
-          setCurrentTask(task || undefined);
-        })
-        .catch(error => {
-          console.warn('Failed to load task for contextual actions:', error);
-          setCurrentTask(undefined);
-        })
-        .finally(() => {
-          setIsLoading(false);
-        });
-    } else {
-      setCurrentTask(undefined);
-    }
-  }, [threadAssignment, taskService]);
-
-  // Don't show actions while loading task context
-  if (isLoading) {
-    return null;
-  }
-
-  return (
-    <ContextualActionButtons
-      context={{
-        currentTask,
-        mentionedTasks: [], // Could be extracted from message content in future
-        suggestedActions: message.actions?.map(a => a.type) || [],
-      }}
-      compact={true}
-      className='mt-2'
-      onActionPerformed={onActionPerformed}
-    />
   );
 }

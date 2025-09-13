@@ -86,7 +86,7 @@ export function ChatArea({
         messages={messages}
         isLoading={isLoading}
         threadAssignment={thread.assignment}
-        onFeedbackSubmit={onFeedbackSubmit}
+        _onFeedbackSubmit={onFeedbackSubmit}
         onRegenerateResponse={onRegenerateResponse}
         isRegenerating={isRegenerating}
         className='flex-1 min-h-0'

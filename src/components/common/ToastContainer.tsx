@@ -25,28 +25,28 @@ const TOAST_ICONS = {
 
 const TOAST_COLORS = {
   success: {
-    bg: 'bg-success-50 dark:bg-success-900/20',
-    border: 'border-success-200 dark:border-success-800',
-    text: 'text-success-700 dark:text-success-300',
-    icon: 'text-success-600 dark:text-success-400',
+    bg: 'bg-success-50 dark:bg-success-900/90',
+    border: 'border-success-200 dark:border-success-700',
+    text: 'text-success-800 dark:text-success-100',
+    icon: 'text-success-600 dark:text-success-300',
   },
   error: {
-    bg: 'bg-danger-50 dark:bg-danger-900/20',
-    border: 'border-danger-200 dark:border-danger-800',
-    text: 'text-danger-700 dark:text-danger-300',
-    icon: 'text-danger-600 dark:text-danger-400',
+    bg: 'bg-danger-50 dark:bg-danger-900/90',
+    border: 'border-danger-200 dark:border-danger-700',
+    text: 'text-danger-800 dark:text-danger-100',
+    icon: 'text-danger-600 dark:text-danger-300',
   },
   warning: {
-    bg: 'bg-warning-50 dark:bg-warning-900/20',
-    border: 'border-warning-200 dark:border-warning-800',
-    text: 'text-warning-700 dark:text-warning-300',
-    icon: 'text-warning-600 dark:text-warning-400',
+    bg: 'bg-warning-50 dark:bg-warning-900/90',
+    border: 'border-warning-200 dark:border-warning-700',
+    text: 'text-warning-800 dark:text-warning-100',
+    icon: 'text-warning-600 dark:text-warning-300',
   },
   info: {
-    bg: 'bg-primary-50 dark:bg-primary-900/20',
-    border: 'border-primary-200 dark:border-primary-800',
-    text: 'text-primary-700 dark:text-primary-300',
-    icon: 'text-primary-600 dark:text-primary-400',
+    bg: 'bg-primary-50 dark:bg-primary-900/90',
+    border: 'border-primary-200 dark:border-primary-700',
+    text: 'text-primary-800 dark:text-primary-100',
+    icon: 'text-primary-600 dark:text-primary-300',
   },
 };
 
@@ -79,7 +79,7 @@ const ToastItem: React.FC<ToastItemProps> = ({ toast, onHide }) => {
       <Card
         className={`
         ${colors.bg} ${colors.border} 
-        border shadow-lg backdrop-blur-sm
+        border shadow-lg
         min-w-[320px] max-w-[400px]
       `}
       >
@@ -95,7 +95,7 @@ const ToastItem: React.FC<ToastItemProps> = ({ toast, onHide }) => {
               </div>
 
               {toast.message && (
-                <div className={`text-xs mt-1 ${colors.text} opacity-80`}>
+                <div className={`text-xs mt-1 ${colors.text} opacity-90`}>
                   {toast.message}
                 </div>
               )}

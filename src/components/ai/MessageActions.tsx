@@ -2,6 +2,7 @@ import { Button, Tooltip } from '@heroui/react';
 import { Copy, RotateCcw, Check } from 'lucide-react';
 import { useClipboard } from '../../hooks/useClipboard';
 import { useTranslation } from '../../hooks/useTranslation';
+import { memo, useCallback } from 'react';
 
 interface MessageActionsProps {
   content: string;
@@ -10,7 +11,7 @@ interface MessageActionsProps {
   className?: string;
 }
 
-export function MessageActions({
+export const MessageActions = memo(function MessageActions({
   content,
   onRegenerate,
   className = '',
@@ -18,16 +19,20 @@ export function MessageActions({
   const { copied, copy } = useClipboard();
   const { t } = useTranslation();
 
+  const handleCopy = useCallback(() => {
+    copy(content);
+  }, [copy, content]);
+
   return (
     <div
-      className={`flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ${className}`}
+      className={`flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150 ${className}`}
     >
       <Tooltip content={copied ? t('ai.actions.copied') : t('ai.actions.copy')}>
         <Button
           isIconOnly
           size='sm'
           variant='light'
-          onPress={() => copy(content)}
+          onPress={handleCopy}
           className='h-6 w-6 min-w-6'
         >
           {copied ? (
@@ -52,4 +57,4 @@ export function MessageActions({
       )}
     </div>
   );
-}
+});

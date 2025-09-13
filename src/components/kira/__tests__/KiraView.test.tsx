@@ -91,6 +91,23 @@ jest.mock('../../../contexts/ToastContext', () => ({
   }),
 }));
 
+// Mock the AIContext
+jest.mock('../../../contexts/AIContext', () => ({
+  useAI: () => ({
+    sendMessage: jest.fn().mockResolvedValue({
+      id: 'msg-1',
+      content: 'Test response',
+      type: 'assistant',
+    }),
+    isLoading: false,
+    error: null,
+    clearError: jest.fn(),
+  }),
+  AIProvider: ({ children }: { children: React.ReactNode }) => (
+    <div>{children}</div>
+  ),
+}));
+
 const mockUseThreads = useThreads as jest.MockedFunction<typeof useThreads>;
 const mockUseThreadMessages = useThreadMessages as jest.MockedFunction<
   typeof useThreadMessages

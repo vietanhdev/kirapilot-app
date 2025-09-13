@@ -4,6 +4,8 @@ import { useThreads } from '../../hooks/useThreads';
 import { useThreadMessages } from '../../hooks/useThreadMessages';
 import { useToastContext } from '../../contexts/ToastContext';
 import { useAI } from '../../contexts/AIContext';
+import { useNavigation } from '../../contexts/NavigationContext';
+import { useTranslation } from '../../hooks/useTranslation';
 import { ThreadSidebar } from './ThreadSidebar';
 import { ChatArea } from './ChatArea';
 import { ThreadAssignmentModal } from './ThreadAssignmentModal';
@@ -37,9 +39,16 @@ export function KiraView() {
     ai: true,
     lastCheck: Date.now(),
   });
+  const [pendingAutoStart, setPendingAutoStart] = useState<{
+    threadId: string;
+    taskTitle: string;
+  } | null>(null);
 
   // AI context for checking API key status
   const { getModelStatus } = useAI();
+
+  // Navigation context for handling thread selection from URL params
+  const { viewParams } = useNavigation();
 
   const {
     threads,
@@ -72,6 +81,7 @@ export function KiraView() {
   } = useThreadMessages(selectedThread?.id);
 
   const { showSuccess, showError, showWarning } = useToastContext();
+  const { t } = useTranslation();
 
   // Refs to avoid useEffect dependency issues
   const threadsRef = useRef(threads);
@@ -172,6 +182,35 @@ export function KiraView() {
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, []); // Empty dependency array since handleKeyDown uses refs
+
+  // Auto-select thread when threadId is provided in viewParams
+  useEffect(() => {
+    const threadId = viewParams.threadId as string;
+    const autoStart = viewParams.autoStart as boolean;
+
+    if (threadId && threads.length > 0) {
+      const thread = threads.find(t => t.id === threadId);
+      if (thread && (!selectedThread || selectedThread.id !== threadId)) {
+        setSelectedThread(thread);
+        // Auto-collapse sidebar on mobile for better UX
+        if (window.innerWidth < 768) {
+          setSidebarCollapsed(true);
+        }
+
+        // If this is a new thread from a task, prepare to send an initial message
+        if (
+          autoStart &&
+          thread.assignment?.type === 'task' &&
+          thread.messageCount === 0
+        ) {
+          const taskTitle = thread.assignment.context?.taskTitle as string;
+          if (taskTitle) {
+            setPendingAutoStart({ threadId: thread.id, taskTitle });
+          }
+        }
+      }
+    }
+  }, [viewParams.threadId, viewParams.autoStart, threads, selectedThread]);
 
   // Periodic health check
   useEffect(() => {
@@ -573,6 +612,25 @@ export function KiraView() {
     }
   };
 
+  // Handle pending auto-start after everything is loaded
+  useEffect(() => {
+    if (
+      pendingAutoStart &&
+      selectedThread &&
+      selectedThread.id === pendingAutoStart.threadId
+    ) {
+      // Small delay to ensure the UI is ready
+      const timer = setTimeout(() => {
+        handleSendMessage(
+          t('kira.thread.initialMessage', { title: pendingAutoStart.taskTitle })
+        );
+        setPendingAutoStart(null);
+      }, 1000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [pendingAutoStart, selectedThread]);
+
   return (
     <div
       className='flex h-full relative overflow-hidden'
@@ -626,7 +684,7 @@ export function KiraView() {
         className={`
         ${sidebarCollapsed ? '-translate-x-full md:translate-x-0' : 'translate-x-0'}
         fixed md:relative z-50 md:z-auto
-        w-80 sm:w-80 md:w-80 lg:w-96 xl:w-80
+        w-full md:w-80 lg:w-96 xl:w-80
         h-full
         transition-transform duration-300 ease-in-out
         border-r border-divider

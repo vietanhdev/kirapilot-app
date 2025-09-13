@@ -521,6 +521,7 @@ export function WeekView({
                   onStatusChange={status => onTaskStatusChange(task, status)}
                   onDelete={onTaskDelete}
                   onViewTimeHistory={onViewTimeHistory}
+                  onStartKiraThread={() => {}} // Kira thread functionality
                   showTaskListIndicator={isAllSelected()}
                   taskListName={
                     taskLists.find(list => list.id === task.taskListId)?.name
@@ -556,6 +557,7 @@ export function WeekView({
                       }
                       onDelete={onTaskDelete}
                       onViewTimeHistory={onViewTimeHistory}
+                      onStartKiraThread={() => {}} // Kira thread functionality
                       showTaskListIndicator={isAllSelected()}
                       taskListName={
                         taskLists.find(list => list.id === task.taskListId)
@@ -586,6 +588,7 @@ export function WeekView({
                   onStatusChange={status => onTaskStatusChange(task, status)}
                   onDelete={onTaskDelete}
                   onViewTimeHistory={onViewTimeHistory}
+                  onStartKiraThread={() => {}} // Kira thread functionality
                   showTaskListIndicator={isAllSelected()}
                   taskListName={
                     taskLists.find(list => list.id === task.taskListId)?.name
@@ -618,6 +621,7 @@ export function WeekView({
             <div className='opacity-80 scale-105 cursor-grabbing'>
               <TaskCard
                 task={draggedTask}
+                onStartKiraThread={() => {}} // Kira thread functionality
                 showTaskListIndicator={false} // Simplify overlay
                 className='shadow-xl border border-primary-400 bg-white dark:bg-gray-800'
               />

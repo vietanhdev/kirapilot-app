@@ -28,6 +28,7 @@ import {
 
 import { useSettings } from '../../contexts/SettingsContext';
 import { useTranslation } from '../../hooks/useTranslation';
+import { useToastContext } from '../../contexts/ToastContext';
 import { languages } from '../../i18n';
 import { DataManagement } from './DataManagement';
 import { LoggingSettings } from './LoggingSettings';
@@ -56,6 +57,7 @@ export const Settings: React.FC<SettingsProps> = ({
   } = useSettings();
   const { t } = useTranslation();
   const { reinitializeAI } = useAI();
+  const { showSuccess, showError, showWarning, showInfo } = useToastContext();
   const [activeTab, setActiveTab] = useState(initialTab);
   const [showApiKey, setShowApiKey] = useState(false);
   const [apiKeyValidationState, setApiKeyValidationState] = useState<{
@@ -1381,6 +1383,62 @@ export const Settings: React.FC<SettingsProps> = ({
                     Build Information
                   </h3>
                   <BuildInfo variant='detailed' />
+                </div>
+
+                <Divider className='bg-divider' />
+
+                <div>
+                  <h3 className='text-lg font-semibold text-foreground mb-4'>
+                    Toast Test (Development)
+                  </h3>
+                  <div className='grid grid-cols-2 gap-2'>
+                    <Button
+                      color='success'
+                      variant='flat'
+                      size='sm'
+                      onPress={() =>
+                        showSuccess(
+                          'Success!',
+                          'This is a success toast message'
+                        )
+                      }
+                    >
+                      Test Success
+                    </Button>
+                    <Button
+                      color='danger'
+                      variant='flat'
+                      size='sm'
+                      onPress={() =>
+                        showError('Error!', 'This is an error toast message')
+                      }
+                    >
+                      Test Error
+                    </Button>
+                    <Button
+                      color='warning'
+                      variant='flat'
+                      size='sm'
+                      onPress={() =>
+                        showWarning(
+                          'Warning!',
+                          'This is a warning toast message'
+                        )
+                      }
+                    >
+                      Test Warning
+                    </Button>
+                    <Button
+                      color='primary'
+                      variant='flat'
+                      size='sm'
+                      onPress={() =>
+                        showInfo('Info!', 'This is an info toast message')
+                      }
+                    >
+                      Test Info
+                    </Button>
+                  </div>
                 </div>
 
                 <Divider className='bg-divider' />

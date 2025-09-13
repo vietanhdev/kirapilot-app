@@ -438,6 +438,7 @@ export const en = {
   'tasks.edit': 'Edit Task',
   'tasks.delete': 'Delete Task',
   'tasks.complete': 'Complete Task',
+  'tasks.chatWithKira': 'Chat with Kira about this task',
   'tasks.priority': 'Priority',
   'tasks.dueDate': 'Due Date',
   'tasks.description': 'Description',
@@ -756,6 +757,12 @@ export const en = {
   'kira.success.threadAssigned': 'Thread assigned successfully',
   'kira.success.messageSent': 'Message sent successfully',
   'kira.success.feedbackSubmitted': 'Feedback submitted successfully',
+  'kira.thread.created': 'Thread Created',
+  'kira.thread.createdForTask': 'Started a new conversation about "{title}"',
+  'kira.thread.createFailed': 'Failed to Create Thread',
+  'kira.thread.createFailedMessage':
+    'Unable to start a conversation. Please try again.',
+  'kira.thread.initialMessage': 'Help me with my task: "{title}"',
   'kira.success.responseRegenerated': 'Response regenerated successfully',
 
   // Task Modal

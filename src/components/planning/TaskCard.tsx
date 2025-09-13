@@ -34,8 +34,7 @@ import {
   Minimize2,
   Check,
   Repeat,
-  Link,
-  Calendar,
+  MessageCircle,
 } from 'lucide-react';
 import { TaskModal } from './TaskModal';
 import { ConfirmationDialog } from '../common';
@@ -43,6 +42,9 @@ import { MinimalRichTextEditor } from '../common/MinimalRichTextEditor';
 import { PeriodicTaskService } from '../../services/database/repositories/PeriodicTaskService';
 import { VirtualPeriodicTaskService } from '../../services/database/repositories/VirtualPeriodicTaskService';
 import { PeriodicTaskTemplate } from '../../types';
+import { useNavigation } from '../../contexts/NavigationContext';
+import { useThreads } from '../../hooks/useThreads';
+import { useToastContext } from '../../contexts/ToastContext';
 
 interface PlanningTaskCardProps {
   task: Task | VirtualTask;
@@ -54,6 +56,7 @@ interface PlanningTaskCardProps {
   onDelete?: (task: Task | VirtualTask) => void;
   onViewTimeHistory?: (task: Task) => void;
   onViewPeriodicTemplate?: (templateId: string) => void;
+  onStartKiraThread?: (task: Task) => void;
   activeTimerTaskId?: string | null;
   isTimerRunning?: boolean;
   elapsedTime?: number;
@@ -85,6 +88,7 @@ export function TaskCard({
   onDelete,
   onViewTimeHistory,
   onViewPeriodicTemplate,
+  onStartKiraThread,
   activeTimerTaskId,
   isTimerRunning = false,
   elapsedTime = 0,
@@ -94,6 +98,9 @@ export function TaskCard({
 }: PlanningTaskCardProps) {
   const { t } = useTranslation();
   const { preferences } = useSettings();
+  const { navigateTo } = useNavigation();
+  const { createThread } = useThreads();
+  const { showSuccess, showError } = useToastContext();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editMode, setEditMode] = useState<EditMode>('none');
   const [isExpanded, setIsExpanded] = useState(false);
@@ -473,6 +480,49 @@ export function TaskCard({
     }
   };
 
+  const handleStartKiraThread = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+
+    try {
+      // Create a thread assigned to this task
+      const newThread = await createThread({
+        type: 'task',
+        taskId: task.id,
+        context: {
+          taskTitle: task.title,
+          taskStatus: task.status,
+          taskPriority: task.priority,
+          taskDescription: task.description,
+        },
+      });
+
+      if (newThread) {
+        // Navigate to Kira view with auto-start conversation
+        navigateTo('kira', { threadId: newThread.id, autoStart: true });
+        showSuccess(
+          t('kira.thread.created'),
+          t('kira.thread.createdForTask', { title: task.title })
+        );
+
+        // Call the optional callback if provided
+        if (onStartKiraThread) {
+          onStartKiraThread(task);
+        }
+      } else {
+        showError(
+          t('kira.thread.createFailed'),
+          t('kira.thread.createFailedMessage')
+        );
+      }
+    } catch (error) {
+      console.error('Failed to create Kira thread:', error);
+      showError(
+        t('kira.thread.createFailed'),
+        t('kira.thread.createFailedMessage')
+      );
+    }
+  };
+
   const formatElapsedTime = (milliseconds: number): string => {
     const totalSeconds = Math.floor(milliseconds / 1000);
     const minutes = Math.floor(totalSeconds / 60);
@@ -829,38 +879,6 @@ export function TaskCard({
           {task.isPeriodicInstance && (
             <div className='mt-1 flex items-center justify-between'>
               <div className='flex items-center space-x-1.5'>
-                {/* Template relationship indicator */}
-                {periodicTemplate && (
-                  <div className='flex items-center space-x-1 text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-1.5 py-0.5 rounded'>
-                    <Repeat className='w-3 h-3' />
-                    <span>
-                      {t('tasks.fromTemplate')}: {periodicTemplate.title}
-                    </span>
-                    {onViewPeriodicTemplate && (
-                      <button
-                        onClick={handleViewPeriodicTemplate}
-                        onMouseDown={e => e.stopPropagation()}
-                        onPointerDown={e => e.stopPropagation()}
-                        className='ml-1 p-0.5 rounded hover:bg-blue-100 dark:hover:bg-blue-800/30 transition-colors'
-                        title={t('tasks.viewTemplate')}
-                      >
-                        <Link className='w-2.5 h-2.5' />
-                      </button>
-                    )}
-                  </div>
-                )}
-
-                {/* Generation date */}
-                {task.generationDate && (
-                  <div className='flex items-center space-x-1 text-xs text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/20 px-1.5 py-0.5 rounded'>
-                    <Calendar className='w-3 h-3' />
-                    <span>
-                      {t('tasks.generated')}:{' '}
-                      {new Date(task.generationDate).toLocaleDateString()}
-                    </span>
-                  </div>
-                )}
-
                 {/* Loading indicator for template */}
                 {isLoadingTemplate && (
                   <div className='flex items-center space-x-1 text-xs text-slate-500 dark:text-slate-400'>
@@ -934,6 +952,17 @@ export function TaskCard({
 
                 {/* Secondary Actions - Right side */}
                 <div className='flex items-center space-x-0.5'>
+                  {/* Chat with Kira Button */}
+                  <button
+                    onClick={handleStartKiraThread}
+                    onMouseDown={e => e.stopPropagation()}
+                    onPointerDown={e => e.stopPropagation()}
+                    className='p-1.5 rounded transition-all duration-200 text-slate-400 dark:text-slate-500 hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:text-purple-600 dark:hover:text-purple-400'
+                    title={t('tasks.chatWithKira')}
+                  >
+                    <MessageCircle className='w-3 h-3' />
+                  </button>
+
                   {/* Notes Button */}
                   <button
                     onClick={handleNotesClick}

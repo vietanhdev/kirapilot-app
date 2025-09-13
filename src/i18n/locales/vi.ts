@@ -158,6 +158,7 @@ export const vi = {
   'tasks.edit': 'Chỉnh sửa nhiệm vụ',
   'tasks.delete': 'Xóa nhiệm vụ',
   'tasks.complete': 'Hoàn thành nhiệm vụ',
+  'tasks.chatWithKira': 'Trò chuyện với Kira về nhiệm vụ này',
   'tasks.priority': 'Độ ưu tiên',
   'tasks.dueDate': 'Hạn chót',
   'tasks.description': 'Mô tả',
@@ -668,4 +669,12 @@ export const vi = {
   // AI Model Types
   'ai.model.local': 'Mô hình Cục bộ',
   'ai.model.gemini': 'API Gemini',
+
+  // Kira Thread Messages
+  'kira.thread.created': 'Đã tạo cuộc trò chuyện',
+  'kira.thread.createdForTask': 'Đã bắt đầu cuộc trò chuyện về "{title}"',
+  'kira.thread.createFailed': 'Không thể tạo cuộc trò chuyện',
+  'kira.thread.createFailedMessage':
+    'Không thể bắt đầu cuộc trò chuyện. Vui lòng thử lại.',
+  'kira.thread.initialMessage': 'Giúp tôi với nhiệm vụ: "{title}"',
 };

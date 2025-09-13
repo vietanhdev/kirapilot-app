@@ -408,6 +408,7 @@ export function DayView({
                   onStatusChange={status => onTaskStatusChange(task, status)}
                   onDelete={onTaskDelete}
                   onViewTimeHistory={onViewTimeHistory}
+                  onStartKiraThread={() => {}} // Kira thread functionality
                   showTaskListIndicator={isAllSelected()}
                   taskListName={
                     taskLists.find(list => list.id === task.taskListId)?.name
@@ -435,6 +436,7 @@ export function DayView({
                   onStatusChange={status => onTaskStatusChange(task, status)}
                   onDelete={onTaskDelete}
                   onViewTimeHistory={onViewTimeHistory}
+                  onStartKiraThread={() => {}} // Kira thread functionality
                   showTaskListIndicator={isAllSelected()}
                   taskListName={
                     taskLists.find(list => list.id === task.taskListId)?.name
@@ -463,6 +465,7 @@ export function DayView({
                   onStatusChange={status => onTaskStatusChange(task, status)}
                   onDelete={onTaskDelete}
                   onViewTimeHistory={onViewTimeHistory}
+                  onStartKiraThread={() => {}} // Kira thread functionality
                   showTaskListIndicator={isAllSelected()}
                   taskListName={
                     taskLists.find(list => list.id === task.taskListId)?.name
@@ -490,6 +493,7 @@ export function DayView({
                   onStatusChange={status => onTaskStatusChange(task, status)}
                   onDelete={onTaskDelete}
                   onViewTimeHistory={onViewTimeHistory}
+                  onStartKiraThread={() => {}} // Kira thread functionality
                   showTaskListIndicator={isAllSelected()}
                   taskListName={
                     taskLists.find(list => list.id === task.taskListId)?.name
@@ -527,6 +531,7 @@ export function DayView({
             >
               <TaskCard
                 task={draggedTask}
+                onStartKiraThread={() => {}} // Kira thread functionality
                 showTaskListIndicator={isAllSelected()}
                 taskListName={
                   taskLists.find(list => list.id === draggedTask.taskListId)

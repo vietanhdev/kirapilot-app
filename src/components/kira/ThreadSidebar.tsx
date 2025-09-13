@@ -264,15 +264,15 @@ const ThreadItem: React.FC<ThreadItemProps> = ({
     <Card
       isPressable
       isHoverable
-      className={`mb-2 transition-all duration-200 cursor-pointer group ${
+      className={`w-full mb-2 transition-all duration-200 cursor-pointer group ${
         isActive
           ? 'bg-primary-50 dark:bg-primary-900/20 border-primary-200 dark:border-primary-800 shadow-md'
           : 'bg-content1 hover:bg-content2 border-divider'
       }`}
       onPress={onSelect}
     >
-      <CardBody className='p-3'>
-        <div className='flex items-start justify-between gap-2'>
+      <CardBody className='w-full p-3'>
+        <div className='w-full flex items-start justify-between gap-2'>
           <div className='flex-1 min-w-0'>
             {/* Thread title */}
             <div className='flex items-center gap-2 mb-1'>
@@ -310,7 +310,7 @@ const ThreadItem: React.FC<ThreadItemProps> = ({
                     : getAssignmentLabel(thread.assignment)
                 } // Enhanced tooltip with detailed info
               >
-                <span className='truncate max-w-[120px]'>
+                <span className='truncate'>
                   {getAssignmentLabel(thread.assignment)}
                 </span>
               </Chip>
@@ -368,7 +368,7 @@ const ThreadItem: React.FC<ThreadItemProps> = ({
               {thread.assignment && (
                 <div className='flex items-center justify-between'>
                   <span
-                    className='text-foreground-400 truncate max-w-[150px]'
+                    className='text-foreground-400 truncate'
                     title={getDetailedAssignmentInfo(thread.assignment)}
                   >
                     {getAssignmentDetails(thread.assignment)}
@@ -564,7 +564,7 @@ export const ThreadSidebar: React.FC<ThreadSidebarProps> = ({
     <>
       <div
         ref={sidebarRef}
-        className={`flex flex-col h-full bg-content1 border-r border-divider ${className}`}
+        className={`w-full flex flex-col h-full bg-content1 border-r border-divider ${className}`}
         tabIndex={0}
         aria-label={t('kira.sidebar.title')}
         title={t('kira.shortcuts.sidebar')}
@@ -599,7 +599,7 @@ export const ThreadSidebar: React.FC<ThreadSidebarProps> = ({
         </div>
 
         {/* Thread list */}
-        <div className='flex-1 overflow-y-auto min-h-0 p-4'>
+        <div className='flex-1 overflow-y-auto min-h-0 p-4 w-full'>
           {isLoading && threads.length === 0 ? (
             <div className='space-y-2'>
               {[...Array(3)].map((_, i) => (
@@ -631,7 +631,7 @@ export const ThreadSidebar: React.FC<ThreadSidebarProps> = ({
             </div>
           ) : (
             <AnimatePresence>
-              <div className='space-y-1'>
+              <div className='w-full space-y-1'>
                 {threads.map(thread => (
                   <motion.div
                     key={thread.id}
