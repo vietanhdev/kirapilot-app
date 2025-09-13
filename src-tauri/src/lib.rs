@@ -564,13 +564,13 @@ async fn get_all_threads() -> Result<Vec<serde_json::Value>, String> {
 }
 
 #[tauri::command]
-async fn get_threads_by_task(task_id: String) -> Result<Vec<serde_json::Value>, String> {
+async fn get_threads_by_task(#[allow(non_snake_case)] taskId: String) -> Result<Vec<serde_json::Value>, String> {
     let db = get_database()
         .await
         .map_err(|e| format!("Database error: {}", e))?;
     let repo = ThreadRepository::new(db);
 
-    match repo.find_by_task_id(&task_id).await {
+    match repo.find_by_task_id(&taskId).await {
         Ok(threads) => Ok(threads
             .into_iter()
             .map(|t| serde_json::to_value(t).unwrap_or_default())

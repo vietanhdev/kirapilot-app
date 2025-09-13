@@ -609,4 +609,18 @@ export const de = {
   // AI Model Types
   'ai.model.local': 'Lokales Modell',
   'ai.model.gemini': 'Gemini API',
+
+  // Kira thread keys
+  'kira.thread.found': 'Unterhaltung Gefunden',
+  'kira.thread.navigatedToExisting':
+    'Zu bestehender Unterhaltung für "{title}" navigiert',
+  'kira.thread.created': 'Unterhaltung Erstellt',
+  'kira.thread.createdForTask': 'Neue Unterhaltung für "{title}" erstellt',
+  'kira.thread.createFailed': 'Fehler beim Erstellen der Unterhaltung',
+  'kira.thread.createFailedMessage':
+    'Unterhaltung konnte nicht erstellt werden. Bitte versuchen Sie es erneut.',
+  'kira.thread.error': 'Unterhaltung Fehler',
+  'kira.thread.errorMessage':
+    'Unterhaltung konnte nicht gestartet werden. Bitte versuchen Sie es erneut.',
+  'kira.thread.initialMessage': 'Lassen Sie mich Ihnen mit "{title}" helfen',
 };

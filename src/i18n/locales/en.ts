@@ -439,6 +439,20 @@ export const en = {
   'tasks.delete': 'Delete Task',
   'tasks.complete': 'Complete Task',
   'tasks.chatWithKira': 'Chat with Kira about this task',
+
+  // Kira thread keys
+  'kira.thread.found': 'Thread Found',
+  'kira.thread.navigatedToExisting':
+    'Navigated to existing thread for "{title}"',
+  'kira.thread.created': 'Thread Created',
+  'kira.thread.createdForTask': 'Created new chat thread for "{title}"',
+  'kira.thread.createFailed': 'Thread Creation Failed',
+  'kira.thread.createFailedMessage':
+    'Failed to create chat thread. Please try again.',
+  'kira.thread.error': 'Thread Error',
+  'kira.thread.errorMessage': 'Failed to start chat thread. Please try again.',
+  'kira.thread.initialMessage': 'Let me help you with "{title}"',
+
   'tasks.priority': 'Priority',
   'tasks.dueDate': 'Due Date',
   'tasks.description': 'Description',
@@ -757,12 +771,6 @@ export const en = {
   'kira.success.threadAssigned': 'Thread assigned successfully',
   'kira.success.messageSent': 'Message sent successfully',
   'kira.success.feedbackSubmitted': 'Feedback submitted successfully',
-  'kira.thread.created': 'Thread Created',
-  'kira.thread.createdForTask': 'Started a new conversation about "{title}"',
-  'kira.thread.createFailed': 'Failed to Create Thread',
-  'kira.thread.createFailedMessage':
-    'Unable to start a conversation. Please try again.',
-  'kira.thread.initialMessage': 'Help me with my task: "{title}"',
   'kira.success.responseRegenerated': 'Response regenerated successfully',
 
   // Task Modal

@@ -53,6 +53,7 @@ export function KiraView() {
   const {
     threads,
     createThread,
+    selectThread,
     deleteThread,
     assignThread,
     isLoading: threadsLoading,
@@ -88,6 +89,7 @@ export function KiraView() {
   const selectedThreadRef = useRef(selectedThread);
   const showAssignmentModalRef = useRef(showAssignmentModal);
   const sidebarCollapsedRef = useRef(sidebarCollapsed);
+  const isManualSelectionRef = useRef(false);
 
   // Update refs when state changes
   threadsRef.current = threads;
@@ -188,10 +190,22 @@ export function KiraView() {
     const threadId = viewParams.threadId as string;
     const autoStart = viewParams.autoStart as boolean;
 
+    // Don't interfere if user is manually selecting a thread
+    if (isManualSelectionRef.current) {
+      return;
+    }
+
     if (threadId && threads.length > 0) {
       const thread = threads.find(t => t.id === threadId);
-      if (thread && (!selectedThread || selectedThread.id !== threadId)) {
+      // Use ref to get current selectedThread to avoid circular dependency
+      const currentSelectedThread = selectedThreadRef.current;
+      if (
+        thread &&
+        (!currentSelectedThread || currentSelectedThread.id !== threadId)
+      ) {
         setSelectedThread(thread);
+        // Update the hook's activeThread state as well
+        selectThread(threadId);
         // Auto-collapse sidebar on mobile for better UX
         if (window.innerWidth < 768) {
           setSidebarCollapsed(true);
@@ -210,7 +224,7 @@ export function KiraView() {
         }
       }
     }
-  }, [viewParams.threadId, viewParams.autoStart, threads, selectedThread]);
+  }, [viewParams.threadId, viewParams.autoStart, threads, selectThread]);
 
   // Periodic health check
   useEffect(() => {
@@ -256,14 +270,25 @@ export function KiraView() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const handleThreadSelect = (threadId: string) => {
+  const handleThreadSelect = async (threadId: string) => {
+    // Set flag to prevent useEffect from interfering with manual selection
+    isManualSelectionRef.current = true;
+
     const thread = threads.find(t => t.id === threadId);
     setSelectedThread(thread || null);
+
+    // Update the hook's activeThread state as well
+    await selectThread(threadId);
 
     // Auto-collapse sidebar on mobile after selection for better UX
     if (window.innerWidth < 768) {
       setSidebarCollapsed(true);
     }
+
+    // Clear the manual selection flag after a short delay to allow state to settle
+    setTimeout(() => {
+      isManualSelectionRef.current = false;
+    }, 100);
   };
 
   const handleNewThread = async () => {
@@ -296,11 +321,21 @@ export function KiraView() {
 
     const newThread = await createThread();
     if (newThread) {
+      // Set flag to prevent useEffect from interfering
+      isManualSelectionRef.current = true;
+
       setSelectedThread(newThread);
+      // Update the hook's activeThread state as well
+      await selectThread(newThread.id);
       showSuccess(
         'Thread created',
         'New conversation thread has been created successfully.'
       );
+
+      // Clear the manual selection flag after a short delay
+      setTimeout(() => {
+        isManualSelectionRef.current = false;
+      }, 100);
     } else if (threadsError) {
       showError(
         'Failed to create thread',
@@ -326,6 +361,7 @@ export function KiraView() {
     if (success) {
       if (selectedThread?.id === threadId) {
         setSelectedThread(null);
+        // No need to call selectThread(null) as the useThreads hook already handles active thread cleanup on deletion
       }
       showSuccess('Thread deleted', 'Thread has been deleted successfully.');
     } else if (threadsError) {
@@ -364,7 +400,17 @@ export function KiraView() {
 
         // Update selected thread if it's the one being assigned
         if (selectedThread?.id === assignmentThreadId) {
+          // Set flag to prevent useEffect from interfering
+          isManualSelectionRef.current = true;
+
           setSelectedThread(updatedThread);
+          // Update the hook's activeThread state as well
+          await selectThread(updatedThread.id);
+
+          // Clear the manual selection flag after a short delay
+          setTimeout(() => {
+            isManualSelectionRef.current = false;
+          }, 100);
         }
 
         showSuccess(

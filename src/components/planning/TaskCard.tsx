@@ -484,7 +484,29 @@ export function TaskCard({
     e.stopPropagation();
 
     try {
-      // Create a thread assigned to this task
+      // First, check if there are already existing threads for this task
+      const threadService = new (
+        await import('../../services/database/repositories/ThreadService')
+      ).ThreadService();
+      const existingThreads = await threadService.findByTaskId(task.id);
+
+      if (existingThreads.length > 0) {
+        // If threads exist, navigate to the most recent one (they're already sorted by last activity)
+        const mostRecentThread = existingThreads[0];
+        navigateTo('kira', { threadId: mostRecentThread.id });
+        showSuccess(
+          t('kira.thread.found'),
+          t('kira.thread.navigatedToExisting', { title: task.title })
+        );
+
+        // Call the optional callback if provided
+        if (onStartKiraThread) {
+          onStartKiraThread(task);
+        }
+        return;
+      }
+
+      // If no existing threads, create a new one
       const newThread = await createThread({
         type: 'task',
         taskId: task.id,
@@ -515,11 +537,8 @@ export function TaskCard({
         );
       }
     } catch (error) {
-      console.error('Failed to create Kira thread:', error);
-      showError(
-        t('kira.thread.createFailed'),
-        t('kira.thread.createFailedMessage')
-      );
+      console.error('Failed to start Kira thread:', error);
+      showError(t('kira.thread.error'), t('kira.thread.errorMessage'));
     }
   };
 

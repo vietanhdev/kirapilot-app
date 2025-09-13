@@ -176,7 +176,7 @@ describe('ThreadService', () => {
       const result = await threadService.findByTaskId('task-1');
 
       expect(mockInvoke).toHaveBeenCalledWith('get_threads_by_task', {
-        task_id: 'task-1',
+        taskId: 'task-1',
       });
       expect(result).toHaveLength(1);
       expect(result[0].assignment?.taskId).toBe('task-1');

@@ -1,8 +1,10 @@
+import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { KiraView } from '../KiraView';
 import { useThreads } from '../../../hooks/useThreads';
 import { useThreadMessages } from '../../../hooks/useThreadMessages';
 import { Thread, ThreadAssignment } from '../../../types/thread';
+import { NavigationProvider } from '../../../contexts/NavigationContext';
 
 // Mock react-markdown and related modules
 jest.mock('react-markdown', () => {
@@ -102,11 +104,26 @@ jest.mock('../../../contexts/AIContext', () => ({
     isLoading: false,
     error: null,
     clearError: jest.fn(),
+    getModelStatus: () => ({
+      isReady: true,
+      error: null,
+    }),
   }),
   AIProvider: ({ children }: { children: React.ReactNode }) => (
     <div>{children}</div>
   ),
 }));
+
+// Create a test wrapper component that provides all necessary contexts
+const TestWrapper = ({ children }: { children: React.ReactNode }) => (
+  <NavigationProvider
+    currentView='kira'
+    viewParams={{}}
+    onViewChange={jest.fn()}
+  >
+    {children}
+  </NavigationProvider>
+);
 
 const mockUseThreads = useThreads as jest.MockedFunction<typeof useThreads>;
 const mockUseThreadMessages = useThreadMessages as jest.MockedFunction<
@@ -140,12 +157,15 @@ describe('KiraView', () => {
     isDeleting: false,
     isUpdating: false,
     error: null,
+    retryCount: 0,
     createThread: mockCreateThread,
     selectThread: mockSelectThread,
     deleteThread: mockDeleteThread,
     updateThread: mockUpdateThread,
     assignThread: mockAssignThread,
+    refreshThreads: jest.fn(),
     clearError: jest.fn(),
+    clearActiveThread: jest.fn(),
     retryLastOperation: jest.fn(),
   };
 
@@ -162,8 +182,10 @@ describe('KiraView', () => {
     messages: [],
     isLoading: false,
     isSending: false,
+    isSubmittingFeedback: false,
     isRegenerating: false,
     error: null,
+    retryCount: 0,
     sendMessage: mockSendMessage,
     loadMessages: mockLoadMessages,
     clearMessages: mockClearMessages,
@@ -197,7 +219,7 @@ describe('KiraView', () => {
   });
 
   it('should render thread sidebar and chat area', () => {
-    render(<KiraView />);
+    render(<KiraView />, { wrapper: TestWrapper });
 
     // Should show thread sidebar
     expect(screen.getByText('Test Thread')).toBeInTheDocument();
@@ -207,7 +229,7 @@ describe('KiraView', () => {
   });
 
   it('should render and handle basic interactions', async () => {
-    render(<KiraView />);
+    render(<KiraView />, { wrapper: TestWrapper });
 
     // Initially should show no thread selected
     expect(screen.getByText('kira.chat.noThreadSelected')).toBeInTheDocument();
@@ -223,7 +245,7 @@ describe('KiraView', () => {
   });
 
   it('should handle thread assignment updates', async () => {
-    render(<KiraView />);
+    render(<KiraView />, { wrapper: TestWrapper });
 
     // Select a thread
     fireEvent.click(screen.getByText('Test Thread'));
@@ -245,7 +267,7 @@ describe('KiraView', () => {
   });
 
   it('should render new thread button', () => {
-    render(<KiraView />);
+    render(<KiraView />, { wrapper: TestWrapper });
 
     // Find the new thread button by its text content
     const newThreadButton = screen.getByText('kira.sidebar.newThread');
@@ -257,7 +279,7 @@ describe('KiraView', () => {
   });
 
   it('should handle thread deletion', async () => {
-    render(<KiraView />);
+    render(<KiraView />, { wrapper: TestWrapper });
 
     // Select a thread first
     fireEvent.click(screen.getByText('Test Thread'));
@@ -274,7 +296,7 @@ describe('KiraView', () => {
     it('should set up keyboard event listeners', () => {
       const addEventListenerSpy = jest.spyOn(document, 'addEventListener');
 
-      render(<KiraView />);
+      render(<KiraView />, { wrapper: TestWrapper });
 
       // Verify that keyboard event listeners are set up
       expect(addEventListenerSpy).toHaveBeenCalledWith(
@@ -288,7 +310,7 @@ describe('KiraView', () => {
     it('should handle window resize events', () => {
       const addEventListenerSpy = jest.spyOn(window, 'addEventListener');
 
-      render(<KiraView />);
+      render(<KiraView />, { wrapper: TestWrapper });
 
       // Verify that resize event listeners are set up
       expect(addEventListenerSpy).toHaveBeenCalledWith(
@@ -311,7 +333,7 @@ describe('KiraView', () => {
         threads: mockThreads,
       });
 
-      render(<KiraView />);
+      render(<KiraView />, { wrapper: TestWrapper });
 
       // All threads should be visible in the sidebar
       expect(screen.getByText('Thread 1')).toBeInTheDocument();
@@ -320,7 +342,7 @@ describe('KiraView', () => {
     });
 
     it('should handle sidebar focus', () => {
-      render(<KiraView />);
+      render(<KiraView />, { wrapper: TestWrapper });
 
       // The sidebar should be focusable
       const sidebar = screen.getByTestId('thread-sidebar');
@@ -333,7 +355,7 @@ describe('KiraView', () => {
     });
 
     it('should prevent shortcuts when input elements are focused', () => {
-      render(<KiraView />);
+      render(<KiraView />, { wrapper: TestWrapper });
 
       // Create a mock input element to test the keyboard shortcut prevention logic
       const mockInput = document.createElement('input');
@@ -349,7 +371,7 @@ describe('KiraView', () => {
     });
 
     it('should handle escape key events', () => {
-      render(<KiraView />);
+      render(<KiraView />, { wrapper: TestWrapper });
 
       // Should not throw any errors when escape is pressed
       const event = new KeyboardEvent('keydown', { key: 'Escape' });

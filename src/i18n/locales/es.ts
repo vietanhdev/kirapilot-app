@@ -578,4 +578,18 @@ export const es = {
   // AI Model Types
   'ai.model.local': 'Modelo Local',
   'ai.model.gemini': 'API Gemini',
+
+  // Kira thread keys
+  'kira.thread.found': 'Conversación Encontrada',
+  'kira.thread.navigatedToExisting':
+    'Navegado a conversación existente para "{title}"',
+  'kira.thread.created': 'Conversación Creada',
+  'kira.thread.createdForTask': 'Nueva conversación creada para "{title}"',
+  'kira.thread.createFailed': 'Error al Crear Conversación',
+  'kira.thread.createFailedMessage':
+    'No se pudo crear la conversación. Por favor, inténtalo de nuevo.',
+  'kira.thread.error': 'Error de Conversación',
+  'kira.thread.errorMessage':
+    'No se pudo iniciar la conversación. Por favor, inténtalo de nuevo.',
+  'kira.thread.initialMessage': 'Déjame ayudarte con "{title}"',
 };

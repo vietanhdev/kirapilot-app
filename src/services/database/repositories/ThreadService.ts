@@ -76,7 +76,7 @@ export class ThreadService {
       const result = await invoke<Record<string, unknown>[]>(
         'get_threads_by_task',
         {
-          task_id: taskId,
+          taskId: taskId,
         }
       );
       return result.map(thread => this.transformThreadFromBackend(thread));
