@@ -211,19 +211,8 @@ export const Header: React.FC<HeaderProps> = ({
             <span className='hidden sm:inline text-sm'>Focus</span>
           </button>
 
-          {/* Dashboard/Week/Day/Kira View Toggle */}
+          {/* Week/Day/Kira View Toggle */}
           <div className='flex rounded-lg border border-divider overflow-hidden bg-content2 shadow-sm'>
-            <button
-              onClick={() => onViewChange('dashboard')}
-              className={`px-3 sm:px-4 py-2 text-sm font-medium transition-all duration-200 ${
-                currentView === 'dashboard'
-                  ? 'bg-primary-500 text-white shadow-sm'
-                  : 'text-foreground-700 hover:text-foreground hover:bg-content3'
-              }`}
-            >
-              Today
-            </button>
-            <div className='w-px bg-divider' />
             <button
               onClick={() => onViewChange('week')}
               className={`px-3 sm:px-4 py-2 text-sm font-medium transition-all duration-200 ${
