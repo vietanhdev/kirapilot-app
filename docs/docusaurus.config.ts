@@ -94,15 +94,9 @@ const config: Config = {
       items: [
         {
           type: 'docSidebar',
-          sidebarId: 'userGuide',
-          position: 'left',
-          label: 'User Guide',
-        },
-        {
-          type: 'docSidebar',
           sidebarId: 'developer',
           position: 'left',
-          label: 'Developer',
+          label: 'Developer Guide & API Reference',
         },
 
         {

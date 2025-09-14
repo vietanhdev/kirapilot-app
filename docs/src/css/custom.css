@@ -1586,3 +1586,23 @@ html {
     left: -1rem;
   }
 }
+
+/* Welcome section styling */
+.docs-welcome-section {
+  text-align: center;
+  margin: 3rem 0;
+}
+
+.docs-welcome-title {
+  color: #10b981;
+  margin-bottom: 1rem;
+}
+
+.docs-welcome-subtitle {
+  font-size: 1.125rem;
+  color: #64748b;
+}
+
+[data-theme='dark'] .docs-welcome-subtitle {
+  color: #94a3b8;
+}

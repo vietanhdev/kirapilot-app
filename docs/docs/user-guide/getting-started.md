@@ -385,7 +385,7 @@ Stuck on something? We've got you covered with multiple support options.
 
 ---
 
-<div style="text-align: center; margin: 3rem 0;">
-<h3 style="color: #10b981; margin-bottom: 1rem;">🚀 Welcome to KiraPilot!</h3>
-<p style="font-size: 1.125rem; color: #64748b;">We're excited to help you navigate your day with precision.</p>
+<div className="docs-welcome-section">
+<h3 className="docs-welcome-title">🚀 Welcome to KiraPilot!</h3>
+<p className="docs-welcome-subtitle">We're excited to help you navigate your day with precision.</p>
 </div>
