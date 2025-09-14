@@ -41,7 +41,7 @@ Built with **privacy in mind**, KiraPilot stores all your data locally using SQL
 <div class="docs-progress">
 <div class="docs-progress-text">Progress:</div>
 <div class="docs-progress-bar">
-<div class="docs-progress-fill" style="width: 25%"></div>
+<div class="docs-progress-fill" style={{width: '25%'}}></div>
 </div>
 <div class="docs-progress-text">Step 1 of 4</div>
 </div>
@@ -107,7 +107,7 @@ Analytics and insights about your productivity patterns.
 <div class="docs-progress">
 <div class="docs-progress-text">Progress:</div>
 <div class="docs-progress-bar">
-<div class="docs-progress-fill" style="width: 75%"></div>
+<div class="docs-progress-fill" style={{width: '75%'}}></div>
 </div>
 <div class="docs-progress-text">Step 3 of 4</div>
 </div>
@@ -196,7 +196,7 @@ The timer automatically tracks:
 <div class="docs-progress">
 <div class="docs-progress-text">Progress:</div>
 <div class="docs-progress-bar">
-<div class="docs-progress-fill" style="width: 100%"></div>
+<div class="docs-progress-fill" style={{width: '100%'}}></div>
 </div>
 <div class="docs-progress-text">Complete!</div>
 </div>
