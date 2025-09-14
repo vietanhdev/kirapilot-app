@@ -7,14 +7,14 @@ import { VirtualPeriodicTaskService } from '../../services/database/repositories
 import { useTaskList } from '../../contexts/TaskListContext';
 import { WeeklyPlan } from './WeeklyPlan';
 import { TaskFilterBar } from './TaskFilterBar';
-import { TaskDashboard } from './TaskDashboard';
+
 import { FocusView } from './FocusView';
 
 interface PlanningScreenProps {
-  viewMode?: 'week' | 'day' | 'dashboard' | 'focus';
+  viewMode?: 'week' | 'day' | 'focus';
 }
 
-export function Planner({ viewMode = 'dashboard' }: PlanningScreenProps) {
+export function Planner({ viewMode = 'week' }: PlanningScreenProps) {
   const { isInitialized } = useDatabase();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [virtualTasks, setVirtualTasks] = useState<VirtualTask[]>([]);
@@ -649,18 +649,6 @@ export function Planner({ viewMode = 'dashboard' }: PlanningScreenProps) {
               filters={filters}
               onFiltersChange={setFilters}
               showPeriodicFilters={true}
-            />
-          )}
-
-          {/* Dashboard View */}
-          {viewMode === 'dashboard' && (
-            <TaskDashboard
-              tasks={filteredTasks}
-              onTaskStatusChange={handleTaskStatusChange}
-              onTaskEdit={handleTaskEdit}
-              onTaskDelete={handleTaskDelete}
-              onViewTimeHistory={handleViewTimeHistory}
-              getTaskTimerProps={getTaskTimerProps}
             />
           )}
 

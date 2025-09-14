@@ -113,13 +113,13 @@ export const Header: React.FC<HeaderProps> = ({
       // Clear any stored state since we're always maximizing
       WindowStateManager.clearWindowState();
 
-      // Switch back to dashboard view
-      onViewChange('dashboard');
+      // Switch back to week view
+      onViewChange('week');
     } catch (error) {
       console.error('❌ Error expanding window:', error);
 
-      // Even if maximization fails, still switch back to dashboard
-      onViewChange('dashboard');
+      // Even if maximization fails, still switch back to week view
+      onViewChange('week');
     }
   };
 

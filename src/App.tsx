@@ -27,7 +27,7 @@ import { initializeDebugCommands } from './utils/debugCommands';
 import './App.css';
 
 function AppContent() {
-  const [currentView, setCurrentView] = useState('dashboard');
+  const [currentView, setCurrentView] = useState('week');
   const [viewParams, setViewParams] = useState<Record<string, unknown>>({});
   const { resolvedTheme } = useTheme();
   const { isMaximized } = useWindowState();
@@ -69,7 +69,6 @@ function AppContent() {
     if (
       currentView === 'week' ||
       currentView === 'day' ||
-      currentView === 'dashboard' ||
       currentView === 'focus' ||
       currentView === 'recurring'
     ) {
@@ -110,11 +109,8 @@ function AppContent() {
           >
             {(currentView === 'week' ||
               currentView === 'day' ||
-              currentView === 'dashboard' ||
               currentView === 'focus') && (
-              <Planner
-                viewMode={currentView as 'week' | 'day' | 'dashboard' | 'focus'}
-              />
+              <Planner viewMode={currentView as 'week' | 'day' | 'focus'} />
             )}
 
             {currentView === 'recurring' && <PeriodicTasksView />}
