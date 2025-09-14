@@ -15,7 +15,7 @@ const screenshots: ScreenshotItem[] = [
     title: 'Weekly Overview',
     description:
       'Get a comprehensive view of your week with task distribution, time allocation, and productivity insights. Plan ahead and track your progress.',
-    image: '/screenshots/week.png',
+    image: '/img/screenshots/week.png',
     features: [
       'Week-at-a-glance view',
       'Task distribution analysis',

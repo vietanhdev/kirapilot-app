@@ -12,19 +12,19 @@ const demoData: DemoData[] = [
   {
     id: 'week',
     title: 'Weekly Planning',
-    image: '/screenshots/week.png',
+    image: '/img/screenshots/week.png',
     subtitle: 'Organize your entire week',
   },
   {
     id: 'kira',
     title: 'AI Assistant',
-    image: '/screenshots/kira.png',
+    image: '/img/screenshots/kira.png',
     subtitle: 'Chat with your productivity companion',
   },
   {
     id: 'focus',
     title: 'Focus Sessions',
-    image: '/screenshots/focus.png',
+    image: '/img/screenshots/focus.png',
     subtitle: 'Deep work made simple',
   },
 ];

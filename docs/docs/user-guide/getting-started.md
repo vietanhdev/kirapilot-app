@@ -1,30 +1,86 @@
 # Getting Started
 
-Welcome to KiraPilot! This guide will help you get up and running with your new productivity companion.
+Welcome to KiraPilot! 🚀 This guide will help you get up and running with your new productivity companion in just a few minutes.
+
+<div class="docs-callout docs-callout--tip">
+<div class="docs-callout-title">Quick Start</div>
+Ready to boost your productivity? Follow this guide to set up KiraPilot and create your first task in under 5 minutes.
+</div>
 
 ## What is KiraPilot?
 
-KiraPilot is a cross-platform productivity application that combines task management, time tracking, and intelligent AI assistance. Navigate your day with precision through beautiful design and smart automation.
+KiraPilot is a **modern productivity powerhouse** that brings together:
 
-Built with privacy in mind, KiraPilot stores all your data locally using SQLite, ensuring your productivity information stays on your device.
+<div class="docs-feature-grid">
+<div class="docs-feature-item">
+<div class="docs-feature-icon">📋</div>
+<div class="docs-feature-title">Smart Task Management</div>
+<div class="docs-feature-description">Organize work with intelligent scheduling and priority management</div>
+</div>
+<div class="docs-feature-item">
+<div class="docs-feature-icon">⏱️</div>
+<div class="docs-feature-title">Built-in Time Tracking</div>
+<div class="docs-feature-description">Track your time effortlessly with integrated timers and analytics</div>
+</div>
+<div class="docs-feature-item">
+<div class="docs-feature-icon">🤖</div>
+<div class="docs-feature-title">AI Assistant</div>
+<div class="docs-feature-description">Chat with Kira for suggestions, task creation, and productivity insights</div>
+</div>
+<div class="docs-feature-item">
+<div class="docs-feature-icon">🔒</div>
+<div class="docs-feature-title">Privacy First</div>
+<div class="docs-feature-description">All data stays local with SQLite storage - no cloud, no worries</div>
+</div>
+</div>
+
+Built with **privacy in mind**, KiraPilot stores all your data locally using SQLite, ensuring your productivity information never leaves your device.
 
 ## Installation
 
+<div class="docs-progress">
+<div class="docs-progress-text">Progress:</div>
+<div class="docs-progress-bar">
+<div class="docs-progress-fill" style="width: 25%"></div>
+</div>
+<div class="docs-progress-text">Step 1 of 4</div>
+</div>
+
 ### System Requirements
 
-- **macOS**: 10.15 (Catalina) or later
-- **Windows**: Windows 10 version 1903 or later
-- **Linux**: Ubuntu 18.04, Debian 10, or equivalent
+| Platform       | Requirements                           |
+| -------------- | -------------------------------------- |
+| **🍎 macOS**   | 10.15 (Catalina) or later              |
+| **🪟 Windows** | Windows 10 version 1903 or later       |
+| **🐧 Linux**   | Ubuntu 18.04, Debian 10, or equivalent |
 
 ### Download and Install
 
-1. Visit the [KiraPilot releases page](https://github.com/vietanhdev/kirapilot-app/releases)
-2. Download the appropriate installer for your operating system:
-   - **macOS**: `.dmg` file
-   - **Windows**: `.msi` installer
-   - **Linux**: `.AppImage` or `.deb` package
-3. Run the installer and follow the setup wizard
-4. Launch KiraPilot from your applications folder or start menu
+<div class="docs-steps">
+<div class="docs-step">
+<h4>Visit the releases page</h4>
+Head to the <a href="https://github.com/vietanhdev/kirapilot-app/releases">KiraPilot releases page</a> to download the latest version.
+</div>
+
+<div class="docs-step">
+<h4>Choose your installer</h4>
+<ul>
+<li><strong>macOS</strong>: Download the <code>.dmg</code> file</li>
+<li><strong>Windows</strong>: Download the <code>.msi</code> installer</li>
+<li><strong>Linux</strong>: Choose <code>.AppImage</code> or <code>.deb</code> package</li>
+</ul>
+</div>
+
+<div class="docs-step">
+<h4>Run the installer</h4>
+Double-click the downloaded file and follow the setup wizard. The installation takes about 30 seconds.
+</div>
+
+<div class="docs-step">
+<h4>Launch KiraPilot</h4>
+Find KiraPilot in your applications folder (macOS), start menu (Windows), or applications menu (Linux) and launch it.
+</div>
+</div>
 
 ## First Launch Setup
 
@@ -48,21 +104,67 @@ Analytics and insights about your productivity patterns.
 
 ## Creating Your First Task
 
+<div class="docs-progress">
+<div class="docs-progress-text">Progress:</div>
+<div class="docs-progress-bar">
+<div class="docs-progress-fill" style="width: 75%"></div>
+</div>
+<div class="docs-progress-text">Step 3 of 4</div>
+</div>
+
 Let's create your first task to get familiar with KiraPilot:
 
-1. **Click the "+" button** in the top-right corner of any column
-2. **Enter a task title** - something like "Learn KiraPilot basics"
-3. **Add a description** (optional) - use the rich text editor to format your notes
-4. **Set priority level**:
-   - 🔴 **Urgent**: Critical tasks that need immediate attention
-   - 🟡 **High**: Important tasks with deadlines
-   - 🔵 **Medium**: Regular tasks (default)
-   - ⚪ **Low**: Nice-to-have tasks
-5. **Estimate time** - how long you think the task will take
-6. **Add tags** (optional) - for categorization like "work", "personal", "learning"
-7. **Click "Create Task"**
+<div class="docs-steps">
+<div class="docs-step">
+<h4>Open the task creator</h4>
+Click the <strong>"+"</strong> button in the top-right corner of any column to open the new task dialog.
+</div>
 
-Your task will appear in the Backlog column, ready to be scheduled.
+<div class="docs-step">
+<h4>Enter task details</h4>
+<ul>
+<li><strong>Title</strong>: "Learn KiraPilot basics" (be specific!)</li>
+<li><strong>Description</strong>: Add context using the rich text editor</li>
+<li><strong>Time estimate</strong>: How long will this take?</li>
+</ul>
+</div>
+
+<div class="docs-step">
+<h4>Set priority level</h4>
+<div class="docs-feature-grid">
+<div class="docs-feature-item">
+<div class="docs-feature-icon">🔴</div>
+<div class="docs-feature-title">Urgent</div>
+<div class="docs-feature-description">Critical tasks, emergencies, hard deadlines</div>
+</div>
+<div class="docs-feature-item">
+<div class="docs-feature-icon">🟡</div>
+<div class="docs-feature-title">High</div>
+<div class="docs-feature-description">Important tasks with near-term deadlines</div>
+</div>
+<div class="docs-feature-item">
+<div class="docs-feature-icon">🔵</div>
+<div class="docs-feature-title">Medium</div>
+<div class="docs-feature-description">Regular work tasks (default)</div>
+</div>
+<div class="docs-feature-item">
+<div class="docs-feature-icon">⚪</div>
+<div class="docs-feature-title">Low</div>
+<div class="docs-feature-description">Nice-to-have tasks, learning</div>
+</div>
+</div>
+</div>
+
+<div class="docs-step">
+<h4>Add tags (optional)</h4>
+Use tags like <code>work</code>, <code>personal</code>, <code>learning</code> to categorize your tasks for easy filtering.
+</div>
+
+<div class="docs-step">
+<h4>Create the task</h4>
+Click <strong>"Create Task"</strong> and watch it appear in your Backlog column, ready to be scheduled!
+</div>
+</div>
 
 ## Scheduling Tasks
 
@@ -91,18 +193,47 @@ The timer automatically tracks:
 
 ## Meeting Your AI Assistant
 
-KiraPilot includes an intelligent AI assistant powered by Google Gemini that can help with task management and productivity insights:
+<div class="docs-progress">
+<div class="docs-progress-text">Progress:</div>
+<div class="docs-progress-bar">
+<div class="docs-progress-fill" style="width: 100%"></div>
+</div>
+<div class="docs-progress-text">Complete!</div>
+</div>
 
-1. **Click the floating AI button** (🤖) in the bottom-right corner
-2. **Set up your Google Gemini API key** if prompted (get one from [Google AI Studio](https://aistudio.google.com/))
-3. **Start chatting** with natural language commands like:
-   - "Create a task to review quarterly reports"
-   - "Show me my tasks for tomorrow"
-   - "Start a timer for my current task"
-   - "How productive was I this week?"
-   - "Schedule my high-priority tasks for tomorrow"
+<div class="docs-callout docs-callout--info">
+<div class="docs-callout-title">Meet Kira</div>
+KiraPilot includes an intelligent AI assistant powered by Google Gemini that can help with task management and productivity insights.
+</div>
 
-The AI assistant has access to all your tasks and time data through specialized tools, making it a powerful productivity companion that understands your workflow.
+<div class="docs-steps">
+<div class="docs-step">
+<h4>Access the AI assistant</h4>
+Click the floating AI button (🤖) in the bottom-right corner to start chatting with Kira.
+</div>
+
+<div class="docs-step">
+<h4>Set up Google Gemini (optional)</h4>
+If prompted, get your API key from <a href="https://aistudio.google.com/">Google AI Studio</a> for enhanced AI capabilities.
+</div>
+
+<div class="docs-step">
+<h4>Start chatting</h4>
+Try these natural language commands:
+<ul>
+<li><strong>"Create a task to review quarterly reports"</strong></li>
+<li><strong>"Show me my tasks for tomorrow"</strong></li>
+<li><strong>"Start a timer for my current task"</strong></li>
+<li><strong>"How productive was I this week?"</strong></li>
+<li><strong>"Schedule my high-priority tasks for tomorrow"</strong></li>
+</ul>
+</div>
+</div>
+
+<div class="docs-callout docs-callout--tip">
+<div class="docs-callout-title">Pro Tip</div>
+The AI assistant has access to all your tasks and time data through specialized tools, making it a powerful productivity companion that truly understands your workflow.
+</div>
 
 ## Understanding Task Lists
 
@@ -200,21 +331,61 @@ Access Settings (⚙️) to customize:
 
 ## Next Steps
 
-Now that you're set up, explore these guides to master KiraPilot:
+<div class="docs-callout docs-callout--tip">
+<div class="docs-callout-title">🎉 You're all set!</div>
+Now that you're up and running, dive deeper into KiraPilot's powerful features.
+</div>
 
-- **[Task Management](./task-management)** - Learn advanced task organization, dependencies, and rich text features
-- **[Time Tracking](./time-tracking)** - Master timer features, analytics, and productivity insights
-- **[AI Assistant](./ai-assistant)** - Discover natural language commands and AI-powered suggestions
-- **[Keyboard Shortcuts](./keyboard-shortcuts)** - Speed up your workflow with hotkeys
-- **[Customization](./customization)** - Personalize KiraPilot to match your workflow
+### 📚 Master the Essentials
 
-## Need Help?
+<div class="docs-feature-grid">
+<div class="docs-feature-item">
+<div class="docs-feature-icon">📋</div>
+<div class="docs-feature-title"><a href="./task-management">Task Management</a></div>
+<div class="docs-feature-description">Advanced organization, dependencies, and rich text features</div>
+</div>
+<div class="docs-feature-item">
+<div class="docs-feature-icon">⏱️</div>
+<div class="docs-feature-title"><a href="./time-tracking">Time Tracking</a></div>
+<div class="docs-feature-description">Master timers, analytics, and productivity insights</div>
+</div>
+<div class="docs-feature-item">
+<div class="docs-feature-icon">🤖</div>
+<div class="docs-feature-title"><a href="./ai-assistant">AI Assistant</a></div>
+<div class="docs-feature-description">Natural language commands and smart suggestions</div>
+</div>
+<div class="docs-feature-item">
+<div class="docs-feature-icon">⚡</div>
+<div class="docs-feature-title"><a href="./keyboard-shortcuts">Shortcuts</a></div>
+<div class="docs-feature-description">Speed up your workflow with hotkeys</div>
+</div>
+<div class="docs-feature-item">
+<div class="docs-feature-icon">🎨</div>
+<div class="docs-feature-title"><a href="./customization">Customization</a></div>
+<div class="docs-feature-description">Personalize KiraPilot to match your style</div>
+</div>
+<div class="docs-feature-item">
+<div class="docs-feature-icon">🔍</div>
+<div class="docs-feature-title"><a href="./pattern-recognition">Patterns</a></div>
+<div class="docs-feature-description">Understand your productivity patterns</div>
+</div>
+</div>
 
-If you run into any issues:
+### 🆘 Need Help?
 
-- **[Troubleshooting Guide](./troubleshooting)** - Common problems and solutions
-- **[FAQ](./faq)** - Frequently asked questions
-- **[GitHub Issues](https://github.com/vietanhdev/kirapilot-app/issues)** - Report bugs or request features
-- **[Community Discussions](https://github.com/vietanhdev/kirapilot-app/discussions)** - Connect with other users
+<div class="docs-callout docs-callout--info">
+<div class="docs-callout-title">Support Resources</div>
+Stuck on something? We've got you covered with multiple support options.
+</div>
 
-Welcome to KiraPilot! We're excited to help you navigate your day with precision. 🚀
+- **[📖 Troubleshooting Guide](./troubleshooting)** - Common problems and solutions
+- **[❓ FAQ](./faq)** - Frequently asked questions
+- **[🐛 GitHub Issues](https://github.com/vietanhdev/kirapilot-app/issues)** - Report bugs or request features
+- **[💬 Community](https://github.com/vietanhdev/kirapilot-app/discussions)** - Connect with other users
+
+---
+
+<div style="text-align: center; margin: 3rem 0;">
+<h3 style="color: #10b981; margin-bottom: 1rem;">🚀 Welcome to KiraPilot!</h3>
+<p style="font-size: 1.125rem; color: #64748b;">We're excited to help you navigate your day with precision.</p>
+</div>
