@@ -8,4 +8,6 @@ export { default as EnhancedTOC } from './EnhancedTOC';
 export { default as FeatureCard } from './FeatureCard';
 export { default as CodeExample } from './CodeExample';
 export { default as ScreenshotGallery } from './ScreenshotGallery';
+export { default as ScreenshotShowcase } from './ScreenshotShowcase';
 export { default as HomepageFeatures } from './HomepageFeatures';
+export { default as InteractiveDemo } from './InteractiveDemo';

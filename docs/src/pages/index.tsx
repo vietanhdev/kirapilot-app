@@ -4,6 +4,8 @@ import Link from '@docusaurus/Link';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 import Layout from '@theme/Layout';
 import HomepageFeatures from '@site/src/components/HomepageFeatures';
+import ScreenshotShowcase from '@site/src/components/ScreenshotShowcase';
+import InteractiveDemo from '@site/src/components/InteractiveDemo';
 import Heading from '@theme/Heading';
 
 import styles from './index.module.css';
@@ -25,10 +27,9 @@ function HomepageHeader() {
               <span className={styles.heroTitleAccent}> Precision</span>
             </Heading>
             <p className={clsx('hero__subtitle', styles.heroSubtitle)}>
-              A beautiful productivity app that combines elegant design with
-              smart automation. Track tasks, manage time, and boost your
-              productivity with AI assistance—all while keeping your data
-              private.
+              Experience the perfect blend of elegant design and intelligent
+              automation. See how KiraPilot transforms your productivity
+              workflow through powerful features that adapt to your needs.
             </p>
             <div className={styles.heroButtons}>
               <Link
@@ -60,7 +61,7 @@ function HomepageHeader() {
                   'button button--secondary button--lg',
                   styles.heroSecondary
                 )}
-                to='/docs/developer/setup'
+                to='https://github.com/vietanhdev/kirapilot-app/releases/latest'
               >
                 <svg
                   className={styles.heroSecondaryIcon}
@@ -70,128 +71,19 @@ function HomepageHeader() {
                   fill='none'
                 >
                   <path
-                    d='M6 7L3 10L6 13M14 7L17 10L14 13M11 3L9 17'
+                    d='M3 16.5v2A1.5 1.5 0 0 0 4.5 20h11a1.5 1.5 0 0 0 1.5-1.5v-2M10 14V3M6 7l4-4 4 4'
                     stroke='currentColor'
                     strokeWidth='2'
                     strokeLinecap='round'
                     strokeLinejoin='round'
                   />
                 </svg>
-                <span>Developer Guide</span>
+                <span>Download Now</span>
               </Link>
             </div>
           </div>
-          <div className={styles.heroVisual}>
-            <div className={styles.heroCard}>
-              <div className={styles.heroCardHeader}>
-                <div className={styles.heroCardDots}>
-                  <span></span>
-                  <span></span>
-                  <span></span>
-                </div>
-                <div className={styles.heroCardTitle}>KiraPilot</div>
-              </div>
-              <div className={styles.heroCardBody}>
-                <div className={styles.heroCardItem}>
-                  <div className={styles.heroCardIcon}>
-                    <svg
-                      width='16'
-                      height='16'
-                      viewBox='0 0 24 24'
-                      fill='none'
-                      stroke='currentColor'
-                      strokeWidth='2'
-                      strokeLinecap='round'
-                      strokeLinejoin='round'
-                    >
-                      <path d='M9 11l3 3 7-7' />
-                      <path d='M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9c1.59 0 3.09.41 4.39 1.13' />
-                    </svg>
-                  </div>
-                  <div className={styles.heroCardText}>
-                    <div className={styles.heroCardItemTitle}>
-                      Complete Project Design
-                    </div>
-                    <div className={styles.heroCardItemDesc}>Due today</div>
-                  </div>
-                  <div className={styles.heroCardStatus}></div>
-                </div>
-                <div className={styles.heroCardItem}>
-                  <div className={styles.heroCardIcon}>
-                    <svg
-                      width='16'
-                      height='16'
-                      viewBox='0 0 24 24'
-                      fill='none'
-                      stroke='currentColor'
-                      strokeWidth='2'
-                      strokeLinecap='round'
-                      strokeLinejoin='round'
-                    >
-                      <circle cx='12' cy='12' r='10' />
-                      <polyline points='12,6 12,12 16,14' />
-                    </svg>
-                  </div>
-                  <div className={styles.heroCardText}>
-                    <div className={styles.heroCardItemTitle}>
-                      Focus Session: 25 min
-                    </div>
-                    <div className={styles.heroCardItemDesc}>Deep work</div>
-                  </div>
-                  <div className={styles.heroCardTimer}>
-                    <svg
-                      width='16'
-                      height='16'
-                      viewBox='0 0 24 24'
-                      fill='none'
-                      stroke='currentColor'
-                      strokeWidth='2'
-                      strokeLinecap='round'
-                      strokeLinejoin='round'
-                    >
-                      <polygon points='5,3 19,12 5,21' />
-                    </svg>
-                  </div>
-                </div>
-                <div className={styles.heroCardItem}>
-                  <div className={styles.heroCardIcon}>
-                    <svg
-                      width='16'
-                      height='16'
-                      viewBox='0 0 24 24'
-                      fill='none'
-                      stroke='currentColor'
-                      strokeWidth='2'
-                      strokeLinecap='round'
-                      strokeLinejoin='round'
-                    >
-                      <path d='M9.75 9l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z' />
-                      <path d='M12 2v2m0 16v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M2 12h2m16 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42' />
-                    </svg>
-                  </div>
-                  <div className={styles.heroCardText}>
-                    <div className={styles.heroCardItemTitle}>
-                      AI: Schedule break
-                    </div>
-                    <div className={styles.heroCardItemDesc}>Suggestion</div>
-                  </div>
-                  <div className={styles.heroCardAI}>
-                    <svg
-                      width='16'
-                      height='16'
-                      viewBox='0 0 24 24'
-                      fill='none'
-                      stroke='currentColor'
-                      strokeWidth='2'
-                      strokeLinecap='round'
-                      strokeLinejoin='round'
-                    >
-                      <path d='M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z' />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-            </div>
+          <div className={styles.heroDemo}>
+            <InteractiveDemo />
           </div>
         </div>
       </div>
@@ -242,6 +134,7 @@ export default function Home(): ReactNode {
       <HomepageHeader />
       <main>
         <HomepageFeatures />
+        <ScreenshotShowcase />
         <CallToActionSection />
       </main>
     </Layout>

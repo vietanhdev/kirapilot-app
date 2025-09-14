@@ -104,51 +104,24 @@ const DesignIcon = () => (
 
 const FeatureList: Omit<FeatureCardProps, 'className'>[] = [
   {
-    title: 'Task Management',
+    title: '📋 Smart Tasks',
     icon: <TaskIcon />,
-    description:
-      'Organize your work with rich text descriptions, priority levels, dependencies, and intelligent scheduling. Stay on top of everything that matters.',
+    description: 'Organize work with intelligent scheduling',
     link: '/docs/user-guide/task-management',
     category: 'user',
   },
   {
-    title: 'Time Tracking',
-    icon: <TimeIcon />,
-    description:
-      'Built-in timer with session notes and productivity analytics. Understand your work patterns and optimize your productivity.',
-    link: '/docs/user-guide/time-tracking',
-    category: 'user',
-  },
-  {
-    title: 'AI Assistant',
+    title: '🤖 AI Assistant',
     icon: <AIIcon />,
-    description:
-      'Natural language interface with access to all app features. Get intelligent suggestions and automate your workflow.',
+    description: 'Chat with Kira for smart suggestions',
     link: '/docs/user-guide/ai-assistant',
     category: 'user',
   },
   {
-    title: 'Privacy First',
-    icon: <PrivacyIcon />,
-    description:
-      'All your data stays local with SQLite storage. No cloud dependencies, no privacy concerns. Your productivity data belongs to you.',
-    link: '/docs/user-guide/data-management',
-    category: 'user',
-  },
-  {
-    title: 'Cross Platform',
-    icon: <CrossPlatformIcon />,
-    description:
-      'Native performance on macOS, Windows, and Linux. Built with Tauri for a truly native experience across all platforms.',
-    link: '/docs/developer/architecture',
-    category: 'developer',
-  },
-  {
-    title: 'Beautiful Design',
-    icon: <DesignIcon />,
-    description:
-      'Thoughtfully designed interface with smooth animations and contextual intelligence that adapts to your workflow.',
-    link: '/docs/user-guide/customization',
+    title: '⏰ Focus Mode',
+    icon: <TimeIcon />,
+    description: 'Deep work with built-in timers',
+    link: '/docs/user-guide/time-tracking',
     category: 'user',
   },
 ];
@@ -157,9 +130,18 @@ export default function HomepageFeatures(): ReactNode {
   return (
     <section className={styles.features}>
       <div className='container'>
-        <div className='row'>
+        <div className={styles.featuresHeader}>
+          <h2 className={styles.featuresTitle}>✨ Core Features</h2>
+          <p className={styles.featuresSubtitle}>
+            Simple, powerful, and beautiful
+          </p>
+        </div>
+        <div className={styles.featuresGrid}>
           {FeatureList.map((props, idx) => (
-            <div key={idx} className={clsx('col col--4', styles.featureCol)}>
+            <div
+              key={idx}
+              className={`${styles.featureItem} ${styles[`feature${idx + 1}`]}`}
+            >
               <FeatureCard {...props} />
             </div>
           ))}

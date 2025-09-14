@@ -183,7 +183,7 @@ const config: Config = {
           ],
         },
       ],
-      copyright: `Copyright © ${new Date().getFullYear()} KiraPilot. Built with Docusaurus.`,
+      copyright: `Copyright © ${new Date().getFullYear()} KiraPilot.`,
     },
     prism: {
       theme: prismThemes.github,
