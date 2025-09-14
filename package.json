@@ -1,7 +1,7 @@
 {
   "name": "kirapilot-app",
   "private": true,
-  "version": "0.0.50",
+  "version": "0.0.51",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -45,9 +45,9 @@
     "type-check": "tsc --noEmit",
     "sync-version": "node scripts/sync-version.js",
     "build-info": "node scripts/show-build-info.js",
-    "version:patch": "npm version patch --no-git-tag-version && npm run sync-version && git add . && git commit -m \"chore: bump version to $(node -p \"require('./package.json').version\")\" && git tag \"v$(node -p \"require('./package.json').version\")\"",
-    "version:minor": "npm version minor --no-git-tag-version && npm run sync-version && git add . && git commit -m \"chore: bump version to $(node -p \"require('./package.json').version\")\" && git tag \"v$(node -p \"require('./package.json').version\")\"",
-    "version:major": "npm version major --no-git-tag-version && npm run sync-version && git add . && git commit -m \"chore: bump version to $(node -p \"require('./package.json').version\")\" && git tag \"v$(node -p \"require('./package.json').version\")\"",
+    "version:patch": "npm version patch --no-git-tag-version && npm run sync-version && node scripts/version-commit.js patch",
+    "version:minor": "npm version minor --no-git-tag-version && npm run sync-version && node scripts/version-commit.js minor",
+    "version:major": "npm version major --no-git-tag-version && npm run sync-version && node scripts/version-commit.js major",
     "docs:start": "cd docs && npm start",
     "docs:build": "cd docs && npm run build",
     "docs:serve": "cd docs && npm run serve",

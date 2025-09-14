@@ -1,6 +1,6 @@
 [package]
 name = "kirapilot-app"
-version = "0.0.50"
+version = "0.0.51"
 description = "Navigate your day with precision, powered by intelligent AI assistance!"
 authors = ["Viet-Anh Nguyen (@vietanhdev)"]
 edition = "2021"
