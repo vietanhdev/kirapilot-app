@@ -1,6 +1,7 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { DayView } from '../DayView';
 import { Task, TaskStatus, Priority, TimePreset } from '../../../types';
+import { SettingsProvider } from '../../../contexts/SettingsContext';
 
 // Mock the hooks
 jest.mock('../../../hooks/useTranslation', () => ({
@@ -216,8 +217,16 @@ describe('DayView', () => {
     jest.clearAllMocks();
   });
 
+  const renderWithProvider = (props = defaultProps) => {
+    return render(
+      <SettingsProvider>
+        <DayView {...props} />
+      </SettingsProvider>
+    );
+  };
+
   it('renders all four columns with correct titles', () => {
-    render(<DayView {...defaultProps} />);
+    renderWithProvider();
 
     expect(
       screen.getByTestId('column-title-planning.backlog')
@@ -234,7 +243,7 @@ describe('DayView', () => {
   });
 
   it('categorizes tasks correctly into columns', () => {
-    render(<DayView {...defaultProps} />);
+    renderWithProvider();
 
     // Check that all columns are rendered
     expect(
@@ -275,14 +284,14 @@ describe('DayView', () => {
   });
 
   it('displays current date in header', () => {
-    render(<DayView {...defaultProps} />);
+    renderWithProvider();
 
     expect(screen.getByText('Tuesday, August 26, 2025')).toBeInTheDocument();
   });
 
   it('shows today indicator when selectedDate is today', () => {
     const today = new Date();
-    render(<DayView {...defaultProps} selectedDate={today} />);
+    renderWithProvider({ ...defaultProps, selectedDate: today });
 
     // Today indicator should be visible (animate-pulse span)
     const todayIndicator = document.querySelector('.animate-pulse');
@@ -291,7 +300,7 @@ describe('DayView', () => {
 
   it('handles date navigation', () => {
     const onDateChange = jest.fn();
-    render(<DayView {...defaultProps} onDateChange={onDateChange} />);
+    renderWithProvider({ ...defaultProps, onDateChange });
 
     // Click previous day button
     const prevButton = screen.getByTitle('planning.previousDay');
@@ -313,7 +322,7 @@ describe('DayView', () => {
   });
 
   it('handles task creation for different columns', () => {
-    render(<DayView {...defaultProps} />);
+    renderWithProvider();
 
     // Click add task button for backlog
     const addBacklogButton = screen.getByTestId('add-task-planning.backlog');
@@ -327,7 +336,7 @@ describe('DayView', () => {
   });
 
   it('renders drag overlay when present', () => {
-    render(<DayView {...defaultProps} />);
+    renderWithProvider();
 
     expect(screen.getByTestId('drag-overlay')).toBeInTheDocument();
   });
@@ -336,13 +345,11 @@ describe('DayView', () => {
     const onTaskMove = jest.fn();
     const onInlineEdit = jest.fn();
 
-    render(
-      <DayView
-        {...defaultProps}
-        onTaskMove={onTaskMove}
-        onInlineEdit={onInlineEdit}
-      />
-    );
+    renderWithProvider({
+      ...defaultProps,
+      onTaskMove,
+      onInlineEdit,
+    });
 
     // Trigger drag operation by clicking the DnD context
     fireEvent.click(screen.getByTestId('dnd-context'));
@@ -352,7 +359,7 @@ describe('DayView', () => {
   });
 
   it('handles empty task lists gracefully', () => {
-    render(<DayView {...defaultProps} tasks={[]} />);
+    renderWithProvider({ ...defaultProps, tasks: [] });
 
     // All columns should show 0 count
     expect(
@@ -370,9 +377,7 @@ describe('DayView', () => {
   });
 
   it('applies custom className when provided', () => {
-    const { container } = render(
-      <DayView {...defaultProps} className='test-class' />
-    );
+    const { container } = renderWithProvider({ ...defaultProps, className: 'test-class' });
 
     expect(container.firstChild?.firstChild).toHaveClass('test-class');
   });

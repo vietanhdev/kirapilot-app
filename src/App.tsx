@@ -27,7 +27,7 @@ import { initializeDebugCommands } from './utils/debugCommands';
 import './App.css';
 
 function AppContent() {
-  const [currentView, setCurrentView] = useState('week');
+  const [currentView, setCurrentView] = useState('dashboard');
   const [viewParams, setViewParams] = useState<Record<string, unknown>>({});
   const { resolvedTheme } = useTheme();
   const { isMaximized } = useWindowState();
@@ -69,6 +69,8 @@ function AppContent() {
     if (
       currentView === 'week' ||
       currentView === 'day' ||
+      currentView === 'dashboard' ||
+      currentView === 'focus' ||
       currentView === 'recurring'
     ) {
       return 'tasks';
@@ -96,12 +98,23 @@ function AppContent() {
           <TitleBar />
 
           {/* Header with Timer Integration */}
-          <Header currentView={currentView} onViewChange={handleViewChange} />
+          <Header
+            currentView={currentView}
+            onViewChange={handleViewChange}
+            isFocusMode={currentView === 'focus'}
+          />
 
           {/* Main Content - Now scrollable */}
-          <main className='app-main-content'>
-            {(currentView === 'week' || currentView === 'day') && (
-              <Planner viewMode={currentView as 'week' | 'day'} />
+          <main
+            className={`app-main-content ${currentView === 'focus' ? 'focus-mode' : ''}`}
+          >
+            {(currentView === 'week' ||
+              currentView === 'day' ||
+              currentView === 'dashboard' ||
+              currentView === 'focus') && (
+              <Planner
+                viewMode={currentView as 'week' | 'day' | 'dashboard' | 'focus'}
+              />
             )}
 
             {currentView === 'recurring' && <PeriodicTasksView />}
@@ -123,8 +136,10 @@ function AppContent() {
             )}
           </main>
 
-          {/* AI Floating Button - Hidden in Kira view */}
-          {currentView !== 'kira' && <AIFloatingButton />}
+          {/* AI Floating Button - Hidden in Kira and Focus views */}
+          {currentView !== 'kira' && currentView !== 'focus' && (
+            <AIFloatingButton />
+          )}
         </div>
       </OnboardingManager>
     </NavigationProvider>

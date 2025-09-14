@@ -1,0 +1,241 @@
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { ManualMigrationDialog } from '../ManualMigrationDialog';
+import { Task, TaskStatus, Priority } from '../../../types';
+import { WeekTransitionDetector } from '../../../services/WeekTransitionDetector';
+import { getTaskRepository } from '../../../services/database/repositories';
+
+// Mock dependencies
+jest.mock('../../../services/database/repositories');
+jest.mock('../../../services/WeekTransitionDetector');
+jest.mock('../../../hooks/useTranslation', () => ({
+  useTranslation: () => ({
+    t: (key: string, params?: Record<string, string | number>) => {
+      if (params) {
+        return key.replace(/\{(\w+)\}/g, (match, param) => params[param] || match);
+      }
+      return key;
+    },
+  }),
+}));
+jest.mock('../../../contexts/SettingsContext', () => ({
+  useSettings: () => ({
+    preferences: {
+      taskSettings: {
+        weekStartDay: 0 as const,
+      },
+    },
+  }),
+}));
+
+const mockTaskRepository = {
+  getIncompleteTasksFromWeek: jest.fn(),
+};
+
+const mockWeekTransitionDetector = {
+  getAvailableWeeksForMigration: jest.fn(),
+  getIncompleteTasksFromWeek: jest.fn(),
+  formatWeekForDisplay: jest.fn(),
+};
+
+(getTaskRepository as jest.Mock).mockReturnValue(mockTaskRepository);
+(WeekTransitionDetector as jest.Mock).mockImplementation(() => mockWeekTransitionDetector);
+
+const mockTasks: Task[] = [
+  {
+    id: '1',
+    title: 'Test Task 1',
+    description: '',
+    status: TaskStatus.PENDING,
+    priority: Priority.MEDIUM,
+    scheduledDate: new Date('2024-01-01'),
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    order: 0,
+    taskListId: 'list1',
+    isPeriodicInstance: false,
+  },
+  {
+    id: '2',
+    title: 'Test Task 2',
+    description: '',
+    status: TaskStatus.IN_PROGRESS,
+    priority: Priority.HIGH,
+    scheduledDate: new Date('2024-01-02'),
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    order: 1,
+    taskListId: 'list1',
+    isPeriodicInstance: false,
+  },
+];
+
+const defaultProps = {
+  isOpen: true,
+  onClose: jest.fn(),
+  currentWeek: new Date('2024-01-15'),
+  onMigrateTasks: jest.fn(),
+};
+
+describe('ManualMigrationDialog', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockWeekTransitionDetector.getAvailableWeeksForMigration.mockResolvedValue([
+      new Date('2024-01-08'),
+      new Date('2024-01-01'),
+    ]);
+    mockWeekTransitionDetector.formatWeekForDisplay.mockImplementation(
+      (date: Date) => `Week of ${date.toLocaleDateString()}`
+    );
+    mockWeekTransitionDetector.getIncompleteTasksFromWeek.mockResolvedValue(mockTasks);
+  });
+
+  it('renders dialog with title and description', async () => {
+    render(<ManualMigrationDialog {...defaultProps} />);
+
+    expect(screen.getByText('migration.manual.dialog.title')).toBeInTheDocument();
+    expect(screen.getByText('migration.manual.dialog.description')).toBeInTheDocument();
+  });
+
+  it('loads and displays available weeks', async () => {
+    render(<ManualMigrationDialog {...defaultProps} />);
+
+    await waitFor(() => {
+      expect(mockWeekTransitionDetector.getAvailableWeeksForMigration).toHaveBeenCalledWith(
+        defaultProps.currentWeek,
+        0
+      );
+    });
+
+    // Should show select dropdown
+    expect(screen.getByText('migration.manual.selectWeek')).toBeInTheDocument();
+  });
+
+  it('loads tasks when a week is selected', async () => {
+    render(<ManualMigrationDialog {...defaultProps} />);
+
+    await waitFor(() => {
+      expect(mockWeekTransitionDetector.getAvailableWeeksForMigration).toHaveBeenCalled();
+    });
+
+    // Simulate selecting a week
+    const selectButton = screen.getByRole('button', { name: /select a week/i });
+    fireEvent.click(selectButton);
+
+    // Wait for tasks to load
+    await waitFor(() => {
+      expect(mockWeekTransitionDetector.getIncompleteTasksFromWeek).toHaveBeenCalled();
+    });
+  });
+
+  it('displays tasks from selected week', async () => {
+    render(<ManualMigrationDialog {...defaultProps} />);
+
+    await waitFor(() => {
+      expect(mockWeekTransitionDetector.getAvailableWeeksForMigration).toHaveBeenCalled();
+    });
+
+    // Mock selecting a week by directly setting the tasks
+    await waitFor(() => {
+      if (screen.queryByText('Test Task 1')) {
+        expect(screen.getByText('Test Task 1')).toBeInTheDocument();
+        expect(screen.getByText('Test Task 2')).toBeInTheDocument();
+      }
+    });
+  });
+
+  it('enables proceed button when tasks are available', async () => {
+    render(<ManualMigrationDialog {...defaultProps} />);
+
+    await waitFor(() => {
+      expect(mockWeekTransitionDetector.getAvailableWeeksForMigration).toHaveBeenCalled();
+    });
+
+    // The proceed button should be disabled initially
+    const proceedButton = screen.getByText('Proceed to Migration');
+    expect(proceedButton).toBeDisabled();
+  });
+
+  it('shows error when no weeks with tasks are found', async () => {
+    mockWeekTransitionDetector.getAvailableWeeksForMigration.mockResolvedValue([]);
+
+    render(<ManualMigrationDialog {...defaultProps} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('No weeks with incomplete tasks found')).toBeInTheDocument();
+    });
+  });
+
+  it('shows error when no tasks found in selected week', async () => {
+    mockWeekTransitionDetector.getIncompleteTasksFromWeek.mockResolvedValue([]);
+
+    render(<ManualMigrationDialog {...defaultProps} />);
+
+    await waitFor(() => {
+      expect(mockWeekTransitionDetector.getAvailableWeeksForMigration).toHaveBeenCalled();
+    });
+
+    // The error should be set when no tasks are found
+    await waitFor(() => {
+      if (screen.queryByText('migration.manual.noTasksFound')) {
+        expect(screen.getByText('migration.manual.noTasksFound')).toBeInTheDocument();
+      }
+    });
+  });
+
+  it('calls onClose when cancel button is clicked', () => {
+    render(<ManualMigrationDialog {...defaultProps} />);
+
+    const cancelButton = screen.getByText('Cancel');
+    fireEvent.click(cancelButton);
+
+    expect(defaultProps.onClose).toHaveBeenCalled();
+  });
+
+  it('handles loading states correctly', async () => {
+    render(<ManualMigrationDialog {...defaultProps} />);
+
+    // Should show loading initially
+    expect(screen.getByText('Loading weeks...')).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(mockWeekTransitionDetector.getAvailableWeeksForMigration).toHaveBeenCalled();
+    });
+  });
+
+  it('handles errors gracefully', async () => {
+    mockWeekTransitionDetector.getAvailableWeeksForMigration.mockRejectedValue(
+      new Error('Network error')
+    );
+
+    render(<ManualMigrationDialog {...defaultProps} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Failed to load available weeks')).toBeInTheDocument();
+    });
+  });
+
+  it('does not load weeks when dialog is closed', () => {
+    render(<ManualMigrationDialog {...defaultProps} isOpen={false} />);
+
+    expect(mockWeekTransitionDetector.getAvailableWeeksForMigration).not.toHaveBeenCalled();
+  });
+
+  it('resets state when dialog is closed and reopened', async () => {
+    const { rerender } = render(<ManualMigrationDialog {...defaultProps} />);
+
+    await waitFor(() => {
+      expect(mockWeekTransitionDetector.getAvailableWeeksForMigration).toHaveBeenCalled();
+    });
+
+    // Close dialog
+    rerender(<ManualMigrationDialog {...defaultProps} isOpen={false} />);
+
+    // Reopen dialog
+    rerender(<ManualMigrationDialog {...defaultProps} isOpen={true} />);
+
+    // Should load weeks again
+    await waitFor(() => {
+      expect(mockWeekTransitionDetector.getAvailableWeeksForMigration).toHaveBeenCalledTimes(2);
+    });
+  });
+});

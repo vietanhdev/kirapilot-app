@@ -225,6 +225,51 @@ export class TaskService {
   }
 
   /**
+   * Find tasks scheduled for a specific week
+   * @param weekDate Any date within the target week
+   * @param weekStartDay 0 for Sunday, 1 for Monday
+   * @returns Tasks scheduled within the week
+   */
+  async getTasksForWeek(weekDate: Date, weekStartDay: 0 | 1): Promise<Task[]> {
+    try {
+      // Import here to avoid circular dependencies
+      const { getWeekRange } = await import('../../../utils/dateFormat');
+      const { weekStart, weekEnd } = getWeekRange(weekDate, weekStartDay);
+
+      return this.findScheduledBetween(weekStart, weekEnd);
+    } catch (error) {
+      const errorMessage = getDatabaseErrorMessage(
+        'taskService.error.getTasksForWeekFailed' as TranslationKey
+      );
+      throw new Error(`${errorMessage}: ${error}`);
+    }
+  }
+
+  /**
+   * Find incomplete tasks (PENDING or IN_PROGRESS) from a specific week
+   * @param weekDate Any date within the target week
+   * @param weekStartDay 0 for Sunday, 1 for Monday
+   * @returns Incomplete tasks from the specified week
+   */
+  async getIncompleteTasksFromWeek(
+    weekDate: Date,
+    weekStartDay: 0 | 1
+  ): Promise<Task[]> {
+    try {
+      const weekTasks = await this.getTasksForWeek(weekDate, weekStartDay);
+
+      return weekTasks.filter(
+        task => task.status === 'pending' || task.status === 'in_progress'
+      );
+    } catch (error) {
+      const errorMessage = getDatabaseErrorMessage(
+        'taskService.error.getIncompleteTasksFromWeekFailed' as TranslationKey
+      );
+      throw new Error(`${errorMessage}: ${error}`);
+    }
+  }
+
+  /**
    * Find backlog tasks (no scheduled date)
    */
   async findBacklog(): Promise<Task[]> {
@@ -620,6 +665,24 @@ export class TaskService {
       filtered = filtered.filter(
         task => task.periodicTemplateId === filters.periodicTemplateId
       );
+    }
+
+    // Week-based filtering
+    if (filters.scheduledWeek) {
+      filtered = filtered.filter(task => {
+        if (!task.scheduledDate) {
+          return false;
+        }
+        return (
+          task.scheduledDate >= filters.scheduledWeek!.weekStart &&
+          task.scheduledDate <= filters.scheduledWeek!.weekEnd
+        );
+      });
+    }
+
+    // Exclude periodic instances if requested (for migration scenarios)
+    if (filters.excludePeriodicInstances) {
+      filtered = filtered.filter(task => !task.isPeriodicInstance);
     }
 
     return filtered;

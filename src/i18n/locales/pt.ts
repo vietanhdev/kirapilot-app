@@ -1715,4 +1715,103 @@ export const pt = {
   'tour.interactionDetails.description':
     'Clique neste ícone para ver logs detalhados do que a IA fez nos bastidores.',
   'tour.interactionDetails.title': 'Detalhes da Interação',
+
+  // Migration
+  'migration.actions.acceptAllSuggestions': 'Aceitar Todas as Sugestões',
+  'migration.actions.acceptSuggestion': 'Aceitar Sugestão',
+  'migration.actions.clearAll': 'Limpar Tudo',
+  'migration.actions.dontAskAgain': 'Não Perguntar Novamente',
+  'migration.actions.migrateSelected': 'Migrar Selecionadas ({count})',
+  'migration.actions.selectAll': 'Selecionar Tudo',
+  'migration.actions.skipWeek': 'Pular Esta Semana',
+  'migration.dialog.description':
+    'Você tem {count} tarefas incompletas da semana anterior. Selecione quais tarefas migrar para a semana atual.',
+  'migration.dialog.title': 'Migrar Tarefas Incompletas',
+  'migration.suggestion.confidence': '{confidence}% de confiança',
+  'migration.suggestion.label': 'Sugerido',
+  'migration.suggestion.reason.dependencies':
+    'Baseado em dependências de tarefas',
+  'migration.suggestion.reason.general': 'Agendamento inteligente',
+  'migration.suggestion.reason.priority': 'Baseado na prioridade da tarefa',
+  'migration.suggestion.reason.timeEstimate': 'Baseado na estimativa de tempo',
+  'migration.suggestion.reason.workloadBalance':
+    'Baseado no equilíbrio da carga de trabalho',
+  'migration.suggestion.recommended': 'Recomendado',
+  'migration.task.newDate': 'Agendar para:',
+  'migration.task.originalDate': 'Originalmente: {date}',
+
+  // Migration Dependencies
+  'migration.dependencies.label': 'Dependências',
+  'migration.dependencies.dependsOn': 'Depende de',
+  'migration.dependencies.requiredBy': 'Requerido por',
+
+  // Migration Conflicts
+  'migration.conflicts.title': 'Conflitos de Dependências Detectados',
+  'migration.conflicts.dependencyAfter':
+    'depende de {dependency} que está agendado para {date}',
+  'migration.conflicts.dependentBefore':
+    'é requerido por {dependent} que está agendado para {date}',
+  'migration.conflicts.acceptSuggestion': 'Aceitar Sugestão',
+  'migration.conflicts.dismiss': 'Descartar Avisos',
+
+  // Migration Dependents
+  'migration.dependents.title': 'Tarefas Relacionadas Sugeridas',
+  'migration.dependents.description':
+    'Essas tarefas dependem das suas tarefas selecionadas e também podem precisar ser migradas:',
+  'migration.dependents.suggestedDate': 'Sugerido para {date}',
+  'migration.dependents.add': 'Adicionar Tarefa',
+  'migration.dependents.added': 'Adicionado',
+
+  // Manual Migration
+  'migration.manual.trigger': 'Migrar Tarefas',
+  'migration.manual.triggerTooltip':
+    'Migrar manualmente tarefas de semanas anteriores',
+  'migration.manual.dialog.title': 'Migração Manual de Tarefas',
+  'migration.manual.dialog.description':
+    'Selecione tarefas de semanas anteriores para migrar para a semana atual.',
+  'migration.manual.selectWeek': 'Selecionar Semana',
+  'migration.manual.noTasksFound':
+    'Nenhuma tarefa incompleta encontrada na semana selecionada.',
+  'migration.manual.weekLabel': 'Semana de {date}',
+  'migration.manual.loadingTasks': 'Carregando tarefas...',
+
+  // Migration Results & Feedback
+  'migration.result.success.title': 'Migração Concluída com Sucesso',
+  'migration.result.success.message':
+    '{count} tarefa(s) migrada(s) com sucesso para a semana atual',
+  'migration.result.success.summary':
+    '{successful} de {total} tarefas migradas com sucesso',
+  'migration.result.partial.title': 'Migração Parcialmente Concluída',
+  'migration.result.partial.message':
+    '{successful} de {total} tarefas migradas com sucesso, {failed} falharam',
+  'migration.result.failure.title': 'Migração Falhou',
+  'migration.result.failure.message': 'Falha ao migrar {count} tarefa(s)',
+  'migration.result.summary.byDay': 'Tarefas agendadas por dia:',
+  'migration.result.summary.monday': 'Segunda: {count}',
+  'migration.result.summary.tuesday': 'Terça: {count}',
+  'migration.result.summary.wednesday': 'Quarta: {count}',
+  'migration.result.summary.thursday': 'Quinta: {count}',
+  'migration.result.summary.friday': 'Sexta: {count}',
+  'migration.result.summary.saturday': 'Sábado: {count}',
+  'migration.result.summary.sunday': 'Domingo: {count}',
+  'migration.result.errors.title': 'Erros de Migração',
+  'migration.result.errors.taskNotFound': 'Tarefa "{title}" não encontrada',
+  'migration.result.errors.invalidDate':
+    'Data inválida para a tarefa "{title}"',
+  'migration.result.errors.databaseError':
+    'Erro de banco de dados para a tarefa "{title}"',
+  'migration.result.errors.dependencyConflict':
+    'Conflito de dependências para a tarefa "{title}"',
+  'migration.result.errors.permissionDenied':
+    'Permissão negada para a tarefa "{title}"',
+  'migration.result.retry': 'Tentar Novamente Migrações Falhadas',
+  'migration.result.undo': 'Desfazer Migração',
+  'migration.result.undoTimeLimit':
+    'Desfazer disponível por mais {minutes} minutos',
+  'migration.result.undoExpired': 'Tempo limite para desfazer expirado',
+  'migration.undo.success.title': 'Migração Desfeita',
+  'migration.undo.success.message':
+    'Migração desfeita com sucesso para {count} tarefa(s)',
+  'migration.undo.failure.title': 'Desfazer Falhou',
+  'migration.undo.failure.message': 'Falha ao desfazer a migração: {error}',
 };

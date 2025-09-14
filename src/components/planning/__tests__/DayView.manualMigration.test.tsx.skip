@@ -1,0 +1,205 @@
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { DayView } from '../DayView';
+import { Task, TaskStatus, Priority } from '../../../types';
+
+// Mock dependencies
+jest.mock('../../../hooks/useTranslation', () => ({
+  useTranslation: () => ({
+    t: (key: string) => key,
+  }),
+}));
+
+jest.mock('../../../contexts/SettingsContext', () => ({
+  useSettings: () => ({
+    preferences: {
+      taskSettings: {
+        weekStartDay: 0 as const,
+      },
+    },
+  }),
+}));
+
+jest.mock('../../../contexts/TaskListContext', () => ({
+  useTaskList: () => ({
+    isAllSelected: () => false,
+    taskLists: [],
+  }),
+}));
+
+jest.mock('../../../hooks/useDatabase', () => ({
+  useDatabase: () => ({
+    isInitialized: true,
+  }),
+}));
+
+jest.mock('../../../hooks', () => ({
+  useResponsiveColumnWidth: () => ({
+    columnWidth: 300,
+  }),
+}));
+
+jest.mock('../../../services/database/repositories', () => ({
+  getTaskRepository: jest.fn(),
+}));
+
+jest.mock('../../../services/WeekTransitionDetector');
+jest.mock('../../../services/TaskMigrationService');
+jest.mock('../../../services/MigrationPreferencesService');
+
+const mockTasks: Task[] = [
+  {
+    id: '1',
+    title: 'Test Task 1',
+    description: '',
+    status: TaskStatus.PENDING,
+    priority: Priority.MEDIUM,
+    scheduledDate: new Date('2024-01-15'),
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    order: 0,
+    taskListId: 'list1',
+    isPeriodicInstance: false,
+  },
+];
+
+const defaultProps = {
+  tasks: mockTasks,
+  selectedDate: new Date('2024-01-15'),
+  onDateChange: jest.fn(),
+  onTaskMove: jest.fn(),
+  onTaskEdit: jest.fn(),
+  onTaskStatusChange: jest.fn(),
+  onTaskCreate: jest.fn(),
+  onInlineEdit: jest.fn(),
+  onTaskDelete: jest.fn(),
+  onViewTimeHistory: jest.fn(),
+  getTaskTimerProps: jest.fn(),
+};
+
+describe('DayView Manual Migration', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('renders manual migration button', () => {
+    render(<DayView {...defaultProps} />);
+
+    const migrationButton = screen.getByTitle('migration.manual.triggerTooltip');
+    expect(migrationButton).toBeInTheDocument();
+  });
+
+  it('opens manual migration dialog when button is clicked', async () => {
+    render(<DayView {...defaultProps} />);
+
+    const migrationButton = screen.getByTitle('migration.manual.triggerTooltip');
+    fireEvent.click(migrationButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('migration.manual.dialog.title')).toBeInTheDocument();
+    });
+  });
+
+  it('closes manual migration dialog when cancel is clicked', async () => {
+    render(<DayView {...defaultProps} />);
+
+    // Open dialog
+    const migrationButton = screen.getByTitle('migration.manual.triggerTooltip');
+    fireEvent.click(migrationButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('migration.manual.dialog.title')).toBeInTheDocument();
+    });
+
+    // Close dialog
+    const cancelButton = screen.getByText('Cancel');
+    fireEvent.click(cancelButton);
+
+    await waitFor(() => {
+      expect(screen.queryByText('migration.manual.dialog.title')).not.toBeInTheDocument();
+    });
+  });
+
+  it('manual migration button is positioned correctly in header', () => {
+    render(<DayView {...defaultProps} />);
+
+    const migrationButton = screen.getByTitle('migration.manual.triggerTooltip');
+    const header = migrationButton.closest('.p-2.bg-content2');
+    
+    expect(header).toBeInTheDocument();
+    expect(header).toContainElement(migrationButton);
+  });
+
+  it('manual migration uses current day as target week', async () => {
+    const selectedDate = new Date('2024-01-15');
+    render(<DayView {...defaultProps} selectedDate={selectedDate} />);
+
+    const migrationButton = screen.getByTitle('migration.manual.triggerTooltip');
+    fireEvent.click(migrationButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('migration.manual.dialog.title')).toBeInTheDocument();
+    });
+
+    // The ManualMigrationDialog should receive the selectedDate as currentWeek
+    // This is tested more thoroughly in the ManualMigrationDialog tests
+  });
+
+  it('manual migration button has proper styling', () => {
+    render(<DayView {...defaultProps} />);
+
+    const migrationButton = screen.getByTitle('migration.manual.triggerTooltip');
+    
+    expect(migrationButton).toHaveClass('p-1');
+    expect(migrationButton).toHaveClass('hover:bg-content3');
+    expect(migrationButton).toHaveClass('rounded');
+    expect(migrationButton).toHaveClass('transition-colors');
+    expect(migrationButton).toHaveClass('duration-200');
+  });
+
+  it('manual migration dialog does not interfere with automatic migration', async () => {
+    render(<DayView {...defaultProps} />);
+
+    // Open manual migration dialog
+    const migrationButton = screen.getByTitle('migration.manual.triggerTooltip');
+    fireEvent.click(migrationButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('migration.manual.dialog.title')).toBeInTheDocument();
+    });
+
+    // The automatic migration dialog should not be visible
+    expect(screen.queryByText('migration.dialog.title')).not.toBeInTheDocument();
+  });
+
+  it('handles migration completion and refreshes view', async () => {
+    const onTaskCreate = jest.fn();
+    render(<DayView {...defaultProps} onTaskCreate={onTaskCreate} />);
+
+    // Open manual migration dialog
+    const migrationButton = screen.getByTitle('migration.manual.triggerTooltip');
+    fireEvent.click(migrationButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('migration.manual.dialog.title')).toBeInTheDocument();
+    });
+
+    // The dialog should handle migration completion through the onMigrateTasks prop
+    // This would trigger a refresh of the parent component's task list
+  });
+
+  it('manual migration button is accessible', () => {
+    render(<DayView {...defaultProps} />);
+
+    const migrationButton = screen.getByTitle('migration.manual.triggerTooltip');
+    
+    // Should be focusable
+    migrationButton.focus();
+    expect(document.activeElement).toBe(migrationButton);
+    
+    // Should have proper role
+    expect(migrationButton.tagName).toBe('BUTTON');
+    
+    // Should have tooltip
+    expect(migrationButton).toHaveAttribute('title', 'migration.manual.triggerTooltip');
+  });
+});

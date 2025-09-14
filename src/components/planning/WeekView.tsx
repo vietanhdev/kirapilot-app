@@ -1,5 +1,5 @@
 // Weekly kanban view with day columns
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import {
   DndContext,
   closestCenter,
@@ -15,11 +15,20 @@ import { Task, TaskStatus, TaskTimerProps, VirtualTask } from '../../types';
 import { TaskColumn } from './TaskColumn';
 import { TaskCard } from './TaskCard';
 import { TaskModal } from './TaskModal';
+import { TaskMigrationDialog, TaskMigration } from './TaskMigrationDialog';
+import { ManualMigrationDialog } from './ManualMigrationDialog';
 // Removed complex placeholder and keyboard navigation utilities
 
 import { useTranslation } from '../../hooks/useTranslation';
 import { useResponsiveColumnWidth } from '../../hooks';
 import { useTaskList } from '../../contexts/TaskListContext';
+import { useSettings } from '../../contexts/SettingsContext';
+import { useDatabase } from '../../hooks/useDatabase';
+import { getTaskRepository } from '../../services/database/repositories';
+import { WeekTransitionDetector } from '../../services/WeekTransitionDetector';
+import { TaskMigrationService } from '../../services/TaskMigrationService';
+import { migrationPreferencesService } from '../../services/MigrationPreferencesService';
+import { useMigrationFeedback } from '../../hooks/useMigrationFeedback';
 
 import {
   ChevronLeft,
@@ -27,6 +36,7 @@ import {
   Archive,
   Clock,
   TrendingUp,
+  ArrowUpDown,
 } from 'lucide-react';
 
 interface WeekViewProps {
@@ -64,9 +74,21 @@ export function WeekView({
   columnHeight,
 }: WeekViewProps) {
   const { t } = useTranslation();
+  const { preferences } = useSettings();
+  const { isInitialized } = useDatabase();
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [taskModalDate, setTaskModalDate] = useState<Date | undefined>();
   const [draggedTask, setDraggedTask] = useState<Task | null>(null);
+
+  // Migration state
+  const [showMigrationDialog, setShowMigrationDialog] = useState(false);
+  const [showManualMigrationDialog, setShowManualMigrationDialog] =
+    useState(false);
+  const [incompleteTasks, setIncompleteTasks] = useState<Task[]>([]);
+  const [isProcessingMigration, setIsProcessingMigration] = useState(false);
+
+  // Track previous week for transition detection
+  const previousWeekRef = useRef<Date | null>(null);
 
   // Get task list context for indicators
   const { isAllSelected, taskLists } = useTaskList();
@@ -75,9 +97,22 @@ export function WeekView({
   const weekStart = useMemo(() => {
     const date = new Date(currentWeek);
     const day = date.getDay();
-    const diff = date.getDate() - day; // Sunday = 0
-    return new Date(date.setDate(diff));
-  }, [currentWeek]);
+    const weekStartDay = preferences.taskSettings.weekStartDay;
+
+    // Calculate days to subtract to get to the start of the week
+    let daysToSubtract: number;
+    if (weekStartDay === 0) {
+      // Week starts on Sunday
+      daysToSubtract = day;
+    } else {
+      // Week starts on Monday
+      daysToSubtract = day === 0 ? 6 : day - 1;
+    }
+
+    date.setDate(date.getDate() - daysToSubtract);
+    date.setHours(0, 0, 0, 0);
+    return date;
+  }, [currentWeek, preferences.taskSettings.weekStartDay]);
 
   const weekEnd = useMemo(() => {
     const date = new Date(weekStart);
@@ -262,6 +297,55 @@ export function WeekView({
 
   // Removed complex keyboard navigation and placeholder management code
 
+  // Migration detection and prompt logic
+  useEffect(() => {
+    const checkForMigration = async () => {
+      if (!isInitialized || isProcessingMigration) {
+        return;
+      }
+
+      try {
+        const taskService = getTaskRepository();
+        const weekTransitionDetector = new WeekTransitionDetector(taskService);
+        const weekStartDay = preferences.taskSettings.weekStartDay;
+
+        // Check if we should trigger migration prompt
+        const shouldTrigger =
+          await weekTransitionDetector.shouldTriggerMigrationPrompt(
+            previousWeekRef.current,
+            currentWeek,
+            weekStartDay
+          );
+
+        if (shouldTrigger) {
+          // Get incomplete tasks from previous week
+          const incompleteTasksFromPrevWeek =
+            await weekTransitionDetector.getIncompleteTasksFromPreviousWeek(
+              currentWeek,
+              weekStartDay
+            );
+
+          if (incompleteTasksFromPrevWeek.length > 0) {
+            setIncompleteTasks(incompleteTasksFromPrevWeek);
+            setShowMigrationDialog(true);
+          }
+        }
+
+        // Update previous week reference
+        previousWeekRef.current = new Date(currentWeek);
+      } catch (error) {
+        console.error('Failed to check for migration:', error);
+      }
+    };
+
+    checkForMigration();
+  }, [
+    currentWeek,
+    isInitialized,
+    preferences.taskSettings.weekStartDay,
+    isProcessingMigration,
+  ]);
+
   // Auto-scroll to today's column
   useEffect(() => {
     const scrollToToday = () => {
@@ -369,6 +453,28 @@ export function WeekView({
     return `${start} - ${end}, ${weekStart.getFullYear()}`;
   };
 
+  // Check if the current week is actually this week
+  const isCurrentWeek = useMemo(() => {
+    const today = new Date();
+    const day = today.getDay();
+    const weekStartDay = preferences.taskSettings.weekStartDay;
+
+    // Calculate days to subtract to get to the start of the week
+    let daysToSubtract: number;
+    if (weekStartDay === 0) {
+      // Week starts on Sunday
+      daysToSubtract = day;
+    } else {
+      // Week starts on Monday
+      daysToSubtract = day === 0 ? 6 : day - 1;
+    }
+
+    today.setDate(today.getDate() - daysToSubtract);
+    today.setHours(0, 0, 0, 0);
+
+    return weekStart.getTime() === today.getTime();
+  }, [weekStart, preferences.taskSettings.weekStartDay]);
+
   const handleAddTask = (column: string, date?: Date) => {
     // Set appropriate default date based on column
     let defaultDate = date;
@@ -390,6 +496,73 @@ export function WeekView({
     } catch (error) {
       // Let the error bubble up to be handled by the TaskModal
       throw error;
+    }
+  };
+
+  // Initialize migration feedback hook
+  const taskService = getTaskRepository();
+  const migrationFeedback = useMigrationFeedback(taskService);
+
+  // Migration handlers
+  const handleMigrateTasks = async (migrations: TaskMigration[]) => {
+    if (!isInitialized) {
+      throw new Error('Database not initialized');
+    }
+
+    setIsProcessingMigration(true);
+    const startTime = Date.now();
+
+    try {
+      const migrationService = new TaskMigrationService(taskService);
+
+      const result = await migrationService.migrateTasksToWeek(migrations);
+
+      // Use migration feedback service to show detailed results
+      await migrationFeedback.showMigrationResult(
+        result,
+        migrations,
+        startTime
+      );
+
+      // Close dialog and refresh the view
+      setShowMigrationDialog(false);
+      setIncompleteTasks([]);
+
+      // Trigger a refresh of the parent component's task list
+      window.dispatchEvent(new CustomEvent('tasks-updated'));
+    } catch (error) {
+      console.error('Migration failed:', error);
+      throw error;
+    } finally {
+      setIsProcessingMigration(false);
+    }
+  };
+
+  const handleDismissWeek = async () => {
+    try {
+      const weekStartDay = preferences.taskSettings.weekStartDay;
+      const taskService = getTaskRepository();
+      const weekTransitionDetector = new WeekTransitionDetector(taskService);
+      const weekIdentifier = weekTransitionDetector.generateWeekIdentifier(
+        currentWeek,
+        weekStartDay
+      );
+
+      await migrationPreferencesService.addDismissedWeek(weekIdentifier);
+      setShowMigrationDialog(false);
+      setIncompleteTasks([]);
+    } catch (error) {
+      console.error('Failed to dismiss week:', error);
+    }
+  };
+
+  const handleDisableMigration = async () => {
+    try {
+      await migrationPreferencesService.updatePreferences({ enabled: false });
+      setShowMigrationDialog(false);
+      setIncompleteTasks([]);
+    } catch (error) {
+      console.error('Failed to disable migration:', error);
     }
   };
 
@@ -432,11 +605,20 @@ export function WeekView({
           <div className='flex items-center justify-between mb-1'>
             <div className='flex items-center space-x-2'>
               <span className='text-sm font-medium text-foreground'>
-                {formatWeekRange()}
+                {isCurrentWeek ? t('planning.thisWeek') : formatWeekRange()}
               </span>
             </div>
 
             <div className='flex items-center space-x-3'>
+              {/* Manual Migration Button */}
+              <button
+                onClick={() => setShowManualMigrationDialog(true)}
+                className='p-1 hover:bg-content3 rounded transition-colors duration-200'
+                title={t('migration.manual.triggerTooltip')}
+              >
+                <ArrowUpDown className='w-4 h-4 text-foreground-600' />
+              </button>
+
               {/* Week Navigation */}
               <div className='flex items-center space-x-1'>
                 <button
@@ -608,6 +790,26 @@ export function WeekView({
           }}
           onCreateTask={handleTaskCreate}
           defaultDate={taskModalDate}
+        />
+
+        {/* Task Migration Dialog */}
+        <TaskMigrationDialog
+          isOpen={showMigrationDialog}
+          onClose={() => setShowMigrationDialog(false)}
+          incompleteTasks={incompleteTasks}
+          currentWeek={currentWeek}
+          weekStartDay={preferences.taskSettings.weekStartDay}
+          onMigrateTasks={handleMigrateTasks}
+          onDismissWeek={handleDismissWeek}
+          onDisableMigration={handleDisableMigration}
+        />
+
+        {/* Manual Migration Dialog */}
+        <ManualMigrationDialog
+          isOpen={showManualMigrationDialog}
+          onClose={() => setShowManualMigrationDialog(false)}
+          currentWeek={currentWeek}
+          onMigrateTasks={handleMigrateTasks}
         />
 
         {/* Simplified Drag Overlay */}

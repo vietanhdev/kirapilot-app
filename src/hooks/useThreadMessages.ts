@@ -327,6 +327,15 @@ export function useThreadMessages(threadId?: string): UseThreadMessagesReturn {
               storedPrefs?.taskSettings?.showCompletedTasks ?? false,
             compactView: storedPrefs?.taskSettings?.compactView ?? false,
           },
+          migrationSettings: {
+            enabled: storedPrefs?.migrationSettings?.enabled ?? true,
+            dismissedWeeks:
+              storedPrefs?.migrationSettings?.dismissedWeeks || [],
+            autoSuggestScheduling:
+              storedPrefs?.migrationSettings?.autoSuggestScheduling ?? true,
+            showDependencyWarnings:
+              storedPrefs?.migrationSettings?.showDependencyWarnings ?? true,
+          },
           soundSettings: {
             hapticFeedback: storedPrefs?.soundSettings?.hapticFeedback ?? true,
             completionSound:

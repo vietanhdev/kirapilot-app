@@ -1684,4 +1684,96 @@ export const ja = {
   'tour.interactionDetails.description':
     'このアイコンをクリックして、AIがバックグラウンドで行った処理の詳細ログを表示します。',
   'tour.interactionDetails.title': '操作の詳細',
+
+  // Migration
+  'migration.actions.acceptAllSuggestions': 'すべての提案を受け入れる',
+  'migration.actions.acceptSuggestion': '提案を受け入れる',
+  'migration.actions.clearAll': 'すべてクリア',
+  'migration.actions.dontAskAgain': '今後確認しない',
+  'migration.actions.migrateSelected': '選択したものを移行 ({count})',
+  'migration.actions.selectAll': 'すべて選択',
+  'migration.actions.skipWeek': 'この週をスキップ',
+  'migration.dialog.description':
+    '前の週から{count}個の未完了タスクがあります。現在の週に移行するタスクを選択してください。',
+  'migration.dialog.title': '未完了タスクの移行',
+  'migration.suggestion.confidence': '{confidence}%の信頼度',
+  'migration.suggestion.label': '提案',
+  'migration.suggestion.reason.dependencies': 'タスクの依存関係に基づく',
+  'migration.suggestion.reason.general': 'スマートスケジューリング',
+  'migration.suggestion.reason.priority': 'タスクの優先度に基づく',
+  'migration.suggestion.reason.timeEstimate': '時間見積もりに基づく',
+  'migration.suggestion.reason.workloadBalance': 'ワークロードバランスに基づく',
+  'migration.suggestion.recommended': '推奨',
+  'migration.task.newDate': 'スケジュール:',
+  'migration.task.originalDate': '元々: {date}',
+
+  // Migration Dependencies
+  'migration.dependencies.label': '依存関係',
+  'migration.dependencies.dependsOn': '依存先',
+  'migration.dependencies.requiredBy': '必要とされる',
+
+  // Migration Conflicts
+  'migration.conflicts.title': '依存関係の競合が検出されました',
+  'migration.conflicts.dependencyAfter':
+    '{date}にスケジュールされている{dependency}に依存しています',
+  'migration.conflicts.dependentBefore':
+    '{date}にスケジュールされている{dependent}によって必要とされています',
+  'migration.conflicts.acceptSuggestion': '提案を受け入れる',
+  'migration.conflicts.dismiss': '警告を無視',
+
+  // Migration Dependents
+  'migration.dependents.title': '関連タスクの提案',
+  'migration.dependents.description':
+    'これらのタスクは選択したタスクに依存しており、同様に移行が必要かもしれません:',
+  'migration.dependents.suggestedDate': '{date}に提案',
+  'migration.dependents.add': 'タスクを追加',
+  'migration.dependents.added': '追加済み',
+
+  // Manual Migration
+  'migration.manual.trigger': 'タスクを移行',
+  'migration.manual.triggerTooltip': '前の週からタスクを手動で移行',
+  'migration.manual.dialog.title': '手動タスク移行',
+  'migration.manual.dialog.description':
+    '前の週から現在の週に移行するタスクを選択してください。',
+  'migration.manual.selectWeek': '週を選択',
+  'migration.manual.noTasksFound':
+    '選択した週に未完了タスクが見つかりませんでした。',
+  'migration.manual.weekLabel': '{date}の週',
+  'migration.manual.loadingTasks': 'タスクを読み込み中...',
+
+  // Migration Results & Feedback
+  'migration.result.success.title': '移行が正常に完了しました',
+  'migration.result.success.message':
+    '{count}個のタスクが現在の週に正常に移行されました',
+  'migration.result.success.summary':
+    '{total}個中{successful}個のタスクが正常に移行されました',
+  'migration.result.partial.title': '移行が部分的に完了しました',
+  'migration.result.partial.message':
+    '{total}個中{successful}個のタスクが正常に移行され、{failed}個が失敗しました',
+  'migration.result.failure.title': '移行に失敗しました',
+  'migration.result.failure.message': '{count}個のタスクの移行に失敗しました',
+  'migration.result.summary.byDay': '日別のタスクスケジュール:',
+  'migration.result.summary.monday': '月曜日: {count}',
+  'migration.result.summary.tuesday': '火曜日: {count}',
+  'migration.result.summary.wednesday': '水曜日: {count}',
+  'migration.result.summary.thursday': '木曜日: {count}',
+  'migration.result.summary.friday': '金曜日: {count}',
+  'migration.result.summary.saturday': '土曜日: {count}',
+  'migration.result.summary.sunday': '日曜日: {count}',
+  'migration.result.errors.title': '移行エラー',
+  'migration.result.errors.taskNotFound': 'タスク"{title}"が見つかりません',
+  'migration.result.errors.invalidDate': 'タスク"{title}"の日付が無効です',
+  'migration.result.errors.databaseError':
+    'タスク"{title}"のデータベースエラー',
+  'migration.result.errors.dependencyConflict': 'タスク"{title}"の依存関係競合',
+  'migration.result.errors.permissionDenied': 'タスク"{title}"のアクセス拒否',
+  'migration.result.retry': '失敗した移行を再試行',
+  'migration.result.undo': '移行を元に戻す',
+  'migration.result.undoTimeLimit': 'あと{minutes}分間元に戻せます',
+  'migration.result.undoExpired': '元に戻す時間制限が切れました',
+  'migration.undo.success.title': '移行が元に戻されました',
+  'migration.undo.success.message':
+    '{count}個のタスクの移行が正常に元に戻されました',
+  'migration.undo.failure.title': '元に戻すのに失敗しました',
+  'migration.undo.failure.message': '移行を元に戻すのに失敗しました: {error}',
 };

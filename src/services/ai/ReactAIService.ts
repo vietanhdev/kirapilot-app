@@ -203,6 +203,12 @@ function ensureConfiguration(
         showCompletedTasks: true,
         compactView: false,
       },
+      migrationSettings: {
+        enabled: true,
+        dismissedWeeks: [],
+        autoSuggestScheduling: true,
+        showDependencyWarnings: true,
+      },
       soundSettings: {
         hapticFeedback: true,
         completionSound: true,
@@ -914,6 +920,12 @@ export class ReactAIService implements AIServiceInterface {
         weekStartDay: 1,
         showCompletedTasks: false,
         compactView: false,
+      },
+      migrationSettings: {
+        enabled: true,
+        dismissedWeeks: [],
+        autoSuggestScheduling: true,
+        showDependencyWarnings: true,
       },
       soundSettings: {
         hapticFeedback: true,

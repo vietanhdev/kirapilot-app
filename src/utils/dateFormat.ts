@@ -408,3 +408,68 @@ export function getDateSuggestions(
 
   return [...new Set(suggestions)].slice(0, maxSuggestions);
 }
+
+/**
+ * Get the start of the week for a given date
+ * @param date The date to get the week start for
+ * @param weekStartDay 0 for Sunday, 1 for Monday
+ * @returns Date object representing the start of the week (00:00:00 UTC)
+ */
+export function getWeekStartDate(date: Date, weekStartDay: 0 | 1): Date {
+  const result = new Date(date);
+  const day = result.getUTCDay();
+
+  // Calculate days to subtract to get to the start of the week
+  let daysToSubtract: number;
+  if (weekStartDay === 0) {
+    // Week starts on Sunday
+    daysToSubtract = day;
+  } else {
+    // Week starts on Monday
+    daysToSubtract = day === 0 ? 6 : day - 1;
+  }
+
+  result.setUTCDate(result.getUTCDate() - daysToSubtract);
+  result.setUTCHours(0, 0, 0, 0);
+  return result;
+}
+
+/**
+ * Get the end of the week for a given date
+ * @param date The date to get the week end for
+ * @param weekStartDay 0 for Sunday, 1 for Monday
+ * @returns Date object representing the end of the week (23:59:59.999 UTC)
+ */
+export function getWeekEndDate(date: Date, weekStartDay: 0 | 1): Date {
+  const weekStart = getWeekStartDate(date, weekStartDay);
+  const weekEnd = new Date(weekStart);
+  weekEnd.setUTCDate(weekEnd.getUTCDate() + 6);
+  weekEnd.setUTCHours(23, 59, 59, 999);
+  return weekEnd;
+}
+
+/**
+ * Get week date range for a given date
+ * @param date The date to get the week range for
+ * @param weekStartDay 0 for Sunday, 1 for Monday
+ * @returns Object with weekStart and weekEnd dates
+ */
+export function getWeekRange(
+  date: Date,
+  weekStartDay: 0 | 1
+): { weekStart: Date; weekEnd: Date } {
+  const weekStart = getWeekStartDate(date, weekStartDay);
+  const weekEnd = getWeekEndDate(date, weekStartDay);
+  return { weekStart, weekEnd };
+}
+
+/**
+ * Generate a unique week identifier for a given date
+ * @param date The date to generate the identifier for
+ * @param weekStartDay 0 for Sunday, 1 for Monday
+ * @returns String identifier in YYYY-MM-DD format (start of week)
+ */
+export function getWeekIdentifier(date: Date, weekStartDay: 0 | 1): string {
+  const weekStart = getWeekStartDate(date, weekStartDay);
+  return weekStart.toISOString().split('T')[0];
+}

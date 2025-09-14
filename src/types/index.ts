@@ -470,6 +470,12 @@ export interface UserPreferences {
     showCompletedTasks: boolean;
     compactView: boolean;
   };
+  migrationSettings: {
+    enabled: boolean;
+    dismissedWeeks: string[]; // Week identifiers that were dismissed (stored as array for JSON serialization)
+    autoSuggestScheduling: boolean;
+    showDependencyWarnings: boolean;
+  };
   soundSettings: {
     hapticFeedback: boolean;
     completionSound: boolean;
@@ -539,6 +545,12 @@ export interface TaskFilters {
   // Periodic task filtering
   periodicFilter?: 'all' | 'instances_only' | 'regular_only';
   periodicTemplateId?: string; // Filter by specific template
+  // Week-based filtering
+  scheduledWeek?: {
+    weekStart: Date;
+    weekEnd: Date;
+  };
+  excludePeriodicInstances?: boolean; // For migration, exclude auto-generated instances
 }
 
 export interface TaskSortOptions {
@@ -581,3 +593,48 @@ export * from './emotionalIntelligence';
 
 // Re-export thread types
 export * from './thread';
+
+// Migration preferences types
+export interface MigrationPreferences {
+  enabled: boolean;
+  dismissedWeeks: Set<string>; // Week identifiers that were dismissed
+  autoSuggestScheduling: boolean;
+  showDependencyWarnings: boolean;
+}
+
+export interface MigrationPreferencesService {
+  getPreferences(): Promise<MigrationPreferences>;
+  updatePreferences(preferences: Partial<MigrationPreferences>): Promise<void>;
+  addDismissedWeek(weekIdentifier: string): Promise<void>;
+  clearDismissedWeeks(): Promise<void>;
+}
+
+// Migration result feedback types
+export interface MigrationResultSummary {
+  totalTasks: number;
+  successful: number;
+  failed: number;
+  byDay: Record<string, number>; // Date string -> count
+  duration: number; // Migration duration in milliseconds
+}
+
+export interface MigrationFailureDetail {
+  taskId: string;
+  taskTitle: string;
+  error: string;
+  errorType:
+    | 'task_not_found'
+    | 'invalid_date'
+    | 'database_error'
+    | 'dependency_conflict'
+    | 'permission_denied';
+  recoverable: boolean;
+}
+
+export interface MigrationFeedback {
+  success: boolean;
+  summary: MigrationResultSummary;
+  failures: MigrationFailureDetail[];
+  canUndo: boolean;
+  undoTimeLimit?: number; // Time limit for undo in milliseconds
+}

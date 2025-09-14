@@ -1740,4 +1740,105 @@ export const de = {
   'tour.interactionDetails.description':
     'Klicken Sie auf dieses Symbol, um detaillierte Protokolle dessen zu sehen, was die KI im Hintergrund getan hat.',
   'tour.interactionDetails.title': 'Interaktionsdetails',
+
+  // Migration
+  'migration.actions.acceptAllSuggestions': 'Alle Vorschläge Akzeptieren',
+  'migration.actions.acceptSuggestion': 'Vorschlag Akzeptieren',
+  'migration.actions.clearAll': 'Alle Löschen',
+  'migration.actions.dontAskAgain': 'Nicht Mehr Fragen',
+  'migration.actions.migrateSelected': 'Ausgewählte Migrieren ({count})',
+  'migration.actions.selectAll': 'Alle Auswählen',
+  'migration.actions.skipWeek': 'Diese Woche Überspringen',
+  'migration.dialog.description':
+    'Sie haben {count} unvollständige Aufgaben aus der vorherigen Woche. Wählen Sie aus, welche Aufgaben zur aktuellen Woche migriert werden sollen.',
+  'migration.dialog.title': 'Unvollständige Aufgaben Migrieren',
+  'migration.suggestion.confidence': '{confidence}% Vertrauen',
+  'migration.suggestion.label': 'Vorgeschlagen',
+  'migration.suggestion.reason.dependencies':
+    'Basierend auf Aufgabenabhängigkeiten',
+  'migration.suggestion.reason.general': 'Intelligente Planung',
+  'migration.suggestion.reason.priority': 'Basierend auf Aufgabenpriorität',
+  'migration.suggestion.reason.timeEstimate': 'Basierend auf Zeitschätzung',
+  'migration.suggestion.reason.workloadBalance':
+    'Basierend auf Arbeitsbelastungsausgleich',
+  'migration.suggestion.recommended': 'Empfohlen',
+  'migration.task.newDate': 'Planen für:',
+  'migration.task.originalDate': 'Ursprünglich: {date}',
+
+  // Migration Dependencies
+  'migration.dependencies.label': 'Abhängigkeiten',
+  'migration.dependencies.dependsOn': 'Hängt ab von',
+  'migration.dependencies.requiredBy': 'Benötigt von',
+
+  // Migration Conflicts
+  'migration.conflicts.title': 'Abhängigkeitskonflikte Erkannt',
+  'migration.conflicts.dependencyAfter':
+    'hängt von {dependency} ab, das für {date} geplant ist',
+  'migration.conflicts.dependentBefore':
+    'wird von {dependent} benötigt, das für {date} geplant ist',
+  'migration.conflicts.acceptSuggestion': 'Vorschlag Akzeptieren',
+  'migration.conflicts.dismiss': 'Warnungen Verwerfen',
+
+  // Migration Dependents
+  'migration.dependents.title': 'Vorgeschlagene Verwandte Aufgaben',
+  'migration.dependents.description':
+    'Diese Aufgaben hängen von Ihren ausgewählten Aufgaben ab und müssen möglicherweise auch migriert werden:',
+  'migration.dependents.suggestedDate': 'Vorgeschlagen für {date}',
+  'migration.dependents.add': 'Aufgabe Hinzufügen',
+  'migration.dependents.added': 'Hinzugefügt',
+
+  // Manual Migration
+  'migration.manual.trigger': 'Aufgaben Migrieren',
+  'migration.manual.triggerTooltip':
+    'Aufgaben aus vorherigen Wochen manuell migrieren',
+  'migration.manual.dialog.title': 'Manuelle Aufgabenmigration',
+  'migration.manual.dialog.description':
+    'Wählen Sie Aufgaben aus vorherigen Wochen aus, um sie zur aktuellen Woche zu migrieren.',
+  'migration.manual.selectWeek': 'Woche Auswählen',
+  'migration.manual.noTasksFound':
+    'Keine unvollständigen Aufgaben in der ausgewählten Woche gefunden.',
+  'migration.manual.weekLabel': 'Woche vom {date}',
+  'migration.manual.loadingTasks': 'Aufgaben werden geladen...',
+
+  // Migration Results & Feedback
+  'migration.result.success.title': 'Migration Erfolgreich Abgeschlossen',
+  'migration.result.success.message':
+    '{count} Aufgabe(n) erfolgreich zur aktuellen Woche migriert',
+  'migration.result.success.summary':
+    '{successful} von {total} Aufgaben erfolgreich migriert',
+  'migration.result.partial.title': 'Migration Teilweise Abgeschlossen',
+  'migration.result.partial.message':
+    '{successful} von {total} Aufgaben erfolgreich migriert, {failed} fehlgeschlagen',
+  'migration.result.failure.title': 'Migration Fehlgeschlagen',
+  'migration.result.failure.message':
+    'Migration von {count} Aufgabe(n) fehlgeschlagen',
+  'migration.result.summary.byDay': 'Aufgaben nach Tag geplant:',
+  'migration.result.summary.monday': 'Montag: {count}',
+  'migration.result.summary.tuesday': 'Dienstag: {count}',
+  'migration.result.summary.wednesday': 'Mittwoch: {count}',
+  'migration.result.summary.thursday': 'Donnerstag: {count}',
+  'migration.result.summary.friday': 'Freitag: {count}',
+  'migration.result.summary.saturday': 'Samstag: {count}',
+  'migration.result.summary.sunday': 'Sonntag: {count}',
+  'migration.result.errors.title': 'Migrationsfehler',
+  'migration.result.errors.taskNotFound': 'Aufgabe "{title}" nicht gefunden',
+  'migration.result.errors.invalidDate':
+    'Ungültiges Datum für Aufgabe "{title}"',
+  'migration.result.errors.databaseError':
+    'Datenbankfehler für Aufgabe "{title}"',
+  'migration.result.errors.dependencyConflict':
+    'Abhängigkeitskonflikt für Aufgabe "{title}"',
+  'migration.result.errors.permissionDenied':
+    'Berechtigung verweigert für Aufgabe "{title}"',
+  'migration.result.retry': 'Fehlgeschlagene Migrationen Wiederholen',
+  'migration.result.undo': 'Migration Rückgängig Machen',
+  'migration.result.undoTimeLimit':
+    'Rückgängig verfügbar für weitere {minutes} Minuten',
+  'migration.result.undoExpired': 'Rückgängig-Zeitlimit abgelaufen',
+  'migration.undo.success.title': 'Migration Rückgängig Gemacht',
+  'migration.undo.success.message':
+    'Migration für {count} Aufgabe(n) erfolgreich rückgängig gemacht',
+  'migration.undo.failure.title': 'Rückgängig Fehlgeschlagen',
+  'migration.undo.failure.message':
+    'Rückgängigmachen der Migration fehlgeschlagen: {error}',
 };

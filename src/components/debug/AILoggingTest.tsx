@@ -66,6 +66,12 @@ export function AILoggingTest() {
         showCompletedTasks: true,
         compactView: false,
       },
+      migrationSettings: {
+        enabled: true,
+        dismissedWeeks: [],
+        autoSuggestScheduling: true,
+        showDependencyWarnings: true,
+      },
       soundSettings: {
         hapticFeedback: true,
         completionSound: true,

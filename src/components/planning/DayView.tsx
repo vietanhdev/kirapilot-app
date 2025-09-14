@@ -1,5 +1,5 @@
 // Simplified Daily kanban view for focused day planning
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import {
   DndContext,
   closestCenter,
@@ -15,10 +15,19 @@ import { Task, TaskStatus, TaskTimerProps, VirtualTask } from '../../types';
 import { TaskColumn } from './TaskColumn';
 import { TaskCard } from './TaskCard';
 import { TaskModal } from './TaskModal';
+import { TaskMigrationDialog, TaskMigration } from './TaskMigrationDialog';
+import { ManualMigrationDialog } from './ManualMigrationDialog';
 
 import { useResponsiveColumnWidth } from '../../hooks';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useTaskList } from '../../contexts/TaskListContext';
+import { useSettings } from '../../contexts/SettingsContext';
+import { useDatabase } from '../../hooks/useDatabase';
+import { getTaskRepository } from '../../services/database/repositories';
+import { WeekTransitionDetector } from '../../services/WeekTransitionDetector';
+import { TaskMigrationService } from '../../services/TaskMigrationService';
+import { migrationPreferencesService } from '../../services/MigrationPreferencesService';
+import { useMigrationFeedback } from '../../hooks/useMigrationFeedback';
 
 import {
   ChevronLeft,
@@ -28,6 +37,7 @@ import {
   Archive,
   Clock,
   AlertTriangle,
+  ArrowUpDown,
 } from 'lucide-react';
 
 interface DayViewProps {
@@ -67,10 +77,22 @@ export function DayView({
   columnHeight,
 }: DayViewProps) {
   const { t } = useTranslation();
+  const { preferences } = useSettings();
+  const { isInitialized } = useDatabase();
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [, setTaskModalColumn] = useState<string>('');
   const [taskModalDate, setTaskModalDate] = useState<Date | undefined>();
   const [draggedTask, setDraggedTask] = useState<Task | null>(null);
+
+  // Migration state
+  const [showMigrationDialog, setShowMigrationDialog] = useState(false);
+  const [showManualMigrationDialog, setShowManualMigrationDialog] =
+    useState(false);
+  const [incompleteTasks, setIncompleteTasks] = useState<Task[]>([]);
+  const [isProcessingMigration, setIsProcessingMigration] = useState(false);
+
+  // Track previous date for transition detection
+  const previousDateRef = useRef<Date | null>(null);
 
   // Get task list context for indicators
   const { isAllSelected, taskLists } = useTaskList();
@@ -242,6 +264,75 @@ export function DayView({
     );
   }, [selectedDate]);
 
+  // Migration detection and prompt logic for day navigation
+  useEffect(() => {
+    const checkForMigration = async () => {
+      if (!isInitialized || isProcessingMigration) {
+        return;
+      }
+
+      try {
+        const taskService = getTaskRepository();
+        const weekTransitionDetector = new WeekTransitionDetector(taskService);
+        const weekStartDay = preferences.taskSettings.weekStartDay;
+
+        // If this is the first render, just set the reference and return
+        if (!previousDateRef.current) {
+          previousDateRef.current = new Date(selectedDate);
+          return;
+        }
+
+        // Check if we navigated to a day in a new week
+        const previousWeek = weekTransitionDetector.getWeekStartDate(
+          previousDateRef.current,
+          weekStartDay
+        );
+        const currentWeek = weekTransitionDetector.getWeekStartDate(
+          selectedDate,
+          weekStartDay
+        );
+
+        const isNewWeek = previousWeek.getTime() !== currentWeek.getTime();
+
+        if (isNewWeek) {
+          // Check if we should trigger migration prompt
+          const shouldTrigger =
+            await weekTransitionDetector.shouldTriggerMigrationPrompt(
+              previousWeek,
+              currentWeek,
+              weekStartDay
+            );
+
+          if (shouldTrigger) {
+            // Get incomplete tasks from previous week
+            const incompleteTasksFromPrevWeek =
+              await weekTransitionDetector.getIncompleteTasksFromPreviousWeek(
+                currentWeek,
+                weekStartDay
+              );
+
+            if (incompleteTasksFromPrevWeek.length > 0) {
+              setIncompleteTasks(incompleteTasksFromPrevWeek);
+              setShowMigrationDialog(true);
+            }
+          }
+        }
+
+        // Update previous date reference
+        previousDateRef.current = new Date(selectedDate);
+      } catch (error) {
+        console.error('Failed to check for migration in DayView:', error);
+      }
+    };
+
+    checkForMigration();
+  }, [
+    selectedDate,
+    isInitialized,
+    preferences.taskSettings.weekStartDay,
+    isProcessingMigration,
+  ]);
+
   // Calculate responsive column widths - 4 columns
   const totalColumns = 4;
   const { columnWidth } = useResponsiveColumnWidth(totalColumns, {
@@ -301,6 +392,77 @@ export function DayView({
     return selectedDate.toLocaleDateString(undefined, options);
   };
 
+  // Initialize migration feedback hook
+  const taskService = getTaskRepository();
+  const migrationFeedback = useMigrationFeedback(taskService);
+
+  // Migration handlers
+  const handleMigrateTasks = async (migrations: TaskMigration[]) => {
+    if (!isInitialized) {
+      throw new Error('Database not initialized');
+    }
+
+    setIsProcessingMigration(true);
+    const startTime = Date.now();
+
+    try {
+      const migrationService = new TaskMigrationService(taskService);
+
+      const result = await migrationService.migrateTasksToWeek(migrations);
+
+      // Use migration feedback service to show detailed results
+      await migrationFeedback.showMigrationResult(
+        result,
+        migrations,
+        startTime
+      );
+
+      // Close dialog and refresh the view
+      setShowMigrationDialog(false);
+      setIncompleteTasks([]);
+
+      // Trigger a refresh of the parent component's task list
+      window.dispatchEvent(new CustomEvent('tasks-updated'));
+    } catch (error) {
+      console.error('Migration failed:', error);
+      throw error;
+    } finally {
+      setIsProcessingMigration(false);
+    }
+  };
+
+  const handleDismissWeek = async () => {
+    try {
+      const weekStartDay = preferences.taskSettings.weekStartDay;
+      const taskService = getTaskRepository();
+      const weekTransitionDetector = new WeekTransitionDetector(taskService);
+      const currentWeek = weekTransitionDetector.getWeekStartDate(
+        selectedDate,
+        weekStartDay
+      );
+      const weekIdentifier = weekTransitionDetector.generateWeekIdentifier(
+        currentWeek,
+        weekStartDay
+      );
+
+      await migrationPreferencesService.addDismissedWeek(weekIdentifier);
+      setShowMigrationDialog(false);
+      setIncompleteTasks([]);
+    } catch (error) {
+      console.error('Failed to dismiss week:', error);
+    }
+  };
+
+  const handleDisableMigration = async () => {
+    try {
+      await migrationPreferencesService.updatePreferences({ enabled: false });
+      setShowMigrationDialog(false);
+      setIncompleteTasks([]);
+    } catch (error) {
+      console.error('Failed to disable migration:', error);
+    }
+  };
+
   const handleAddTask = async (column: string, date?: Date) => {
     setTaskModalColumn(column);
     setTaskModalDate(date);
@@ -342,6 +504,15 @@ export function DayView({
             </div>
 
             <div className='flex items-center space-x-3'>
+              {/* Manual Migration Button */}
+              <button
+                onClick={() => setShowManualMigrationDialog(true)}
+                className='p-1 hover:bg-content3 rounded transition-colors duration-200'
+                title={t('migration.manual.triggerTooltip')}
+              >
+                <ArrowUpDown className='w-4 h-4 text-foreground-600' />
+              </button>
+
               {/* Date Navigation */}
               <div className='flex items-center space-x-1'>
                 <button
@@ -513,6 +684,26 @@ export function DayView({
           }}
           onCreateTask={handleTaskCreate}
           defaultDate={taskModalDate}
+        />
+
+        {/* Task Migration Dialog */}
+        <TaskMigrationDialog
+          isOpen={showMigrationDialog}
+          onClose={() => setShowMigrationDialog(false)}
+          incompleteTasks={incompleteTasks}
+          currentWeek={selectedDate}
+          weekStartDay={preferences.taskSettings.weekStartDay}
+          onMigrateTasks={handleMigrateTasks}
+          onDismissWeek={handleDismissWeek}
+          onDisableMigration={handleDisableMigration}
+        />
+
+        {/* Manual Migration Dialog */}
+        <ManualMigrationDialog
+          isOpen={showManualMigrationDialog}
+          onClose={() => setShowManualMigrationDialog(false)}
+          currentWeek={selectedDate}
+          onMigrateTasks={handleMigrateTasks}
         />
 
         {/* Drag Overlay */}

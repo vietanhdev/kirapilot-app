@@ -1,0 +1,27 @@
+{
+  "enabled": true,
+  "name": "Build, Lint & Test Loop",
+  "description": "Automatically runs npm run build, npm run lint, and npm run test when source files change, then fixes all issues and loops until no issues remain",
+  "version": "1",
+  "when": {
+    "type": "userTriggered",
+    "patterns": [
+      "src/**/*.ts",
+      "src/**/*.tsx",
+      "src/**/*.js",
+      "src/**/*.jsx",
+      "*.ts",
+      "*.tsx",
+      "*.js",
+      "*.jsx",
+      "package.json",
+      "tsconfig.json",
+      "eslint.config.js",
+      "vite.config.ts"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Run the following commands in sequence: 1) npm run build 2) npm run lint 3) npm run test. If any command fails or shows warnings/errors, analyze the output and fix all issues. After fixing issues, run the commands again. Continue this loop until all three commands pass without any errors or warnings. Focus on TypeScript errors, ESLint issues, and test failures. Make sure to follow the project's coding standards and fix any formatting issues."
+  }
+}

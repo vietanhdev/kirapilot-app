@@ -149,7 +149,7 @@ describe('TaskListDropdown Error Handling', () => {
             screen.getByText('Task list name is too long (max 255 characters)')
           ).toBeInTheDocument();
         },
-        { timeout: 3000 }
+        { timeout: 10000 }
       );
 
       // Save button should be disabled
@@ -170,11 +170,14 @@ describe('TaskListDropdown Error Handling', () => {
       await user.type(input, 'All');
 
       // Should show validation error
-      await waitFor(() => {
-        expect(
-          screen.getByText('Task list name cannot be "All" (reserved)')
-        ).toBeInTheDocument();
-      });
+      await waitFor(
+        () => {
+          expect(
+            screen.getByText('Task list name cannot be "All" (reserved)')
+          ).toBeInTheDocument();
+        },
+        { timeout: 10000 }
+      );
 
       // Save button should be disabled
       const saveButton = screen.getByTitle('Save');

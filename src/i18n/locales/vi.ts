@@ -1695,4 +1695,101 @@ export const vi = {
   'tour.interactionDetails.description':
     'Nhấp vào biểu tượng này để xem nhật ký chi tiết về những gì AI đã làm ở hậu trường.',
   'tour.interactionDetails.title': 'Chi tiết Tương tác',
+
+  // Migration
+  'migration.actions.acceptAllSuggestions': 'Chấp nhận Tất cả Gợi ý',
+  'migration.actions.acceptSuggestion': 'Chấp nhận Gợi ý',
+  'migration.actions.clearAll': 'Xóa Tất cả',
+  'migration.actions.dontAskAgain': 'Không Hỏi Lại',
+  'migration.actions.migrateSelected': 'Di chuyển Đã chọn ({count})',
+  'migration.actions.selectAll': 'Chọn Tất cả',
+  'migration.actions.skipWeek': 'Bỏ qua Tuần này',
+  'migration.dialog.description':
+    'Bạn có {count} nhiệm vụ chưa hoàn thành từ tuần trước. Chọn nhiệm vụ nào để di chuyển sang tuần hiện tại.',
+  'migration.dialog.title': 'Di chuyển Nhiệm vụ Chưa hoàn thành',
+  'migration.suggestion.confidence': '{confidence}% độ tin cậy',
+  'migration.suggestion.label': 'Được gợi ý',
+  'migration.suggestion.reason.dependencies': 'Dựa trên phụ thuộc nhiệm vụ',
+  'migration.suggestion.reason.general': 'Lập lịch thông minh',
+  'migration.suggestion.reason.priority': 'Dựa trên độ ưu tiên nhiệm vụ',
+  'migration.suggestion.reason.timeEstimate': 'Dựa trên ước tính thời gian',
+  'migration.suggestion.reason.workloadBalance':
+    'Dựa trên cân bằng khối lượng công việc',
+  'migration.suggestion.recommended': 'Được khuyến nghị',
+  'migration.task.newDate': 'Lập lịch cho:',
+  'migration.task.originalDate': 'Ban đầu: {date}',
+
+  // Migration Dependencies
+  'migration.dependencies.label': 'Phụ thuộc',
+  'migration.dependencies.dependsOn': 'Phụ thuộc vào',
+  'migration.dependencies.requiredBy': 'Được yêu cầu bởi',
+
+  // Migration Conflicts
+  'migration.conflicts.title': 'Phát hiện Xung đột Phụ thuộc',
+  'migration.conflicts.dependencyAfter':
+    'phụ thuộc vào {dependency} được lên lịch cho {date}',
+  'migration.conflicts.dependentBefore':
+    'được yêu cầu bởi {dependent} được lên lịch cho {date}',
+  'migration.conflicts.acceptSuggestion': 'Chấp nhận Gợi ý',
+  'migration.conflicts.dismiss': 'Bỏ qua Cảnh báo',
+
+  // Migration Dependents
+  'migration.dependents.title': 'Nhiệm vụ Liên quan Được gợi ý',
+  'migration.dependents.description':
+    'Những nhiệm vụ này phụ thuộc vào các nhiệm vụ đã chọn của bạn và cũng có thể cần được di chuyển:',
+  'migration.dependents.suggestedDate': 'Gợi ý cho {date}',
+  'migration.dependents.add': 'Thêm Nhiệm vụ',
+  'migration.dependents.added': 'Đã thêm',
+
+  // Manual Migration
+  'migration.manual.trigger': 'Di chuyển Nhiệm vụ',
+  'migration.manual.triggerTooltip':
+    'Di chuyển thủ công nhiệm vụ từ các tuần trước',
+  'migration.manual.dialog.title': 'Di chuyển Nhiệm vụ Thủ công',
+  'migration.manual.dialog.description':
+    'Chọn nhiệm vụ từ các tuần trước để di chuyển sang tuần hiện tại.',
+  'migration.manual.selectWeek': 'Chọn Tuần',
+  'migration.manual.noTasksFound':
+    'Không tìm thấy nhiệm vụ chưa hoàn thành trong tuần đã chọn.',
+  'migration.manual.weekLabel': 'Tuần của {date}',
+  'migration.manual.loadingTasks': 'Đang tải nhiệm vụ...',
+
+  // Migration Results & Feedback
+  'migration.result.success.title': 'Di chuyển Hoàn thành Thành công',
+  'migration.result.success.message':
+    'Đã di chuyển thành công {count} nhiệm vụ sang tuần hiện tại',
+  'migration.result.success.summary':
+    '{successful} trong số {total} nhiệm vụ được di chuyển thành công',
+  'migration.result.partial.title': 'Di chuyển Hoàn thành Một phần',
+  'migration.result.partial.message':
+    '{successful} trong số {total} nhiệm vụ được di chuyển thành công, {failed} thất bại',
+  'migration.result.failure.title': 'Di chuyển Thất bại',
+  'migration.result.failure.message': 'Thất bại khi di chuyển {count} nhiệm vụ',
+  'migration.result.summary.byDay': 'Nhiệm vụ được lên lịch theo ngày:',
+  'migration.result.summary.monday': 'Thứ Hai: {count}',
+  'migration.result.summary.tuesday': 'Thứ Ba: {count}',
+  'migration.result.summary.wednesday': 'Thứ Tư: {count}',
+  'migration.result.summary.thursday': 'Thứ Năm: {count}',
+  'migration.result.summary.friday': 'Thứ Sáu: {count}',
+  'migration.result.summary.saturday': 'Thứ Bảy: {count}',
+  'migration.result.summary.sunday': 'Chủ Nhật: {count}',
+  'migration.result.errors.title': 'Lỗi Di chuyển',
+  'migration.result.errors.taskNotFound': 'Không tìm thấy nhiệm vụ "{title}"',
+  'migration.result.errors.invalidDate':
+    'Ngày không hợp lệ cho nhiệm vụ "{title}"',
+  'migration.result.errors.databaseError':
+    'Lỗi cơ sở dữ liệu cho nhiệm vụ "{title}"',
+  'migration.result.errors.dependencyConflict':
+    'Xung đột phụ thuộc cho nhiệm vụ "{title}"',
+  'migration.result.errors.permissionDenied':
+    'Quyền truy cập bị từ chối cho nhiệm vụ "{title}"',
+  'migration.result.retry': 'Thử lại Di chuyển Thất bại',
+  'migration.result.undo': 'Hoàn tác Di chuyển',
+  'migration.result.undoTimeLimit': 'Hoàn tác có sẵn trong {minutes} phút nữa',
+  'migration.result.undoExpired': 'Hết thời gian giới hạn hoàn tác',
+  'migration.undo.success.title': 'Đã Hoàn tác Di chuyển',
+  'migration.undo.success.message':
+    'Đã hoàn tác thành công di chuyển cho {count} nhiệm vụ',
+  'migration.undo.failure.title': 'Hoàn tác Thất bại',
+  'migration.undo.failure.message': 'Thất bại khi hoàn tác di chuyển: {error}',
 };

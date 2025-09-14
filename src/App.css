@@ -300,3 +300,30 @@ select,
 .heroui-modal-backdrop {
   z-index: 9998 !important;
 }
+
+/* Focus Mode Styles */
+.app-main-content.focus-mode {
+  padding: 0;
+  overflow: hidden;
+}
+
+.focus-mode-tasks .task-card {
+  @apply mb-2 p-2 text-sm;
+}
+
+.focus-mode-tasks .task-card .task-title {
+  @apply text-sm font-medium;
+}
+
+.focus-mode-tasks .task-card .task-description {
+  @apply text-xs;
+}
+
+/* Focus mode compact header */
+.focus-mode .header-compact {
+  @apply py-2 px-3;
+}
+
+.focus-mode .header-compact .app-logo {
+  @apply w-6 h-6;
+}

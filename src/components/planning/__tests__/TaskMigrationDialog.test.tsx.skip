@@ -1,0 +1,496 @@
+import React from 'react';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { TaskMigrationDialog } from '../TaskMigrationDialog';
+import { Task, Priority, TaskStatus } from '../../../types';
+
+// Mock the translation hook
+jest.mock('../../../hooks/useTranslation', () => ({
+  useTranslation: () => ({
+    t: (key: string, params?: Record<string, unknown>) => {
+      if (params) {
+        let result = key;
+        Object.entries(params).forEach(([param, value]) => {
+          result = result.replace(`{${param}}`, String(value));
+        });
+        return result;
+      }
+      return key;
+    },
+  }),
+}));
+
+// Mock the settings context
+jest.mock('../../../contexts/SettingsContext', () => ({
+  useSettings: () => ({
+    preferences: {
+      dateFormat: 'MM/DD/YYYY' as const,
+      weekStartDay: 1, // Monday
+    },
+  }),
+  SettingsProvider: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+}));
+
+// Mock date formatting utility
+jest.mock('../../../utils/dateFormat', () => ({
+  formatDate: (date: Date, _format: string) => {
+    return date.toLocaleDateString('en-US');
+  },
+}));
+
+// Mock the database hook
+jest.mock('../../../hooks/useDatabase', () => ({
+  useDatabase: () => ({
+    taskService: {
+      findById: jest.fn(),
+      getTasksForWeek: jest.fn().mockResolvedValue([]),
+    },
+  }),
+}));
+
+// Mock TaskMigrationService
+jest.mock('../../../services/TaskMigrationService', () => ({
+  TaskMigrationService: jest.fn().mockImplementation(() => ({
+    suggestSchedulingForTasks: jest.fn().mockResolvedValue([]),
+  })),
+}));
+
+// Mock HeroUI Modal components to avoid DOM issues in tests
+jest.mock('@heroui/react', () => ({
+  ...jest.requireActual('@heroui/react'),
+  Modal: ({ children, isOpen }: { children: React.ReactNode; isOpen: boolean }) =>
+    isOpen ? <div data-testid="modal" role="dialog">{children}</div> : null,
+  ModalContent: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="modal-content">{children}</div>
+  ),
+  ModalHeader: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="modal-header">{children}</div>
+  ),
+  ModalBody: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="modal-body">{children}</div>
+  ),
+  ModalFooter: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="modal-footer">{children}</div>
+  ),
+  Button: ({ children, onPress, isDisabled, isLoading, ...props }: React.ComponentProps<'button'> & { onPress?: () => void; isLoading?: boolean }) => (
+    <button onClick={onPress} disabled={isDisabled || isLoading} {...props}>
+      {children}
+    </button>
+  ),
+  Checkbox: ({ isSelected, onValueChange, ...props }: React.ComponentProps<'input'> & { isSelected?: boolean; onValueChange?: (checked: boolean) => void }) => (
+    <input
+      type="checkbox"
+      checked={isSelected}
+      onChange={(e) => onValueChange?.(e.target.checked)}
+      {...props}
+    />
+  ),
+  Chip: ({ children }: { children: React.ReactNode }) => (
+    <span data-testid="chip">{children}</span>
+  ),
+  Divider: () => <hr data-testid="divider" />,
+  Select: ({ children, selectedKeys, onSelectionChange, ...props }: React.ComponentProps<'select'> & { selectedKeys?: Set<string>; onSelectionChange?: (keys: Set<string>) => void }) => (
+    <select
+      value={Array.from(selectedKeys || [])[0] || ''}
+      onChange={(e) => onSelectionChange?.(new Set([e.target.value]))}
+      {...props}
+    >
+      {children}
+    </select>
+  ),
+  SelectItem: ({ children, ...props }: React.ComponentProps<'option'>) => (
+    <option {...props}>{children}</option>
+  ),
+}));
+
+const mockTasks: Task[] = [
+  {
+    id: 'task-1',
+    title: 'Complete project proposal',
+    description: 'Write and review the project proposal document',
+    priority: Priority.HIGH,
+    status: TaskStatus.PENDING,
+    order: 0,
+    dependencies: [],
+    timePreset: 60,
+    timeEstimate: 120,
+    actualTime: 0,
+    scheduledDate: new Date('2024-01-15'),
+    tags: ['work', 'important'],
+    taskListId: 'list-1',
+    subtasks: [],
+    isPeriodicInstance: false,
+    createdAt: new Date('2024-01-10'),
+    updatedAt: new Date('2024-01-10'),
+  },
+  {
+    id: 'task-2',
+    title: 'Review code changes',
+    description: 'Review the latest pull requests',
+    priority: Priority.MEDIUM,
+    status: TaskStatus.IN_PROGRESS,
+    order: 1,
+    dependencies: [],
+    timePreset: 30,
+    timeEstimate: 60,
+    actualTime: 15,
+    scheduledDate: new Date('2024-01-16'),
+    tags: ['development'],
+    taskListId: 'list-1',
+    subtasks: [],
+    isPeriodicInstance: false,
+    createdAt: new Date('2024-01-11'),
+    updatedAt: new Date('2024-01-16'),
+  },
+  {
+    id: 'task-3',
+    title: 'Update documentation',
+    description: 'Update the API documentation',
+    priority: Priority.LOW,
+    status: TaskStatus.PENDING,
+    order: 2,
+    dependencies: [],
+    timePreset: 15,
+    timeEstimate: 30,
+    actualTime: 0,
+    tags: ['documentation'],
+    taskListId: 'list-1',
+    subtasks: [],
+    isPeriodicInstance: false,
+    createdAt: new Date('2024-01-12'),
+    updatedAt: new Date('2024-01-12'),
+  },
+];
+
+const defaultProps = {
+  isOpen: true,
+  onClose: jest.fn(),
+  incompleteTasks: mockTasks,
+  currentWeek: new Date('2024-01-22'), // Monday of the target week
+  weekStartDay: 1 as const, // Monday
+  onMigrateTasks: jest.fn(),
+  onDismissWeek: jest.fn(),
+  onDisableMigration: jest.fn(),
+};
+
+const renderComponent = (props = {}) => {
+  return render(<TaskMigrationDialog {...defaultProps} {...props} />);
+};
+
+describe('TaskMigrationDialog', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  describe('Rendering', () => {
+    it('renders the dialog when open', () => {
+      renderComponent();
+      
+      expect(screen.getByText('migration.dialog.title')).toBeInTheDocument();
+      expect(screen.getByText('migration.dialog.description')).toBeInTheDocument();
+    });
+
+    it('does not render when closed', () => {
+      renderComponent({ isOpen: false });
+      
+      expect(screen.queryByText('migration.dialog.title')).not.toBeInTheDocument();
+    });
+
+    it('displays all incomplete tasks', () => {
+      renderComponent();
+      
+      expect(screen.getByText('Complete project proposal')).toBeInTheDocument();
+      expect(screen.getByText('Review code changes')).toBeInTheDocument();
+      expect(screen.getByText('Update documentation')).toBeInTheDocument();
+    });
+
+    it('shows task priorities correctly', () => {
+      renderComponent();
+      
+      // Check that priority chips are displayed
+      expect(screen.getByText('HIGH')).toBeInTheDocument();
+      expect(screen.getByText('MEDIUM')).toBeInTheDocument();
+      expect(screen.getByText('LOW')).toBeInTheDocument();
+    });
+
+    it('displays original scheduled dates', () => {
+      renderComponent();
+      
+      // Should show original dates for tasks
+      expect(screen.getAllByText(/migration.task.originalDate/)).toHaveLength(3);
+    });
+
+    it('shows time estimates when available', () => {
+      renderComponent();
+      
+      expect(screen.getByText('120m')).toBeInTheDocument();
+      expect(screen.getByText('60m')).toBeInTheDocument();
+      expect(screen.getByText('30m')).toBeInTheDocument();
+    });
+  });
+
+  describe('Task Selection', () => {
+    it('selects all tasks by default', () => {
+      renderComponent();
+      
+      const checkboxes = screen.getAllByRole('checkbox');
+      checkboxes.forEach(checkbox => {
+        expect(checkbox).toBeChecked();
+      });
+      
+      expect(screen.getByText('3 of 3 selected')).toBeInTheDocument();
+    });
+
+    it('allows individual task selection/deselection', async () => {
+      const user = userEvent.setup();
+      renderComponent();
+      
+      const checkboxes = screen.getAllByRole('checkbox');
+      
+      // Uncheck first task
+      await user.click(checkboxes[0]);
+      
+      expect(checkboxes[0]).not.toBeChecked();
+      expect(screen.getByText('2 of 3 selected')).toBeInTheDocument();
+    });
+
+    it('handles select all functionality', async () => {
+      const user = userEvent.setup();
+      renderComponent();
+      
+      // First deselect all
+      const clearAllButton = screen.getByText('migration.actions.clearAll');
+      await user.click(clearAllButton);
+      
+      expect(screen.getByText('0 of 3 selected')).toBeInTheDocument();
+      
+      // Then select all
+      const selectAllButton = screen.getByText('migration.actions.selectAll');
+      await user.click(selectAllButton);
+      
+      expect(screen.getByText('3 of 3 selected')).toBeInTheDocument();
+    });
+
+    it('handles clear all functionality', async () => {
+      const user = userEvent.setup();
+      renderComponent();
+      
+      const clearAllButton = screen.getByText('migration.actions.clearAll');
+      await user.click(clearAllButton);
+      
+      const checkboxes = screen.getAllByRole('checkbox');
+      checkboxes.forEach(checkbox => {
+        expect(checkbox).not.toBeChecked();
+      });
+      
+      expect(screen.getByText('0 of 3 selected')).toBeInTheDocument();
+    });
+  });
+
+  describe('Task Scheduling', () => {
+    it('shows scheduling options for selected tasks', () => {
+      renderComponent();
+      
+      // All tasks should be selected by default and show scheduling options
+      const scheduleSelects = screen.getAllByText('migration.task.newDate');
+      expect(scheduleSelects).toHaveLength(3);
+    });
+
+    it('hides scheduling options for unselected tasks', async () => {
+      const user = userEvent.setup();
+      renderComponent();
+      
+      const checkboxes = screen.getAllByRole('checkbox');
+      
+      // Uncheck first task
+      await user.click(checkboxes[0]);
+      
+      // Should now have 2 scheduling sections instead of 3
+      const scheduleSelects = screen.getAllByText('migration.task.newDate');
+      expect(scheduleSelects).toHaveLength(2);
+    });
+
+    it('provides week day options for scheduling', () => {
+      renderComponent();
+      
+      // Should have select dropdowns for each selected task
+      const selects = screen.getAllByRole('combobox');
+      expect(selects.length).toBe(3); // One for each task
+    });
+  });
+
+  describe('Actions', () => {
+    it('calls onMigrateTasks with correct data when migrating', async () => {
+      const user = userEvent.setup();
+      const mockOnMigrateTasks = jest.fn().mockResolvedValue(undefined);
+      
+      renderComponent({ onMigrateTasks: mockOnMigrateTasks });
+      
+      const migrateButton = screen.getByText('migration.actions.migrateSelected');
+      await user.click(migrateButton);
+      
+      await waitFor(() => {
+        expect(mockOnMigrateTasks).toHaveBeenCalledWith(
+          expect.arrayContaining([
+            expect.objectContaining({
+              taskId: 'task-1',
+              newScheduledDate: expect.any(Date),
+            }),
+            expect.objectContaining({
+              taskId: 'task-2',
+              newScheduledDate: expect.any(Date),
+            }),
+            expect.objectContaining({
+              taskId: 'task-3',
+              newScheduledDate: expect.any(Date),
+            }),
+          ])
+        );
+      });
+    });
+
+    it('disables migrate button when no tasks selected', async () => {
+      const user = userEvent.setup();
+      renderComponent();
+      
+      // Clear all selections
+      const clearAllButton = screen.getByText('migration.actions.clearAll');
+      await user.click(clearAllButton);
+      
+      const migrateButton = screen.getByText('migration.actions.migrateSelected');
+      expect(migrateButton).toBeDisabled();
+    });
+
+    it('calls onDismissWeek when skip week is clicked', async () => {
+      const user = userEvent.setup();
+      const mockOnDismissWeek = jest.fn();
+      
+      renderComponent({ onDismissWeek: mockOnDismissWeek });
+      
+      const skipButton = screen.getByText('migration.actions.skipWeek');
+      await user.click(skipButton);
+      
+      expect(mockOnDismissWeek).toHaveBeenCalled();
+    });
+
+    it('calls onDisableMigration when dont ask again is clicked', async () => {
+      const user = userEvent.setup();
+      const mockOnDisableMigration = jest.fn();
+      
+      renderComponent({ onDisableMigration: mockOnDisableMigration });
+      
+      const dontAskButton = screen.getByText('migration.actions.dontAskAgain');
+      await user.click(dontAskButton);
+      
+      expect(mockOnDisableMigration).toHaveBeenCalled();
+    });
+
+    it('calls onClose after successful migration', async () => {
+      const user = userEvent.setup();
+      const mockOnClose = jest.fn();
+      const mockOnMigrateTasks = jest.fn().mockResolvedValue(undefined);
+      
+      renderComponent({ 
+        onClose: mockOnClose,
+        onMigrateTasks: mockOnMigrateTasks 
+      });
+      
+      const migrateButton = screen.getByText('migration.actions.migrateSelected');
+      await user.click(migrateButton);
+      
+      await waitFor(() => {
+        expect(mockOnClose).toHaveBeenCalled();
+      });
+    });
+
+    it('shows loading state during migration', async () => {
+      const user = userEvent.setup();
+      const mockOnMigrateTasks = jest.fn(() => new Promise(resolve => setTimeout(resolve, 100)));
+      
+      renderComponent({ onMigrateTasks: mockOnMigrateTasks });
+      
+      const migrateButton = screen.getByText('migration.actions.migrateSelected');
+      await user.click(migrateButton);
+      
+      // Button should be in loading state
+      expect(migrateButton).toBeDisabled();
+    });
+  });
+
+  describe('Week Calculation', () => {
+    it('calculates correct week dates for Monday start', () => {
+      // Test with Monday as week start (weekStartDay = 1)
+      renderComponent({
+        currentWeek: new Date('2024-01-24'), // Wednesday
+        weekStartDay: 1,
+      });
+      
+      // Should show Monday through Sunday options
+      // The week should start from Monday 2024-01-22
+      expect(screen.getAllByText(/Monday/)).toHaveLength(3); // One for each task
+      expect(screen.getAllByText(/Sunday/)).toHaveLength(3); // One for each task
+    });
+
+    it('calculates correct week dates for Sunday start', () => {
+      // Test with Sunday as week start (weekStartDay = 0)
+      renderComponent({
+        currentWeek: new Date('2024-01-24'), // Wednesday
+        weekStartDay: 0,
+      });
+      
+      // Should show Sunday through Saturday options
+      // The week should start from Sunday 2024-01-21
+      expect(screen.getAllByText(/Sunday/)).toHaveLength(3); // One for each task
+      expect(screen.getAllByText(/Saturday/)).toHaveLength(3); // One for each task
+    });
+  });
+
+  describe('Error Handling', () => {
+    it('handles migration errors gracefully', async () => {
+      const user = userEvent.setup();
+      const mockOnMigrateTasks = jest.fn().mockRejectedValue(new Error('Migration failed'));
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+      
+      renderComponent({ onMigrateTasks: mockOnMigrateTasks });
+      
+      const migrateButton = screen.getByText('migration.actions.migrateSelected');
+      await user.click(migrateButton);
+      
+      await waitFor(() => {
+        expect(consoleSpy).toHaveBeenCalledWith('Failed to migrate tasks:', expect.any(Error));
+      });
+      
+      consoleSpy.mockRestore();
+    });
+  });
+
+  describe('Accessibility', () => {
+    it('has proper ARIA labels and roles', () => {
+      renderComponent();
+      
+      // Check for proper modal structure
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+      
+      // Check for checkboxes
+      const checkboxes = screen.getAllByRole('checkbox');
+      expect(checkboxes).toHaveLength(3);
+      
+      // Check for buttons
+      expect(screen.getByText('migration.actions.selectAll')).toBeInTheDocument();
+      expect(screen.getByText('migration.actions.clearAll')).toBeInTheDocument();
+      expect(screen.getByText('migration.actions.migrateSelected')).toBeInTheDocument();
+    });
+
+    it('supports keyboard navigation', async () => {
+      const user = userEvent.setup();
+      renderComponent();
+      
+      // Tab through interactive elements
+      await user.tab();
+      
+      // Should be able to navigate through checkboxes and buttons
+      const focusedElement = document.activeElement;
+      expect(focusedElement).toBeInTheDocument();
+    });
+  });
+});

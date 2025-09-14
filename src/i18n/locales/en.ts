@@ -1668,4 +1668,98 @@ export const en = {
   'tour.interactionDetails.description':
     'Click this icon to see detailed logs of what the AI did behind the scenes.',
   'tour.interactionDetails.title': 'Interaction Details',
+
+  // Migration
+  'migration.actions.acceptAllSuggestions': 'Accept All Suggestions',
+  'migration.actions.acceptSuggestion': 'Accept Suggestion',
+  'migration.actions.clearAll': 'Clear All',
+  'migration.actions.dontAskAgain': "Don't Ask Again",
+  'migration.actions.migrateSelected': 'Migrate Selected ({count})',
+  'migration.actions.selectAll': 'Select All',
+  'migration.actions.skipWeek': 'Skip This Week',
+  'migration.dialog.description':
+    'You have {count} incomplete tasks from the previous week. Select which tasks to migrate to the current week.',
+  'migration.dialog.title': 'Migrate Incomplete Tasks',
+  'migration.suggestion.confidence': '{confidence}% confidence',
+  'migration.suggestion.label': 'Suggested',
+  'migration.suggestion.reason.dependencies': 'Based on task dependencies',
+  'migration.suggestion.reason.general': 'Smart scheduling',
+  'migration.suggestion.reason.priority': 'Based on task priority',
+  'migration.suggestion.reason.timeEstimate': 'Based on time estimate',
+  'migration.suggestion.reason.workloadBalance': 'Based on workload balance',
+  'migration.suggestion.recommended': 'Recommended',
+  'migration.task.newDate': 'Schedule for:',
+  'migration.task.originalDate': 'Originally: {date}',
+
+  // Migration Dependencies
+  'migration.dependencies.label': 'Dependencies',
+  'migration.dependencies.dependsOn': 'Depends on',
+  'migration.dependencies.requiredBy': 'Required by',
+
+  // Migration Conflicts
+  'migration.conflicts.title': 'Dependency Conflicts Detected',
+  'migration.conflicts.dependencyAfter':
+    'depends on {dependency} which is scheduled for {date}',
+  'migration.conflicts.dependentBefore':
+    'is required by {dependent} which is scheduled for {date}',
+  'migration.conflicts.acceptSuggestion': 'Accept Suggestion',
+  'migration.conflicts.dismiss': 'Dismiss Warnings',
+
+  // Migration Dependents
+  'migration.dependents.title': 'Suggested Related Tasks',
+  'migration.dependents.description':
+    'These tasks depend on your selected tasks and might also need to be migrated:',
+  'migration.dependents.suggestedDate': 'Suggested for {date}',
+  'migration.dependents.add': 'Add Task',
+  'migration.dependents.added': 'Added',
+
+  // Manual Migration
+  'migration.manual.trigger': 'Migrate Tasks',
+  'migration.manual.triggerTooltip':
+    'Manually migrate tasks from previous weeks',
+  'migration.manual.dialog.title': 'Manual Task Migration',
+  'migration.manual.dialog.description':
+    'Select tasks from previous weeks to migrate to the current week.',
+  'migration.manual.selectWeek': 'Select Week',
+  'migration.manual.noTasksFound':
+    'No incomplete tasks found in the selected week.',
+  'migration.manual.weekLabel': 'Week of {date}',
+  'migration.manual.loadingTasks': 'Loading tasks...',
+
+  // Migration Results & Feedback
+  'migration.result.success.title': 'Migration Completed Successfully',
+  'migration.result.success.message':
+    'Successfully migrated {count} task(s) to the current week',
+  'migration.result.success.summary':
+    '{successful} of {total} tasks migrated successfully',
+  'migration.result.partial.title': 'Migration Partially Completed',
+  'migration.result.partial.message':
+    '{successful} of {total} tasks migrated successfully, {failed} failed',
+  'migration.result.failure.title': 'Migration Failed',
+  'migration.result.failure.message': 'Failed to migrate {count} task(s)',
+  'migration.result.summary.byDay': 'Tasks scheduled by day:',
+  'migration.result.summary.monday': 'Monday: {count}',
+  'migration.result.summary.tuesday': 'Tuesday: {count}',
+  'migration.result.summary.wednesday': 'Wednesday: {count}',
+  'migration.result.summary.thursday': 'Thursday: {count}',
+  'migration.result.summary.friday': 'Friday: {count}',
+  'migration.result.summary.saturday': 'Saturday: {count}',
+  'migration.result.summary.sunday': 'Sunday: {count}',
+  'migration.result.errors.title': 'Migration Errors',
+  'migration.result.errors.taskNotFound': 'Task "{title}" not found',
+  'migration.result.errors.invalidDate': 'Invalid date for task "{title}"',
+  'migration.result.errors.databaseError': 'Database error for task "{title}"',
+  'migration.result.errors.dependencyConflict':
+    'Dependency conflict for task "{title}"',
+  'migration.result.errors.permissionDenied':
+    'Permission denied for task "{title}"',
+  'migration.result.retry': 'Retry Failed Migrations',
+  'migration.result.undo': 'Undo Migration',
+  'migration.result.undoTimeLimit': 'Undo available for {minutes} more minutes',
+  'migration.result.undoExpired': 'Undo time limit expired',
+  'migration.undo.success.title': 'Migration Undone',
+  'migration.undo.success.message':
+    'Successfully undone migration for {count} task(s)',
+  'migration.undo.failure.title': 'Undo Failed',
+  'migration.undo.failure.message': 'Failed to undo migration: {error}',
 };

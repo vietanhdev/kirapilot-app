@@ -1383,6 +1383,12 @@ export class ProductivityInsightsService {
                 showCompletedTasks: false,
                 compactView: false,
               },
+              migrationSettings: {
+                enabled: true,
+                dismissedWeeks: [],
+                autoSuggestScheduling: true,
+                showDependencyWarnings: true,
+              },
               soundSettings: {
                 hapticFeedback: true,
                 completionSound: true,

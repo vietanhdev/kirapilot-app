@@ -362,7 +362,7 @@ describe('MessageInput', () => {
     expect(hint).toHaveClass('text-primary-500');
 
     // Blur the textarea
-    await user.tab();
+    fireEvent.blur(textarea);
 
     // Should not be highlighted when blurred
     await waitFor(() => {

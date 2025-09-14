@@ -7,12 +7,14 @@ import { VirtualPeriodicTaskService } from '../../services/database/repositories
 import { useTaskList } from '../../contexts/TaskListContext';
 import { WeeklyPlan } from './WeeklyPlan';
 import { TaskFilterBar } from './TaskFilterBar';
+import { TaskDashboard } from './TaskDashboard';
+import { FocusView } from './FocusView';
 
 interface PlanningScreenProps {
-  viewMode?: 'week' | 'day';
+  viewMode?: 'week' | 'day' | 'dashboard' | 'focus';
 }
 
-export function Planner({ viewMode = 'week' }: PlanningScreenProps) {
+export function Planner({ viewMode = 'dashboard' }: PlanningScreenProps) {
   const { isInitialized } = useDatabase();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [virtualTasks, setVirtualTasks] = useState<VirtualTask[]>([]);
@@ -75,8 +77,14 @@ export function Planner({ viewMode = 'week' }: PlanningScreenProps) {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Listen for periodic task updates and refresh tasks
+  // Listen for task updates and refresh tasks
   useEffect(() => {
+    const handleTasksUpdate = async () => {
+      if (isInitialized) {
+        await refreshTasks();
+      }
+    };
+
     const handlePeriodicTasksUpdate = async () => {
       if (isInitialized) {
         try {
@@ -84,20 +92,14 @@ export function Planner({ viewMode = 'week' }: PlanningScreenProps) {
           const periodicService = new PeriodicTaskService();
           const result = await periodicService.checkAndGenerateInstances();
 
-          // Reload all tasks to include new instances
-          const taskRepo = getTaskRepository();
-          const dbTasks = await taskRepo.findAll();
-
           if (result.totalGenerated > 0) {
             console.log(
               `Generated ${result.totalGenerated} new periodic task instances`
             );
           }
 
-          setTasks(dbTasks);
-
-          // Refresh virtual tasks with updated real tasks
-          await loadVirtualTasks(dbTasks);
+          // Refresh all tasks
+          await refreshTasks();
         } catch (error) {
           console.warn(
             'Failed to refresh tasks after periodic task update:',
@@ -107,11 +109,15 @@ export function Planner({ viewMode = 'week' }: PlanningScreenProps) {
       }
     };
 
+    // Listen for both task updates and periodic task updates
+    window.addEventListener('tasks-updated', handleTasksUpdate);
     window.addEventListener(
       'periodic-tasks-updated',
       handlePeriodicTasksUpdate
     );
+
     return () => {
+      window.removeEventListener('tasks-updated', handleTasksUpdate);
       window.removeEventListener(
         'periodic-tasks-updated',
         handlePeriodicTasksUpdate
@@ -175,6 +181,45 @@ export function Planner({ viewMode = 'week' }: PlanningScreenProps) {
     }
   };
 
+  // Centralized task refresh function
+  const refreshTasks = async () => {
+    try {
+      if (isInitialized) {
+        // Load all tasks from database
+        const taskRepo = getTaskRepository();
+        const dbTasks = await taskRepo.findAll();
+
+        // Debug: Log periodic task instances for troubleshooting
+        const periodicInstances = dbTasks.filter(
+          task => task.isPeriodicInstance
+        );
+        if (periodicInstances.length > 0) {
+          console.log(
+            `Loaded ${periodicInstances.length} periodic task instances`
+          );
+        }
+
+        setTasks(dbTasks);
+
+        // Load virtual tasks after real tasks are loaded
+        await loadVirtualTasks(dbTasks);
+      } else {
+        // Clear and reinitialize sample data for testing
+        localStorage.removeItem('kirapilot-mock-db');
+        const sampleTasks: Task[] = [];
+        setTasks(sampleTasks);
+        setVirtualTasks([]);
+      }
+    } catch (error) {
+      console.error('Failed to refresh tasks:', error);
+      // Clear and reinitialize sample data on error
+      localStorage.removeItem('kirapilot-mock-db');
+      const fallbackTasks: Task[] = [];
+      setTasks(fallbackTasks);
+      setVirtualTasks([]);
+    }
+  };
+
   // Load tasks from database on mount and generate periodic task instances
   useEffect(() => {
     const loadTasks = async () => {
@@ -197,38 +242,14 @@ export function Planner({ viewMode = 'week' }: PlanningScreenProps) {
             // Don't fail the entire load process if periodic generation fails
           }
 
-          // Then load all tasks
-          const taskRepo = getTaskRepository();
-          const dbTasks = await taskRepo.findAll();
-
-          // Debug: Log periodic task instances for troubleshooting
-          const periodicInstances = dbTasks.filter(
-            task => task.isPeriodicInstance
-          );
-          if (periodicInstances.length > 0) {
-            console.log(
-              `Loaded ${periodicInstances.length} periodic task instances`
-            );
-          }
-
-          setTasks(dbTasks);
-
-          // Load virtual tasks after real tasks are loaded
-          await loadVirtualTasks(dbTasks);
+          // Then refresh all tasks
+          await refreshTasks();
         } else {
-          // Clear and reinitialize sample data for testing
-          localStorage.removeItem('kirapilot-mock-db');
-          const sampleTasks: Task[] = [];
-          setTasks(sampleTasks);
-          setVirtualTasks([]);
+          await refreshTasks();
         }
       } catch (error) {
         console.error('Failed to load tasks:', error);
-        // Clear and reinitialize sample data on error
-        localStorage.removeItem('kirapilot-mock-db');
-        const fallbackTasks: Task[] = [];
-        setTasks(fallbackTasks);
-        setVirtualTasks([]);
+        await refreshTasks();
       }
     };
 
@@ -305,6 +326,9 @@ export function Planner({ viewMode = 'week' }: PlanningScreenProps) {
       updatedAt: new Date(),
     };
 
+    // Optimistically update local state first for immediate UI feedback
+    setTasks(prev => prev.map(t => (t.id === task.id ? updatedTask : t)));
+
     try {
       // Update in database
       if (isInitialized) {
@@ -312,19 +336,36 @@ export function Planner({ viewMode = 'week' }: PlanningScreenProps) {
         await taskRepo.update(task.id, {
           scheduledDate: newScheduledDate,
         });
-      }
 
-      // Update local state
-      setTasks(prev => prev.map(t => (t.id === task.id ? updatedTask : t)));
+        // Refresh virtual tasks to ensure consistency
+        await loadVirtualTasks(
+          tasks.map(t => (t.id === task.id ? updatedTask : t))
+        );
+      }
     } catch (error) {
       console.error('Failed to update task in database:', error);
-      // Still update local state as fallback
-      setTasks(prev => prev.map(t => (t.id === task.id ? updatedTask : t)));
+
+      // Revert optimistic update on error
+      setTasks(prev => prev.map(t => (t.id === task.id ? task : t)));
+
+      // Show user-friendly error message
+      alert(
+        `Failed to move task: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again.`
+      );
     }
   };
 
   const handleTaskCreate = async (task: Task) => {
     try {
+      // Optimistically add task to UI first
+      const optimisticTask = {
+        ...task,
+        id: `temp-${Date.now()}`, // Temporary ID for optimistic update
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      setTasks(prev => [optimisticTask, ...prev]);
+
       // Create in database
       if (isInitialized) {
         const taskRepo = getTaskRepository();
@@ -342,14 +383,22 @@ export function Planner({ viewMode = 'week' }: PlanningScreenProps) {
           taskListId: task.taskListId, // Include task list ID
         });
 
-        // Update local state with the task from database
-        setTasks(prev => [createdTask, ...prev]);
-      } else {
-        // Fallback: just update local state
-        setTasks(prev => [task, ...prev]);
+        // Replace optimistic task with real task from database
+        setTasks(prev =>
+          prev.map(t => (t.id === optimisticTask.id ? createdTask : t))
+        );
+
+        // Refresh virtual tasks to ensure consistency
+        await loadVirtualTasks([
+          ...tasks.filter(t => t.id !== optimisticTask.id),
+          createdTask,
+        ]);
       }
     } catch (error) {
       console.error('Failed to create task in database:', error);
+
+      // Remove optimistic task on error
+      setTasks(prev => prev.filter(t => !t.id.startsWith('temp-')));
 
       // Re-throw the error so it can be handled by the calling component
       throw error;
@@ -386,21 +435,32 @@ export function Planner({ viewMode = 'week' }: PlanningScreenProps) {
     taskId: string,
     updates: Partial<Task>
   ) => {
+    // Store original task for potential rollback
+    const originalTask = tasks.find(t => t.id === taskId);
+    if (!originalTask) {
+      throw new Error('Task not found');
+    }
+
+    // Optimistically update local state first for immediate UI feedback
+    const updatedTask = { ...originalTask, ...updates, updatedAt: new Date() };
+    setTasks(prev => prev.map(t => (t.id === taskId ? updatedTask : t)));
+
     try {
       // Update in database
       if (isInitialized) {
         const taskRepo = getTaskRepository();
         await taskRepo.update(taskId, updates);
-      }
 
-      // Update local state only if database update succeeded
-      setTasks(prev =>
-        prev.map(t =>
-          t.id === taskId ? { ...t, ...updates, updatedAt: new Date() } : t
-        )
-      );
+        // Refresh virtual tasks to ensure consistency
+        await loadVirtualTasks(
+          tasks.map(t => (t.id === taskId ? updatedTask : t))
+        );
+      }
     } catch (error) {
       console.error('Failed to update task in database:', error);
+
+      // Revert optimistic update on error
+      setTasks(prev => prev.map(t => (t.id === taskId ? originalTask : t)));
 
       // Re-throw the error so calling components (like TaskModal) can handle it
       throw error;
@@ -519,6 +579,16 @@ export function Planner({ viewMode = 'week' }: PlanningScreenProps) {
     }
   };
 
+  const handleViewTimeHistory = (task: Task) => {
+    // This would be handled by the WeeklyPlan component
+    console.log('View time history for task:', task.title);
+  };
+
+  const getTaskTimerProps = (_task: Task) => {
+    // This would be provided by the timer context
+    return {};
+  };
+
   const handleTaskDelete = async (task: Task | VirtualTask) => {
     // Check if this is a virtual task
     if (VirtualPeriodicTaskService.isVirtualTask(task)) {
@@ -527,44 +597,90 @@ export function Planner({ viewMode = 'week' }: PlanningScreenProps) {
       return;
     }
 
+    // Optimistically remove from local state first for immediate UI feedback
+    setTasks(prev => prev.filter(t => t.id !== task.id));
+
     try {
       // Delete from database
       if (isInitialized) {
         const taskRepo = getTaskRepository();
         await taskRepo.delete(task.id);
-      }
 
-      // Remove from local state
-      setTasks(prev => prev.filter(t => t.id !== task.id));
+        // Refresh virtual tasks to ensure consistency
+        await loadVirtualTasks(tasks.filter(t => t.id !== task.id));
+      }
     } catch (error) {
       console.error('Failed to delete task from database:', error);
-      // Fallback: still remove from local state
-      setTasks(prev => prev.filter(t => t.id !== task.id));
+
+      // Restore task on error
+      setTasks(prev => [task as Task, ...prev]);
+
+      // Show user-friendly error message
+      alert(
+        `Failed to delete task: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again.`
+      );
     }
   };
 
   return (
-    <div className='p-6 min-h-full space-y-4'>
-      {/* Task Filter Bar */}
-      <TaskFilterBar
-        filters={filters}
-        onFiltersChange={setFilters}
-        showPeriodicFilters={true}
-      />
+    <div
+      className={`${viewMode === 'focus' ? 'h-full' : 'p-6 min-h-full space-y-4'}`}
+    >
+      {/* Focus View */}
+      {viewMode === 'focus' && (
+        <div className='p-4 h-full'>
+          <FocusView
+            tasks={filteredTasks}
+            onTaskStatusChange={handleTaskStatusChange}
+            onTaskEdit={handleTaskEdit}
+            onTaskDelete={handleTaskDelete}
+            onViewTimeHistory={handleViewTimeHistory}
+            getTaskTimerProps={getTaskTimerProps}
+          />
+        </div>
+      )}
 
-      {/* Weekly Planning Interface */}
-      <WeeklyPlan
-        tasks={filteredTasks}
-        currentWeek={currentWeek}
-        onWeekChange={setCurrentWeek}
-        onTaskMove={handleTaskMove}
-        onTaskCreate={handleTaskCreate}
-        onTaskEdit={handleTaskEdit}
-        onTaskStatusChange={handleTaskStatusChange}
-        onTaskDelete={handleTaskDelete}
-        viewMode={viewMode}
-        columnHeight={getColumnHeight()}
-      />
+      {/* Regular views */}
+      {viewMode !== 'focus' && (
+        <>
+          {/* Task Filter Bar - Only show for week/day views */}
+          {(viewMode === 'week' || viewMode === 'day') && (
+            <TaskFilterBar
+              filters={filters}
+              onFiltersChange={setFilters}
+              showPeriodicFilters={true}
+            />
+          )}
+
+          {/* Dashboard View */}
+          {viewMode === 'dashboard' && (
+            <TaskDashboard
+              tasks={filteredTasks}
+              onTaskStatusChange={handleTaskStatusChange}
+              onTaskEdit={handleTaskEdit}
+              onTaskDelete={handleTaskDelete}
+              onViewTimeHistory={handleViewTimeHistory}
+              getTaskTimerProps={getTaskTimerProps}
+            />
+          )}
+
+          {/* Weekly/Daily Planning Interface */}
+          {(viewMode === 'week' || viewMode === 'day') && (
+            <WeeklyPlan
+              tasks={filteredTasks}
+              currentWeek={currentWeek}
+              onWeekChange={setCurrentWeek}
+              onTaskMove={handleTaskMove}
+              onTaskCreate={handleTaskCreate}
+              onTaskEdit={handleTaskEdit}
+              onTaskStatusChange={handleTaskStatusChange}
+              onTaskDelete={handleTaskDelete}
+              viewMode={viewMode}
+              columnHeight={getColumnHeight()}
+            />
+          )}
+        </>
+      )}
     </div>
   );
 }

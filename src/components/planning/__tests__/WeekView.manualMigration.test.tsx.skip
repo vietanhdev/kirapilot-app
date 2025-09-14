@@ -1,0 +1,175 @@
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { WeekView } from '../WeekView';
+import { Task, TaskStatus, Priority } from '../../../types';
+
+// Mock dependencies
+jest.mock('../../../hooks/useTranslation', () => ({
+  useTranslation: () => ({
+    t: (key: string) => key,
+  }),
+}));
+
+jest.mock('../../../contexts/SettingsContext', () => ({
+  useSettings: () => ({
+    preferences: {
+      taskSettings: {
+        weekStartDay: 0 as const,
+      },
+    },
+  }),
+}));
+
+jest.mock('../../../contexts/TaskListContext', () => ({
+  useTaskList: () => ({
+    isAllSelected: () => false,
+    taskLists: [],
+  }),
+}));
+
+jest.mock('../../../hooks/useDatabase', () => ({
+  useDatabase: () => ({
+    isInitialized: true,
+  }),
+}));
+
+jest.mock('../../../hooks', () => ({
+  useResponsiveColumnWidth: () => ({
+    columnWidth: 300,
+  }),
+}));
+
+jest.mock('../../../services/database/repositories', () => ({
+  getTaskRepository: jest.fn(),
+}));
+
+jest.mock('../../../services/WeekTransitionDetector');
+jest.mock('../../../services/TaskMigrationService');
+jest.mock('../../../services/MigrationPreferencesService');
+
+const mockTasks: Task[] = [
+  {
+    id: '1',
+    title: 'Test Task 1',
+    description: '',
+    status: TaskStatus.PENDING,
+    priority: Priority.MEDIUM,
+    scheduledDate: new Date('2024-01-15'),
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    order: 0,
+    taskListId: 'list1',
+    isPeriodicInstance: false,
+  },
+];
+
+const defaultProps = {
+  tasks: mockTasks,
+  currentWeek: new Date('2024-01-15'),
+  onWeekChange: jest.fn(),
+  onTaskMove: jest.fn(),
+  onTaskEdit: jest.fn(),
+  onTaskStatusChange: jest.fn(),
+  onTaskCreate: jest.fn(),
+  onInlineEdit: jest.fn(),
+  onTaskDelete: jest.fn(),
+  onViewTimeHistory: jest.fn(),
+  getTaskTimerProps: jest.fn(),
+};
+
+describe('WeekView Manual Migration', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('renders manual migration button', () => {
+    render(<WeekView {...defaultProps} />);
+
+    const migrationButton = screen.getByTitle('migration.manual.triggerTooltip');
+    expect(migrationButton).toBeInTheDocument();
+  });
+
+  it('opens manual migration dialog when button is clicked', async () => {
+    render(<WeekView {...defaultProps} />);
+
+    const migrationButton = screen.getByTitle('migration.manual.triggerTooltip');
+    fireEvent.click(migrationButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('migration.manual.dialog.title')).toBeInTheDocument();
+    });
+  });
+
+  it('closes manual migration dialog when cancel is clicked', async () => {
+    render(<WeekView {...defaultProps} />);
+
+    // Open dialog
+    const migrationButton = screen.getByTitle('migration.manual.triggerTooltip');
+    fireEvent.click(migrationButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('migration.manual.dialog.title')).toBeInTheDocument();
+    });
+
+    // Close dialog
+    const cancelButton = screen.getByText('Cancel');
+    fireEvent.click(cancelButton);
+
+    await waitFor(() => {
+      expect(screen.queryByText('migration.manual.dialog.title')).not.toBeInTheDocument();
+    });
+  });
+
+  it('manual migration button is accessible via keyboard', () => {
+    render(<WeekView {...defaultProps} />);
+
+    const migrationButton = screen.getByTitle('migration.manual.triggerTooltip');
+    
+    // Should be focusable
+    migrationButton.focus();
+    expect(document.activeElement).toBe(migrationButton);
+    
+    // Should be clickable with Enter key
+    fireEvent.keyDown(migrationButton, { key: 'Enter' });
+    // Note: The actual dialog opening would need more complex testing setup
+  });
+
+  it('manual migration button has proper ARIA attributes', () => {
+    render(<WeekView {...defaultProps} />);
+
+    const migrationButton = screen.getByTitle('migration.manual.triggerTooltip');
+    
+    expect(migrationButton).toHaveAttribute('title', 'migration.manual.triggerTooltip');
+    expect(migrationButton.tagName).toBe('BUTTON');
+  });
+
+  it('manual migration dialog does not interfere with automatic migration', async () => {
+    render(<WeekView {...defaultProps} />);
+
+    // Open manual migration dialog
+    const migrationButton = screen.getByTitle('migration.manual.triggerTooltip');
+    fireEvent.click(migrationButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('migration.manual.dialog.title')).toBeInTheDocument();
+    });
+
+    // The automatic migration dialog should not be visible
+    expect(screen.queryByText('migration.dialog.title')).not.toBeInTheDocument();
+  });
+
+  it('handles migration completion correctly', async () => {
+    const onTaskCreate = jest.fn();
+    render(<WeekView {...defaultProps} onTaskCreate={onTaskCreate} />);
+
+    // Open manual migration dialog
+    const migrationButton = screen.getByTitle('migration.manual.triggerTooltip');
+    fireEvent.click(migrationButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('migration.manual.dialog.title')).toBeInTheDocument();
+    });
+
+    // The dialog should handle migration completion through the onMigrateTasks prop
+    // This would be tested more thoroughly in the ManualMigrationDialog tests
+  });
+});

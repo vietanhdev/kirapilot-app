@@ -73,6 +73,12 @@ const defaultPreferences: UserPreferences = {
     showCompletedTasks: true,
     compactView: false,
   },
+  migrationSettings: {
+    enabled: true,
+    dismissedWeeks: [],
+    autoSuggestScheduling: true,
+    showDependencyWarnings: true,
+  },
   soundSettings: {
     hapticFeedback: true,
     completionSound: true,
@@ -146,6 +152,10 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({
           taskSettings: {
             ...defaultPreferences.taskSettings,
             ...(parsed.taskSettings || {}),
+          },
+          migrationSettings: {
+            ...defaultPreferences.migrationSettings,
+            ...(parsed.migrationSettings || {}),
           },
           soundSettings: {
             ...defaultPreferences.soundSettings,
